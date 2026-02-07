@@ -81,7 +81,9 @@ export interface UpdateFileInput {
   tagIds?: UUID[];
 }
 
-// Archivo con información completa
+/** 
+ *Archivo con información completa
+ */
 export interface FileWithRelations extends File {
   folder?: {
     id: UUID;
