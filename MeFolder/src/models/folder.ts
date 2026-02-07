@@ -75,6 +75,7 @@ export class FolderModel extends BaseModel<Folder> {
     return this.data.isSystemFolder;
   }
 
+  /** Establece nuevo nombre de carpeta */
   setName(name: string): void {
     const cleanName = name.trim();
     if (!cleanName) throw new Error('El nombre no puede estar vacío');
@@ -83,6 +84,7 @@ export class FolderModel extends BaseModel<Folder> {
     this.updatePath();
   }
 
+  /** Establece descripción de la carpeta */
   setDescription(description: string | undefined): void {
     if (description) {
         this.data.description = description.trim();
@@ -92,6 +94,7 @@ export class FolderModel extends BaseModel<Folder> {
     this.data.updatedAt = new Date();
   }
 
+  /** Establece carpeta padre y nivel */
   setParent(parentId: UUID | undefined, parentPath?: string): void {
     if (parentId === this.data.id) {
       throw new Error('Una carpeta no puede ser su propia carpeta padre');
@@ -107,6 +110,7 @@ export class FolderModel extends BaseModel<Folder> {
     this.updatePath(parentPath);
   }
 
+  /** Cambia estado de la carpeta */
   setStatus(status: FolderStatus): void {
     if (this.data.isProtected && status === 'deleted') {
       throw new Error('No se puede eliminar una carpeta protegida');
@@ -120,11 +124,13 @@ export class FolderModel extends BaseModel<Folder> {
     }
   }
 
+  /** Establece visibilidad de la carpeta */
   setVisibility(visibility: FolderVisibility): void {
     this.data.visibility = visibility;
     this.data.updatedAt = new Date();
   }
 
+  /** Establece color personalizado */
   setColor(color: ColorInfo | undefined): void {
     if (color) {
       this.data.color = color;
@@ -134,6 +140,7 @@ export class FolderModel extends BaseModel<Folder> {
     this.data.updatedAt = new Date();
   }
 
+  /** Establece icono personalizado */
   setIcon(icon: string | undefined): void {
     if (icon) {
         this.data.icon = icon.trim();
@@ -158,6 +165,7 @@ export class FolderModel extends BaseModel<Folder> {
     }
   }
 
+  /** Establece lista de etiquetas */
   setTags(tagIds: UUID[]): void {
     this.data.tagIds = [...tagIds];
     this.data.updatedAt = new Date();
@@ -202,6 +210,7 @@ export class FolderModel extends BaseModel<Folder> {
     this.data.updatedAt = new Date();
   }
 
+  /** Valida datos de la carpeta */
   validate(): ValidationResult {
     const errors = [];
 
@@ -234,42 +243,51 @@ export class FolderModel extends BaseModel<Folder> {
     };
   }
 
+  /** Crea copia del modelo */
   clone(): FolderModel {
     return new FolderModel({ ...this.data });
   }
 
+  /** Verifica si es carpeta raíz */
   isRoot(): boolean {
     return !this.data.parentId;
   }
 
+  /** Verifica si es carpeta del sistema */
   isSystemType(): boolean {
     return this.data.type === 'system';
   }
 
+  /** Verifica si está compartida */
   isShared(): boolean {
     return this.data.type === 'shared' || this.data.visibility !== 'private';
   }
 
+  /** Verifica si puede eliminarse */
   canBeDeleted(): boolean {
     return !this.data.isProtected && 
            !this.data.isSystemFolder && 
            this.data.status !== 'deleted';
   }
 
+  /** Verifica si puede renombrarse */
   canBeRenamed(): boolean {
     return !this.data.isSystemFolder;
   }
 
+  /** Verifica si puede moverse */
   canBeMoved(): boolean {
     return !this.data.isSystemFolder && !this.data.isProtected;
   }
 
+  /** Obtiene nivel de profundidad */
   getDepthLevel(): number {
     return this.data.path.split('/').length - 1;
   }
 }
 
 export class FolderFactory {
+  /** Crea nueva carpeta con configuración por defecto */
   static create(input: CreateFolderInput): FolderModel {
     const now = new Date();
     
@@ -304,6 +322,7 @@ export class FolderFactory {
     return new FolderModel(folder);
   }
 
+  /** Crea carpeta raíz del sistema */
   static createRoot(): FolderModel {
     return this.create({
       name: 'Root',
@@ -311,6 +330,7 @@ export class FolderFactory {
     });
   }
 
+  /** Crea carpeta del sistema protegida */
   static createSystemFolder(name: string, icon?: string): FolderModel {
     const folder = this.create({
       name,
@@ -323,10 +343,12 @@ export class FolderFactory {
     return folder;
   }
 
+  /** Crea modelo desde datos JSON */
   static fromJSON(data: Folder): FolderModel {
     return new FolderModel(data);
   }
 
+  /** Genera ID único para carpeta */
   private static generateId(): UUID {
     return `folder_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }

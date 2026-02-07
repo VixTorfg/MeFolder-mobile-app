@@ -64,6 +64,7 @@ export class FileModel extends BaseModel<File> {
     return this.data.color;
   }
 
+  /** Establece nuevo nombre de archivo */
   setName(name: string): void {
     const cleanName = name.trim();
     if (!cleanName) throw new Error('El nombre no puede estar vacío');
@@ -72,6 +73,7 @@ export class FileModel extends BaseModel<File> {
     this.updatePath();
   }
 
+  /** Cambia carpeta padre y actualiza ruta */
   setFolder(folderId: UUID | undefined, folderPath?: string): void {
     if (folderId) {
       this.data.folderId = folderId;
@@ -81,6 +83,7 @@ export class FileModel extends BaseModel<File> {
     this.updatePath(folderPath);
   }
 
+  /** Cambia estado del archivo */
   setStatus(status: FileStatus): void {
     this.data.status = status;
     this.data.updatedAt = new Date();
@@ -90,11 +93,13 @@ export class FileModel extends BaseModel<File> {
     }
   }
 
+  /** Establece visibilidad del archivo */
   setVisibility(visibility: FileVisibility): void {
     this.data.visibility = visibility;
     this.data.updatedAt = new Date();
   }
 
+  /** Establece color personalizado */
   setColor(color: ColorInfo | undefined): void {
     if (color) {
       this.data.color = color;
@@ -104,6 +109,7 @@ export class FileModel extends BaseModel<File> {
     this.data.updatedAt = new Date();
   }
 
+  /** Establece descripción del archivo */
   setDescription(description: string | undefined): void {
     const trimmed = description?.trim();
     if (trimmed) {
@@ -129,6 +135,7 @@ export class FileModel extends BaseModel<File> {
     }
   }
 
+  /** Establece lista de etiquetas */
   setTags(tagIds: UUID[]): void {
     this.data.tagIds = [...tagIds];
     this.data.updatedAt = new Date();
@@ -147,6 +154,7 @@ export class FileModel extends BaseModel<File> {
     this.data.updatedAt = new Date();
   }
 
+  /** Valida datos del archivo */
   validate(): ValidationResult {
     const errors = [];
 
@@ -174,40 +182,49 @@ export class FileModel extends BaseModel<File> {
     };
   }
 
+  /** Crea copia del modelo */
   clone(): FileModel {
     return new FileModel({ ...this.data });
   }
 
+  /** Verifica si es archivo de imagen */
   isImage(): boolean {
     return this.data.category === 'image';
   }
 
+  /** Verifica si es archivo de vídeo */
   isVideo(): boolean {
     return this.data.category === 'video';
   }
 
+  /** Verifica si es documento */
   isDocument(): boolean {
     return this.data.category === 'document';
   }
 
+  /** Verifica si está archivado */
   isArchived(): boolean {
     return this.data.status === 'archived';
   }
 
+  /** Verifica si está eliminado */
   isDeleted(): boolean {
     return this.data.status === 'deleted';
   }
 
+  /** Verifica si puede eliminarse */
   canBeDeleted(): boolean {
     return this.data.status === 'active' || this.data.status === 'archived';
   }
 
+  /** Obtiene tamaño formateado */
   getFormattedSize(): string {
     return formatFileSize(this.data.metadata.size);
   }
 }
 
 export class FileFactory {
+  /** Crea nuevo archivo con categoría auto-detectada */
   static create(input: CreateFileInput): FileModel {
     const now = new Date();
     const category = FILE_CATEGORY_MAP[input.extension] || 'other';
@@ -236,10 +253,12 @@ export class FileFactory {
     return new FileModel(file);
   }
 
+  /** Crea modelo desde datos JSON */
   static fromJSON(data: File): FileModel {
     return new FileModel(data);
   }
 
+  /** Genera ID único para archivo */
   private static generateId(): UUID {
     return `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }

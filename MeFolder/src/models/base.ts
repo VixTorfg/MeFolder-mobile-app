@@ -5,6 +5,7 @@ import {
 } from '../types/common/base';
 import { formatFileSize } from '../utils';
 
+/** Clase base para todos los modelos con funcionalidad común */
 export abstract class BaseModel<T extends BaseEntity> {
   protected data: T;
 
@@ -24,10 +25,12 @@ export abstract class BaseModel<T extends BaseEntity> {
     return this.data.updatedAt;
   }
 
+  /** Convierte modelo a JSON */
   toJSON(): T {
     return { ...this.data };
   }
 
+  /** Actualiza propiedades del modelo */
   update(input: UpdateInput<T>): void {
     this.data = {
       ...this.data,
@@ -52,7 +55,9 @@ export interface ValidationError {
   code: string;
 }
 
+/** Utilidades para validar campos de modelos */
 export class ValidationUtils {
+  /** Valida que un campo sea requerido */
   static required(value: any, fieldName: string): ValidationError | null {
     if (value === null || value === undefined || value === '') {
       return {
@@ -64,6 +69,7 @@ export class ValidationUtils {
     return null;
   }
 
+  /** Valida longitud mínima de texto */
   static minLength(value: string, min: number, fieldName: string): ValidationError | null {
     if (value && value.length < min) {
       return {
@@ -75,6 +81,7 @@ export class ValidationUtils {
     return null;
   }
 
+  /** Valida longitud máxima de texto */
   static maxLength(value: string, max: number, fieldName: string): ValidationError | null {
     if (value && value.length > max) {
       return {
@@ -86,6 +93,7 @@ export class ValidationUtils {
     return null;
   }
 
+  /** Valida formato de email */
   static email(value: string, fieldName: string): ValidationError | null {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (value && !emailRegex.test(value)) {
@@ -98,6 +106,7 @@ export class ValidationUtils {
     return null;
   }
 
+  /** Valida tamaño máximo de archivo */
   static fileSize(size: number, maxSize: number, fieldName: string): ValidationError | null {
     if (size > maxSize) {
       return {

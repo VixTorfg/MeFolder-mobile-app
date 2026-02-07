@@ -45,11 +45,13 @@ export class TagModel extends BaseModel<Tag> {
     return this.data.parentId;
   }
 
+  /** Establece nuevo nombre de etiqueta */
   setName(name: string): void {
     this.data.name = name.trim();
     this.data.updatedAt = new Date();
   }
 
+  /** Establece descripción de la etiqueta */
   setDescription(description: string | undefined): void {
     if(description) {
       this.data.description = description.trim();
@@ -59,11 +61,13 @@ export class TagModel extends BaseModel<Tag> {
     this.data.updatedAt = new Date();
   }
 
+  /** Establece color de la etiqueta */
   setColor(color: ColorInfo): void {
     this.data.color = color;
     this.data.updatedAt = new Date();
   }
 
+  /** Establece prioridad de la etiqueta */
   setPriority(priority: TagPriority): void {
     this.data.priority = priority;
     this.data.updatedAt = new Date();
@@ -85,6 +89,7 @@ export class TagModel extends BaseModel<Tag> {
     this.data.updatedAt = new Date();
   }
 
+  /** Valida datos de la etiqueta */
   validate(): ValidationResult {
     const errors = [];
 
@@ -116,24 +121,29 @@ export class TagModel extends BaseModel<Tag> {
     };
   }
 
+  /** Crea copia del modelo */
   clone(): TagModel {
     return new TagModel({ ...this.data });
   }
 
+  /** Verifica si es etiqueta del sistema */
   isSystemTag(): boolean {
     return this.data.type === 'system';
   }
 
+  /** Verifica si tiene prioridad alta */
   isHighPriority(): boolean {
     return this.data.priority === 'high' || this.data.priority === 'critical';
   }
 
+  /** Verifica si puede eliminarse */
   canBeDeleted(): boolean {
     return this.data.type !== 'system' && this.data.usageCount === 0;
   }
 }
 
 export class TagFactory {
+  /** Crea nueva etiqueta con configuración por defecto */
   static create(input: CreateTagInput): TagModel {
     const now = new Date();
     const tag: Tag = {
@@ -155,10 +165,12 @@ export class TagFactory {
     return new TagModel(tag);
   }
 
+  /** Crea modelo desde datos JSON */
   static fromJSON(data: Tag): TagModel {
     return new TagModel(data);
   }
 
+  /** Genera ID único para etiqueta */
   private static generateId(): UUID {
     return `tag_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
