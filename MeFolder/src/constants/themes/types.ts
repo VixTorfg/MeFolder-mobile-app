@@ -1,17 +1,35 @@
 export interface Colors {
-  primary: string;
-  primaryDark: string;
-  secondary: string;
-  background: string;
-  surface: string;
-  card: string;
-  text: string;
-  textSecondary: string;
-  border: string;
-  success: string;
-  warning: string;
-  error: string;
-  info: string;
+ background: string,
+  backgroundSoft: string,
+  surface: string,
+
+  card: string,
+  subCard: string,
+  borderSoft: string,
+
+  textPrimary: string,
+  textSecondary: string,
+  textMuted: string,
+  textOnColor: string,
+
+  primary: string,
+  primaryHover: string,
+  primarySoft: string,
+
+  secondary: string,
+  secondarySoft: string,
+
+  success: string,
+  successSoft: string,
+
+  warning: string,
+  warningSoft: string,
+
+  error: string,
+  errorSoft: string,
+
+  divider: string,
+  focusRing: string,
 }
 
 export interface Spacing {

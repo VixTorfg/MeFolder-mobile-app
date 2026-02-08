@@ -115,7 +115,7 @@ export class FileRepositoryImplementation implements FileRepository {
             metadata_audio_duration, metadata_audio_bitrate, metadata_audio_sample_rate,
             color_hex, color_rgb_r, color_rgb_g, color_rgb_b,
             last_accessed_at, archived_at, storage_url, thumbnail_url
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
             file.id, file.createdAt, file.updatedAt,
             file.name, file.originalName, file.extension, file.category, file.description,
@@ -137,8 +137,8 @@ export class FileRepositoryImplementation implements FileRepository {
 
       return file;
     } catch (error) {
-      console.error('Error creating file:', error);
-      throw new Error(`Error al crear archivo: ${error}`);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      throw new Error(`Error al crear archivo: ${errorMessage}`);
     }
   }
 

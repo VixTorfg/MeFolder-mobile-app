@@ -7,6 +7,14 @@ export interface LoadingState {
   progress?: number;      
 }
 
+export interface FloatingTabBarProps {
+  backgroundColor?: string;
+  activeColor?: string;
+  inactiveColor?: string;
+  borderRadius?: number;
+  borderColor?: string;
+}
+
 export interface ErrorState {
   hasError: boolean;
   message?: string;

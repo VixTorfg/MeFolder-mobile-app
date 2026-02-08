@@ -1,25 +1,21 @@
 import { UUID } from '../common/base';
 
+
+//TODO: Revisar y ajustar tipos de navegacion
+
 // Rutas de navegación de la app
 export type RouteName = 
-  | 'Home'
-  | 'FolderView'
-  | 'FileDetails'
-  | 'Search'
-  | 'Tags'
-  | 'Settings'
-  | 'Profile'
-  | 'Favorites'
-  | 'Trash'
-  | 'Upload';
+  | '/'
+  | '/library'
+  | '/tags'
+  | '/trash';
 
 // Parámetros por ruta
 export interface RouteParams {
-  Home: undefined;
-  FolderView: { folderId?: UUID; path?: string };
-  FileDetails: { fileId: UUID };
-  Search: { query?: string; filters?: string };
-  Tags: { tagId?: UUID };
+  '/': undefined;
+  '/library': { folderId?: UUID; path?: string };
+  '/tags': undefined;
+  '/trash': undefined;
   Settings: undefined;
   Profile: undefined;
   Favorites: undefined;

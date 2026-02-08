@@ -33,7 +33,10 @@ export abstract class BaseService {
 
   /** Manejo de errores común para servicios */
   protected handleError(error: any, operation: string): never {
-    console.error(`Error en ${operation}:`, error);
+    // Solo log si no es un error ya procesado (que viene del repository)
+    if (!error.message?.startsWith('Error al')) {
+      console.error(`Error en ${operation}:`, error);
+    }
     
     if (error.message) {
       throw new Error(`${operation}: ${error.message}`);
