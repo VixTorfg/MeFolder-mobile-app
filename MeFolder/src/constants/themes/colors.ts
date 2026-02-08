@@ -1,5 +1,5 @@
 import { Colors } from './types';
-
+/*
 export const lightColors: Colors = {
   primary: '#007AFF',
   primaryDark: '#0056CC',
@@ -30,4 +30,38 @@ export const darkColors: Colors = {
   warning: '#FF9F0A',
   error: '#FF453A',
   info: '#64D2FF',
+};*/
+
+export const lightColors: Colors = {
+  background: '#FAFAF7',
+  backgroundSoft: '#F4F4EE',
+  surface: '#FFFFFF',
+
+  card: '#FFFFFF',
+  subCard: '#F1F2EB',
+  borderSoft: '#E2E3DA',
+
+  textPrimary: '#2B2B28',
+  textSecondary: '#6B6B63',
+  textMuted: '#9A9A90',
+  textOnColor: '#FFFFFF',
+
+  primary: '#F2C94C',
+  primaryHover: '#E6BC3E',
+  primarySoft: '#FFF4CC',
+
+  secondary: '#5DA9C7',
+  secondarySoft: '#E6F3F8',
+
+  success: '#6FCF97',
+  successSoft: '#E8F6EF',
+
+  warning: '#F2994A',
+  warningSoft: '#FDEBD9',
+
+  error: '#EB5757',
+  errorSoft: '#FCEAEA',
+
+  divider: '#E8E9E1',
+  focusRing: '#F2C94C',
 };

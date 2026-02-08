@@ -10,15 +10,28 @@
     "noUncheckedIndexedAccess": true,
     "paths": {
       "@/*": ["./*"],
+      "@/components": ["./src/components"],
       "@/components/*": ["./src/components/*"],
+      "@/screens": ["./src/screens"],
       "@/screens/*": ["./src/screens/*"],
+      "@/hooks": ["./src/hooks"],
       "@/hooks/*": ["./src/hooks/*"],
+      "@/services": ["./src/services"],
       "@/services/*": ["./src/services/*"],
+      "@/types": ["./src/types"],
       "@/types/*": ["./src/types/*"],
+      "@/utils": ["./src/utils"],
       "@/utils/*": ["./src/utils/*"],
+      "@/database": ["./src/database"],
       "@/database/*": ["./src/database/*"],
+      "@/models": ["./src/models"],
       "@/models/*": ["./src/models/*"],
-      "@/assets/*": ["./assets/*"]
+      "@/assets": ["./assets"],
+      "@/assets/*": ["./assets/*"],
+      "@/constants": ["./src/constants"],
+      "@/constants/*": ["./src/constants/*"],
+      "@/themes": ["./src/constants/themes"],
+      "@/themes/*": ["./src/constants/themes/*"]
     }
   },
   "include": [
