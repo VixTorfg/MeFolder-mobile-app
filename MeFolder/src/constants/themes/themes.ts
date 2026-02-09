@@ -2,17 +2,12 @@ import { Theme } from './types';
 import { lightColors, darkColors } from './colors';
 import { typography } from './typography';
 import { spacing } from './spacing';
+import { effects } from './effects';
 
 const baseTheme = {
   spacing,
   typography,
-  borderRadius: 8,
-  shadowOffset: {
-    width: 0,
-    height: 2,
-  },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
+  effects
 };
 
 export const lightTheme: Theme = {

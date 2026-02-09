@@ -3,5 +3,6 @@ export * from './colors';
 export * from './typography';
 export * from './spacing';
 export * from './themes';
+export * from './effects';
 
 export { lightTheme as default } from './themes';

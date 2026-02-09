@@ -73,11 +73,40 @@ export interface Theme {
   colors: Colors;
   spacing: Spacing;
   typography: Typography;
-  borderRadius: number;
-  shadowOffset: {
-    width: number;
-    height: number;
-  };
-  shadowOpacity: number;
-  shadowRadius: number;
+  effects: Effects;
+}
+
+export interface Effects {
+  shadowsOffset: {
+    central: { width: number; height: number };
+    bitDown: { width: number; height: number };
+    slightDown: { width: number; height: number };
+    slightUp: { width: number; height: number };
+    slightLeft: { width: number; height: number };
+    slightRight: { width: number; height: number };
+  },
+  shadowsOpacity: {
+    xs: number;
+    sm: number;
+    md: number;
+    lg: number;
+  },
+  elevation: {
+    xs: number;
+    sm: number;
+    md: number;
+    lg: number;
+  },
+  radius: {
+    exs: number;
+    xxs: number;
+    xs: number;
+    md: number;
+    lg: number;
+  },
+  borderWidth: {
+    xs: number;
+    md: number;
+    lg: number;
+  }
 }

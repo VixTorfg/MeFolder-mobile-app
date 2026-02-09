@@ -4,11 +4,9 @@ import {
   Text, 
   FlatList, 
   TouchableOpacity, 
-  StyleSheet, 
   Alert,
   TextInput,
   Modal,
-  SafeAreaView,
   StatusBar
 } from 'react-native';
 
@@ -20,6 +18,7 @@ import { createTagsTable, createTagTriggers } from '../../src/database/migration
 import { File } from '../../src/types/entities/file';
 import { Folder } from '../../src/types/entities/folder';
 import { UUID } from '../../src/types/common/base';
+import { useStyles, useTheme } from '../../src/hooks';
 
 // Iconos simples usando emojis
 const ICONS = {
@@ -38,6 +37,14 @@ interface NavigationItem {
 }
 
 export default function HomeScreen() {
+  // Theme
+  const { theme, setTheme, currentTheme } = useTheme();
+  const { colors } = theme;
+  const isDark = currentTheme === 'dark';
+  
+  // setTheme('dark');  // Cambiar a tema oscuro
+  // setTheme('light'); // Cambiar a tema claro
+  
   // Estados principales
   const [currentFolderId, setCurrentFolderId] = useState<UUID | null>(null);
   const [items, setItems] = useState<NavigationItem[]>([]);
@@ -268,7 +275,7 @@ export default function HomeScreen() {
   // Renderizar item de la lista
   const renderItem = ({ item }: { item: NavigationItem }) => (
     <TouchableOpacity 
-      style={styles.item} 
+      style={[styles.item, { backgroundColor: colors.card }]} 
       onPress={() => handleItemPress(item)}
     >
       <Text style={styles.icon}>
@@ -276,11 +283,15 @@ export default function HomeScreen() {
          item.type === 'folder' ? ICONS.folder : ICONS.file}
       </Text>
       <View style={styles.itemContent}>
-        <Text style={[styles.itemName, item.type === 'back' && styles.backText]}>
+        <Text style={[
+          styles.itemName, 
+          { color: colors.textPrimary },
+          item.type === 'back' && { color: colors.primary, fontWeight: '600' }
+        ]}>
           {item.name}
         </Text>
         {item.type !== 'back' && (
-          <Text style={styles.itemType}>
+          <Text style={[styles.itemType, { color: colors.textSecondary }]}>
             {item.type === 'folder' ? 'Carpeta' : 'Archivo'}
           </Text>
         )}
@@ -294,31 +305,45 @@ export default function HomeScreen() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar 
+        barStyle={isDark ? "light-content" : "dark-content"} 
+        backgroundColor={colors.background} 
+      />
       
       {/* Header con breadcrumbs y botones de acción */}
-      <View style={styles.header}>
+      <View style={[styles.header, { 
+        backgroundColor: colors.surface, 
+        borderBottomColor: colors.divider 
+      }]}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerIcon}>{ICONS.home}</Text>
-          <Text style={styles.headerText}>
+          <Text style={[styles.headerText, { color: colors.textPrimary }]}>
             {breadcrumbs.join(' / ')}
           </Text>
         </View>
         
         <View style={styles.headerButtons}>
           <TouchableOpacity 
-            style={[styles.headerButton, styles.folderButton]}
+            style={[styles.headerButton, { backgroundColor: colors.warning }]}
             onPress={() => setFolderModalVisible(true)}
           >
             <Text style={styles.headerButtonText}>📁</Text>
           </TouchableOpacity>
           
           <TouchableOpacity 
-            style={[styles.headerButton, styles.fileButton]}
+            style={[styles.headerButton, { backgroundColor: colors.primary }]}
             onPress={() => setModalVisible(true)}
           >
             <Text style={styles.headerButtonText}>📄</Text>
+          </TouchableOpacity>
+
+          {/* DEMO: Botón para cambiar tema - eliminar después */}
+          <TouchableOpacity 
+            style={[styles.headerButton, { backgroundColor: colors.secondary }]}
+            onPress={() => setTheme(currentTheme === 'light' ? 'dark' : 'light')}
+          >
+            <Text style={styles.headerButtonText}>{currentTheme === 'light' ? '🌙' : '☀️'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -346,12 +371,17 @@ export default function HomeScreen() {
         onRequestClose={() => setModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Crear Nuevo Archivo</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Crear Nuevo Archivo</Text>
             
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: colors.background,
+                borderColor: colors.borderSoft,
+                color: colors.textPrimary
+              }]}
               placeholder="Nombre del archivo"
+              placeholderTextColor={colors.textMuted}
               value={newFileName}
               onChangeText={setNewFileName}
               autoFocus={true}
@@ -359,7 +389,7 @@ export default function HomeScreen() {
 
             <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={[styles.button, styles.cancelButton]}
+                style={[styles.button, { backgroundColor: colors.secondary }]}
                 onPress={() => {
                   setModalVisible(false);
                   setNewFileName('');
@@ -369,7 +399,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.button, styles.createButton]}
+                style={[styles.button, { backgroundColor: colors.primary }]}
                 onPress={createDemoFile}
               >
                 <Text style={styles.createButtonText}>Crear</Text>
@@ -387,12 +417,17 @@ export default function HomeScreen() {
         onRequestClose={() => setFolderModalVisible(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>🗂️ Nueva Carpeta</Text>
+          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>🗂️ Nueva Carpeta</Text>
             
             <TextInput
-              style={styles.input}
+              style={[styles.input, { 
+                backgroundColor: colors.background,
+                borderColor: colors.borderSoft,
+                color: colors.textPrimary
+              }]}
               placeholder="Nombre de la carpeta"
+              placeholderTextColor={colors.textMuted}
               value={newFolderName}
               onChangeText={setNewFolderName}
               autoFocus={true}
@@ -400,7 +435,7 @@ export default function HomeScreen() {
 
             <View style={styles.modalButtons}>
               <TouchableOpacity 
-                style={[styles.button, styles.cancelButton]}
+                style={[styles.button, { backgroundColor: colors.secondary }]}
                 onPress={() => {
                   setFolderModalVisible(false);
                   setNewFolderName('');
@@ -410,7 +445,7 @@ export default function HomeScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.button, styles.createButton]}
+                style={[styles.button, { backgroundColor: colors.primary }]}
                 onPress={createDemoFolder}
               >
                 <Text style={styles.createButtonText}>Crear</Text>
@@ -423,19 +458,19 @@ export default function HomeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = useStyles(theme => ({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: theme.colors.background,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
+    borderBottomColor: theme.colors.borderSoft,
   },
   headerLeft: {
     flexDirection: 'row',
@@ -469,7 +504,7 @@ const styles = StyleSheet.create({
   headerText: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#495057',
+    color: theme.colors.textPrimary,
   },
   list: {
     flex: 1,
@@ -478,7 +513,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     padding: 16,
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     marginHorizontal: 16,
     marginVertical: 4,
     borderRadius: 8,
@@ -501,15 +536,15 @@ const styles = StyleSheet.create({
   itemName: {
     fontSize: 16,
     fontWeight: '500',
-    color: '#212529',
+    color: theme.colors.textPrimary,
     marginBottom: 2,
   },
   itemType: {
     fontSize: 14,
-    color: '#6c757d',
+    color: theme.colors.textSecondary,
   },
   backText: {
-    color: '#007bff',
+    color: theme.colors.primary,
     fontWeight: '600',
   },
   centered: {
@@ -524,7 +559,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: theme.colors.surface,
     borderRadius: 12,
     padding: 24,
     width: '85%',
@@ -535,11 +570,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     textAlign: 'center',
     marginBottom: 20,
-    color: '#212529',
+    color: theme.colors.textPrimary,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ced4da',
+    borderColor: theme.colors.borderSoft,
     borderRadius: 8,
     padding: 12,
     fontSize: 16,
@@ -569,4 +604,4 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
   },
-});
+}));

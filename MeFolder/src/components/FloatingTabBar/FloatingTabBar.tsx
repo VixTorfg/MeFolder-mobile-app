@@ -1,12 +1,13 @@
 import React, { useEffect, useRef } from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity, Animated, Dimensions } from 'react-native';
+import { View, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { lightTheme } from '@/themes/themes';
 import type { RouteName, FloatingTabBarProps } from '@/types';
 import { getResponsiveSize } from '@/utils/ui/responsive';
+import { useFloatingTabBarStyles } from './styles';
 
-const { width: screenWidth } = Dimensions.get('window');
+const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);
 
 const ICONS = {
@@ -37,6 +38,7 @@ export default function FloatingTabBar({
 }: FloatingTabBarProps = {}) {
   const pathname = usePathname();
   const router = useRouter();
+  const styles = useFloatingTabBarStyles(responsive);
   
   const animationRefs = useRef<{[key: string]: {
     borderAnim: Animated.Value;
@@ -190,64 +192,3 @@ export default function FloatingTabBar({
   );
 }
 
-const styles = StyleSheet.create({
-  floatingTabContainer: {
-    position: 'absolute',
-    bottom: Platform.OS === 'ios' ? 34 : 20,
-    left: 20,
-    right: 20,
-    alignItems: 'center',
-    pointerEvents: 'box-none',
-    zIndex: 1000,
-  },
-  floatingTabBar: {
-    flexDirection: 'row',
-    paddingHorizontal: responsive.padding,
-    paddingVertical: 8,
-    shadowColor: '#0000005d',
-    shadowOffset: {
-      width: 0,
-      height: 8,
-    },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    borderWidth: 0.25
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center', 
-    paddingVertical: responsive.tabPadding,
-    paddingHorizontal: 4,
-    borderRadius: 16,
-    marginHorizontal: 2,
-    minHeight: 44,
-    position: 'relative', 
-  },
-  topBorder: {
-    position: 'absolute',
-    top: '-32%',
-    left: '20%', 
-    right: '20%', 
-    height: 4,
-    borderRadius: 2,
-    zIndex: 2,
-  },
-  glowEffect: {
-    position: 'absolute',
-    top: '-32%',
-    left: '20%',
-    right: '20%',
-    height: 8,
-    borderRadius: 4,
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 2,
-    elevation: 2,
-    zIndex: 1,
-  },
-});
