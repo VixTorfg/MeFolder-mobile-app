@@ -1,36 +1,4 @@
 import { Colors } from './types';
-/*
-export const lightColors: Colors = {
-  primary: '#007AFF',
-  primaryDark: '#0056CC',
-  secondary: '#5856D6',
-  background: '#F8F9FA',
-  surface: '#FFFFFF',
-  card: '#FFFFFF',
-  text: '#1C1C1E',
-  textSecondary: '#6D6D70',
-  border: '#E1E1E1',
-  success: '#34C759',
-  warning: '#FF9500',
-  error: '#FF3B30',
-  info: '#007AFF',
-};
-
-export const darkColors: Colors = {
-  primary: '#0A84FF',
-  primaryDark: '#0969DA',
-  secondary: '#5E5CE6',
-  background: '#000000',
-  surface: '#1C1C1E',
-  card: '#2C2C2E',
-  text: '#FFFFFF',
-  textSecondary: '#98989D',
-  border: '#38383A',
-  success: '#32D74B',
-  warning: '#FF9F0A',
-  error: '#FF453A',
-  info: '#64D2FF',
-};*/
 
 export const lightColors: Colors = {
   background: '#FAFAF7',
@@ -63,5 +31,39 @@ export const lightColors: Colors = {
   errorSoft: '#FCEAEA',
 
   divider: '#E8E9E1',
+  focusRing: '#F2C94C',
+};
+
+export const darkColors: Colors = {
+  background: '#161613',       
+  backgroundSoft: '#1D1D19',
+  surface: '#23231E',
+
+  card: '#25251F',
+  subCard: '#2C2C25',
+  borderSoft: '#34342C',
+
+  textPrimary: '#F5F5EF',
+  textSecondary: '#C7C7BC',
+  textMuted: '#9E9E92',
+  textOnColor: '#1A1A17',
+
+  primary: '#F2C94C',
+  primaryHover: '#FFD970',
+  primarySoft: 'rgba(242, 201, 76, 0.15)',
+
+  secondary: '#6FB6D6',
+  secondarySoft: 'rgba(111, 182, 214, 0.15)',
+
+  success: '#6FCF97',
+  successSoft: 'rgba(111, 207, 151, 0.15)',
+
+  warning: '#F2994A',
+  warningSoft: 'rgba(242, 153, 74, 0.18)',
+
+  error: '#EB5757',
+  errorSoft: 'rgba(235, 87, 87, 0.18)',
+
+  divider: '#2E2E27',
   focusRing: '#F2C94C',
 };
