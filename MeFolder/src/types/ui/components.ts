@@ -1,3 +1,4 @@
+import { Ionicons }  from '@expo/vector-icons';
 import { UUID } from '../common/base';
 import { ColorInfo } from '../common/colors';
 
@@ -13,6 +14,17 @@ export interface FloatingTabBarProps {
   inactiveColor?: string;
   borderRadius?: number;
   borderColor?: string;
+}
+
+export interface MultiActionButtonProps {
+  onPress: () => Promise<void> | void;
+  icon?: keyof typeof Ionicons.glyphMap; 
+  backgroundColor?: ColorInfo;            
+  label?: string;          
+  disabled?: boolean;  
+  borderRadius?: number;
+  size?: number;
+  iconColor?: string;       
 }
 
 export interface ErrorState {

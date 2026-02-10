@@ -19,6 +19,7 @@ import { File } from '../../src/types/entities/file';
 import { Folder } from '../../src/types/entities/folder';
 import { UUID } from '../../src/types/common/base';
 import { useStyles, useTheme } from '../../src/hooks';
+import { MultiActionButton } from '@/src/components';
 
 // Iconos simples usando emojis
 const ICONS = {
@@ -62,6 +63,155 @@ export default function HomeScreen() {
   // Servicios
   const fileService = new FileService();
   const folderService = new FolderService();
+
+  
+const styles = useStyles(theme => ({
+  container: {
+    flex: 1,
+    backgroundColor: theme.colors.background,
+  },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+    backgroundColor: theme.colors.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: theme.colors.borderSoft,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  headerButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  headerButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  folderButton: {
+    backgroundColor: '#ffc107',
+  },
+  fileButton: {
+    backgroundColor: '#28a745',
+  },
+  headerButtonText: {
+    fontSize: 18,
+  },
+  headerIcon: {
+    fontSize: 20,
+    marginRight: 8,
+  },
+  headerText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: theme.colors.textPrimary,
+  },
+  list: {
+    flex: 1,
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: theme.colors.surface,
+    marginHorizontal: 16,
+    marginVertical: 4,
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  icon: {
+    fontSize: 24,
+    marginRight: 12,
+  },
+  itemContent: {
+    flex: 1,
+  },
+  itemName: {
+    fontSize: 16,
+    fontWeight: '500',
+    color: theme.colors.textPrimary,
+    marginBottom: 2,
+  },
+  itemType: {
+    fontSize: 14,
+    color: theme.colors.textSecondary,
+  },
+  backText: {
+    color: theme.colors.primary,
+    fontWeight: '600',
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 24,
+    width: '85%',
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 20,
+    color: theme.colors.textPrimary,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: theme.colors.borderSoft,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 20,
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  button: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  cancelButton: {
+    backgroundColor: '#6c757d',
+  },
+  createButton: {
+    backgroundColor: '#007bff',
+  },
+  cancelButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  createButtonText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+}));
 
   // DEMO: Inicialización completa de la base de datos
   const initializeEverything = async () => {
@@ -324,12 +474,11 @@ export default function HomeScreen() {
         </View>
         
         <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: colors.warning }]}
+          <MultiActionButton 
             onPress={() => setFolderModalVisible(true)}
-          >
-            <Text style={styles.headerButtonText}>📁</Text>
-          </TouchableOpacity>
+            icon='add'
+            size={38}
+          />
           
           <TouchableOpacity 
             style={[styles.headerButton, { backgroundColor: colors.primary }]}
@@ -457,151 +606,3 @@ export default function HomeScreen() {
     </View>
   );
 }
-
-const styles = useStyles(theme => ({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderSoft,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  folderButton: {
-    backgroundColor: '#ffc107',
-  },
-  fileButton: {
-    backgroundColor: '#28a745',
-  },
-  headerButtonText: {
-    fontSize: 18,
-  },
-  headerIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  headerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  list: {
-    flex: 1,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    marginHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  icon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  itemContent: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  itemType: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  backText: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 24,
-    width: '85%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: theme.colors.textPrimary,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: theme.colors.borderSoft,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#6c757d',
-  },
-  createButton: {
-    backgroundColor: '#007bff',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  createButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-}));

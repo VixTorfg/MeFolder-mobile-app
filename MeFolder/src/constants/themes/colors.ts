@@ -1,3 +1,4 @@
+import { ColorInfo } from '@/src/types/common/colors';
 import { Colors } from './types';
 
 export const lightColors: Colors = {
@@ -67,3 +68,15 @@ export const darkColors: Colors = {
   divider: '#2E2E27',
   focusRing: '#F2C94C',
 };
+
+export const defaultColor: ColorInfo = {
+  hex: lightColors.primary,
+  rgb: 
+  {
+    r: parseInt(lightColors.primary.slice(1, 3), 16),
+    g: parseInt(lightColors.primary.slice(3, 5), 16),
+    b: parseInt(lightColors.primary.slice(5, 7), 16),
+  },
+  name: 'Primary',
+  isSystem: false
+}
