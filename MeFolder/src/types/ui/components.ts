@@ -36,11 +36,15 @@ export interface ViewDropDownProps {
   defaultValue?: string;
 }
 
-export interface ContentCardProps {
+export interface CommunCardProps {
   onPress: () => Promise<void> | void;
   disabled?: boolean;
   data: FileModel | FolderModel;
   showCard?: boolean;
+}
+
+export interface ViewCardsProps extends CommunCardProps {
+  viewConfig?: modeView; //Futuro ViewConfig;
 }
 
 export interface ErrorState {
@@ -50,8 +54,10 @@ export interface ErrorState {
   details?: any;
 }
 
+export type modeView = 'list' | 'grid' | 'big_icon' | 'medium_icon' | 'small_icon' | 'content';
+
 export interface ViewConfig {
-  mode: 'list' | 'grid' | 'details';
+  mode: modeView;
   itemsPerRow?: number;    
   showThumbnails: boolean;
   showFileSize: boolean;

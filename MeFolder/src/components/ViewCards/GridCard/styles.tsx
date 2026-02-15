@@ -1,7 +1,7 @@
 import { useStyles } from '@/hooks';
 import { basicCard } from '@/constants/styles';
 
-export const useContentCardStyles = () => {
+export const useGridCardStyles = () => {
     return useStyles(theme => ({
         cardContainer:{
             ...basicCard(theme),
@@ -13,27 +13,18 @@ export const useContentCardStyles = () => {
             gap: 24,
             alignItems: 'center',
         },
-        iconNameContainer: {
-            flex: 1,
-            flexDirection: 'row',
-            alignItems: 'center',
-            gap: theme.spacing.md,
-        },
         fileNameText: {
-            flex: 1,
-            flexShrink: 1,
             fontFamily: theme.typography.fontFamily.title.semiBold,
-            fontSize: theme.typography.fontSize.md,
+            fontSize: theme.typography.fontSize.sm,
             color: theme.colors.textPrimary,
+            flexShrink: 1,
         },
         fileDetails: {
-            flexShrink: 0,
-            alignItems: 'flex-end',
-            gap: theme.spacing.xs,
+            flex: 1,
         },
         fileDetailsText: {
             fontFamily: theme.typography.fontFamily.primary.regular,
-            fontSize: theme.typography.fontSize.sm,
+            fontSize: theme.typography.fontSize.xs,
             color: theme.colors.textSecondary,
         },
     }));

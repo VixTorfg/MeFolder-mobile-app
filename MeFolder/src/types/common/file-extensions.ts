@@ -1,10 +1,12 @@
+export type FileVideoExtension = 'mp4' | 'avi' | 'mov' | 'mkv' | 'wmv' | 'flv';
+
 export type FileExtension = 
   // Documentos
   | 'pdf' | 'doc' | 'docx' | 'txt' | 'rtf' | 'md'
   // Imágenes
   | 'jpg' | 'jpeg' | 'png' | 'gif' | 'bmp' | 'svg' | 'webp'
   // Videos
-  | 'mp4' | 'avi' | 'mov' | 'mkv' | 'wmv' | 'flv'
+  | FileVideoExtension
   // Audio
   | 'mp3' | 'wav' | 'flac' | 'aac' | 'm4a'
   // Código
@@ -14,6 +16,9 @@ export type FileExtension =
   | 'zip' | 'rar' | '7z' | 'tar' | 'gz'
   // Otros
   | 'json' | 'xml' | 'csv' | 'xlsx';
+
+/** Extensiones sin video */
+export type FileExtensionWithoutVideo = Exclude<FileExtension, FileVideoExtension>;
 
 export type FileCategory = 
   | 'document' 
@@ -53,3 +58,58 @@ export interface FileTypeInfo {
   mimeType?: string;
   defaultIcon: string;
 }
+
+export const EXTENSION_LABELS: Record<FileExtensionWithoutVideo, string> = {
+  // Documentos
+  pdf: 'Documento PDF',
+  doc: 'Documento Word',
+  docx: 'Documento Word',
+  txt: 'Documento de texto',
+  rtf: 'Documento de texto enriquecido',
+  md: 'Documento Markdown',
+
+  // Imágenes
+  jpg: 'Imagen JPG',
+  jpeg: 'Imagen JPEG',
+  png: 'Imagen PNG',
+  gif: 'Imagen GIF',
+  bmp: 'Imagen BMP',
+  svg: 'Imagen SVG',
+  webp: 'Imagen WebP',
+
+  // Audio
+  mp3: 'Audio MP3',
+  wav: 'Audio WAV',
+  flac: 'Audio FLAC',
+  aac: 'Audio AAC',
+  m4a: 'Audio M4A',
+
+  // Código
+  js: 'Archivo JavaScript',
+  ts: 'Archivo TypeScript',
+  jsx: 'Archivo JSX',
+  tsx: 'Archivo TSX',
+  html: 'Documento HTML',
+  css: 'Hoja de estilos CSS',
+  scss: 'Hoja de estilos SCSS',
+  java: 'Archivo Java',
+  py: 'Script Python',
+  cpp: 'Archivo C++',
+  c: 'Archivo C',
+  php: 'Archivo PHP',
+  go: 'Archivo Go',
+  rs: 'Archivo Rust',
+
+  // Comprimidos
+  zip: 'Archivo ZIP',
+  rar: 'Archivo RAR',
+  '7z': 'Archivo 7-Zip',
+  tar: 'Archivo TAR',
+  gz: 'Archivo GZip',
+
+  // Otros
+  json: 'Archivo JSON',
+  xml: 'Archivo XML',
+  csv: 'Archivo CSV',
+  xlsx: 'Hoja de cálculo Excel',
+};

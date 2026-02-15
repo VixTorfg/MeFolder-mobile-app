@@ -4,7 +4,7 @@ import { getResponsiveSize } from '@/utils/ui/responsive';
 import { MultiActionButton } from '../MultiActionButton';
 import { useRef, useState } from 'react';
 import { useViewDropDownStyles } from './styles';
-import { ViewDropDownProps } from '@/types/ui/components';
+import { modeView, ViewDropDownProps } from '@/types/ui/components';
 
 const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);
@@ -13,23 +13,23 @@ export default function ViewDropDown({
   disabled = false,
   size = 38,
   onChange,
-  defaultValue = 'lista',
+  defaultValue = 'list',
 }: ViewDropDownProps = {}) {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [selectedViewMode, setSelectedViewMode] = useState(defaultValue);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
   const viewModes: {
-    id: string;
+    id: modeView;
     name: string;
     icon: keyof typeof Ionicons.glyphMap;
   }[] = [
-    { id: 'lista', name: 'Lista', icon: 'menu-outline' },
-    { id: 'iconos-grandes', name: 'Iconos grandes', icon: 'square-outline'},
-    { id: 'iconos-medianos', name: 'Iconos medianos', icon: 'stop-outline' },
-    { id: 'iconos-pequeños', name: 'Iconos pequeños', icon: 'stop-outline'},
-    { id: 'contenido', name: 'Contenido', icon: 'list-outline' },
-    { id: 'mosaico', name: 'Mosaico', icon: 'grid-outline'},
+    { id: 'list', name: 'Lista', icon: 'menu-outline' },
+    { id: 'big_icon', name: 'Iconos grandes', icon: 'square-outline'},
+    { id: 'medium_icon', name: 'Iconos medianos', icon: 'stop-outline' },
+    { id: 'small_icon', name: 'Iconos pequeños', icon: 'stop-outline'},
+    { id: 'content', name: 'Contenido', icon: 'list-outline' },
+    { id: 'grid', name: 'Mosaico', icon: 'grid-outline'},
   ];
 
   const styles = useViewDropDownStyles(responsive);

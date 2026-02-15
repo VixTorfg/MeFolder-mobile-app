@@ -1,7 +1,7 @@
 import { View, TouchableOpacity, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useContentCardStyles } from './styles';
-import { ContentCardProps } from '@/types';
+import { CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
 import { formatDate, formatFileSize } from '@/utils';
 
@@ -11,10 +11,9 @@ export default function ContentCard({
   disabled = false,
   data,
   showCard = true
-}: ContentCardProps) {
+}: CommunCardProps) {
   
   const styles = useContentCardStyles();
-  console.log('ContentCard data:', data instanceof FileModel ? 'document-outline' : 'folder-outline');
  
   /**
    * Maneja el evento de presión del botón
@@ -41,7 +40,7 @@ export default function ContentCard({
           color={'red'}
         />
 
-        <Text style={styles.fileName}>
+        <Text style={styles.fileNameText} numberOfLines={2} ellipsizeMode='tail'>
           {data.name}
         </Text>
       </View>

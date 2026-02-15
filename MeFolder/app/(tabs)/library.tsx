@@ -1,11 +1,9 @@
-import { ViewDropDown } from '@/src/components/ViewDropDown';
-import { ContentCard } from '@/src/components/ViewCards';
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { FileModel } from '@/src/models/file';
-import { FolderModel } from '@/src/models/folder';
-import type { File } from '@/src/types/entities/file';
-import type { Folder } from '@/src/types/entities/folder';
+import { ViewDropDown, ViewCards } from '@/components';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { FileModel, FolderModel } from '@/models';
+import type { File, Folder } from '@/types';
+import { modeView } from '@/types';
 
 // ===== MOCK DATA =====
 const now = new Date();
@@ -98,10 +96,26 @@ const mockItems: (FileModel | FolderModel)[] = [
     createdAt: now,
     updatedAt: now,
   } as File),
+  new FileModel({
+    id: 'file_mock_004',
+    name: 'vacaciones-playa.mp4',
+    originalName: 'VID_20260110.mp4',
+    extension: 'mp4',
+    category: 'video',
+    path: 'vacaciones-playa.mp4',
+    status: 'active',
+    visibility: 'private',
+    metadata: { size: 150_000_000, mimeType: 'video/mp4', videoMetadata: { duration: 225, width: 1920, height: 1080 } },
+    tagIds: [],
+    createdAt: now,
+    updatedAt: now,
+  } as File),
 ];
 
 export default function LibraryScreen() {
+  const [selectedView, setSelectedView] = useState<modeView>('list');
   const handleOnPress = (selectedMode: any) => {
+    setSelectedView(selectedMode.id);
     console.log('Modo seleccionado:', selectedMode.id);
   }
   return (
@@ -110,55 +124,59 @@ export default function LibraryScreen() {
         <Text style={styles.headerIcon}>📚</Text>
         <Text style={styles.headerText}>Biblioteca</Text>
         <View style={{justifyContent: 'flex-end'}}>
-          <ViewDropDown onChange={handleOnPress}/>
+          <ViewDropDown onChange={handleOnPress} defaultValue='list'/>
         </View>
       </View>
       
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={{ paddingBottom: 120 }}
-      >
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📂 Contenido (Mock)</Text>
-          <View style={styles.cardsGrid}>
-            {mockItems.map((item) => (
-              <ContentCard
-                key={item.id}
-                data={item}
-                onPress={() => console.log('Pressed:', item.name)}
-              />
-            ))}
-          </View>
-        </View>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>👁️ showCard=false</Text>
-          <ContentCard
-            data={mockFile}
-            onPress={() => {}}
-            showCard={false}
+      <FlatList
+        data={mockItems}
+        keyExtractor={(item) => item.id}
+        key={selectedView === 'grid' ? 'grid' : 'list'}
+        numColumns={selectedView === 'grid' ? 2 : 1}
+        renderItem={({ item }) => (
+          <ViewCards
+            data={item}
+            viewConfig={selectedView}
+            onPress={() => console.log('Pressed:', item.name)}
           />
-          <Text style={styles.cardSubtitle}>↑ Esta card tiene showCard=false, no se renderiza</Text>
-        </View>
+        )}
+        columnWrapperStyle={selectedView === 'grid' ? styles.gridRow : undefined}
+        contentContainerStyle={{ paddingBottom: 120, gap: 10, padding: 16 }}
+        ListHeaderComponent={
+          <Text style={styles.sectionTitle}>📂 Contenido (Mock)</Text>
+        }
+        ListFooterComponent={
+          <>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>👁️ showCard=false</Text>
+              <ViewCards
+                data={mockFile}
+                onPress={() => {}}
+                showCard={false}
+              />
+              <Text style={styles.cardSubtitle}>↑ Esta card tiene showCard=false, no se renderiza</Text>
+            </View>
 
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Estadísticas</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>127</Text>
-              <Text style={styles.statLabel}>Archivos totales</Text>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>📊 Estadísticas</Text>
+              <View style={styles.statsContainer}>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>127</Text>
+                  <Text style={styles.statLabel}>Archivos totales</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>45</Text>
+                  <Text style={styles.statLabel}>Carpetas</Text>
+                </View>
+                <View style={styles.statItem}>
+                  <Text style={styles.statNumber}>2.3 GB</Text>
+                  <Text style={styles.statLabel}>Espacio usado</Text>
+                </View>
+              </View>
             </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>45</Text>
-              <Text style={styles.statLabel}>Carpetas</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>2.3 GB</Text>
-              <Text style={styles.statLabel}>Espacio usado</Text>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
+          </>
+        }
+      />
 
     </View>
   );
@@ -197,6 +215,9 @@ const styles = StyleSheet.create({
   cardsGrid: {
     flexDirection: 'column',
     flexWrap: 'wrap',
+    gap: 10,
+  },
+  gridRow: {
     gap: 10,
   },
   sectionTitle: {
