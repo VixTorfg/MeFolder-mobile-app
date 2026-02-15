@@ -16,7 +16,7 @@ export const useMultiActionButtonStyles = (
       alignItems: 'center',
       justifyContent: 'center',
       width: dimensions.buttonSize,
-      height: dimensions.buttonSize,
+      height: dimensions.buttonSize
     },
     iconContainer: {
       alignItems: 'center',
@@ -26,7 +26,7 @@ export const useMultiActionButtonStyles = (
     },
     labelText: {
       color: theme.colors.secondary,
-      fontWeight: theme.typography.fontWeight.semiBold,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
       textAlign: 'center',
       maxWidth: dimensions.buttonSize * 0.8, 
       fontSize: dimensions.fontSize,   

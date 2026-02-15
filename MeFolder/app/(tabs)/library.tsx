@@ -1,34 +1,146 @@
+import { ViewDropDown } from '@/src/components/ViewDropDown';
+import { ContentCard } from '@/src/components/ViewCards';
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import { FileModel } from '@/src/models/file';
+import { FolderModel } from '@/src/models/folder';
+import type { File } from '@/src/types/entities/file';
+import type { Folder } from '@/src/types/entities/folder';
+
+// ===== MOCK DATA =====
+const now = new Date();
+
+const mockFolder = new FolderModel({
+  id: 'folder_mock_001',
+  name: 'Documentos Recientes largosssssssssssssssssssssssssssssss',
+  path: 'Documentos Recientes',
+  level: 0,
+  status: 'active',
+  type: 'regular',
+  visibility: 'private',
+  tagIds: [],
+  viewSettings: {
+    sortBy: 'name',
+    sortOrder: 'asc',
+    viewMode: 'list',
+    showHiddenFiles: false,
+  },
+  isFavorite: true,
+  isProtected: false,
+  isSystemFolder: false,
+  createdAt: now,
+  updatedAt: now,
+} as Folder);
+
+const mockFile = new FileModel({
+  id: 'file_mock_001',
+  name: 'informe-2026.pdf',
+  originalName: 'informe-2026.pdf',
+  extension: 'pdf',
+  category: 'document',
+  path: 'Documentos Recientes/informe-2026.pdf',
+  folderId: 'folder_mock_001',
+  status: 'active',
+  visibility: 'private',
+  metadata: {
+    size: 2_400_000,
+    mimeType: 'application/pdf',
+  },
+  tagIds: [],
+  createdAt: now,
+  updatedAt: now,
+} as File);
+
+const mockItems: (FileModel | FolderModel)[] = [
+  mockFolder,
+  new FolderModel({
+    id: 'folder_mock_002',
+    name: 'Favoritos',
+    path: 'Favoritos',
+    level: 0,
+    status: 'active',
+    type: 'favorite',
+    visibility: 'private',
+    tagIds: [],
+    viewSettings: { sortBy: 'date', sortOrder: 'desc', viewMode: 'grid', showHiddenFiles: false },
+    isFavorite: true,
+    isProtected: false,
+    isSystemFolder: false,
+    createdAt: now,
+    updatedAt: now,
+  } as Folder),
+  mockFile,
+  new FileModel({
+    id: 'file_mock_002',
+    name: 'foto-vacaciones.jpg',
+    originalName: 'IMG_20260101.jpg',
+    extension: 'jpg',
+    category: 'image',
+    path: 'foto-vacaciones.jpg',
+    status: 'active',
+    visibility: 'private',
+    metadata: { size: 5_800_000, mimeType: 'image/jpeg' },
+    tagIds: [],
+    createdAt: now,
+    updatedAt: now,
+  } as File),
+  new FileModel({
+    id: 'file_mock_003',
+    name: 'notas.txt',
+    originalName: 'notas.txt',
+    extension: 'txt',
+    category: 'document',
+    path: 'notas.txt',
+    status: 'active',
+    visibility: 'private',
+    metadata: { size: 1_200, mimeType: 'text/plain' },
+    tagIds: [],
+    createdAt: now,
+    updatedAt: now,
+  } as File),
+];
 
 export default function LibraryScreen() {
+  const handleOnPress = (selectedMode: any) => {
+    console.log('Modo seleccionado:', selectedMode.id);
+  }
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.headerIcon}>📚</Text>
         <Text style={styles.headerText}>Biblioteca</Text>
+        <View style={{justifyContent: 'flex-end'}}>
+          <ViewDropDown onChange={handleOnPress}/>
+        </View>
       </View>
       
       <ScrollView 
         style={styles.content}
-        contentContainerStyle={{ paddingBottom: 120 }} // Espacio para el tab bar flotante
+        contentContainerStyle={{ paddingBottom: 120 }}
       >
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🗂️ Colecciones</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Documentos Recientes</Text>
-            <Text style={styles.cardSubtitle}>15 archivos</Text>
-          </View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Favoritos</Text>
-            <Text style={styles.cardSubtitle}>8 archivos</Text>
-          </View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Compartidos</Text>
-            <Text style={styles.cardSubtitle}>3 archivos</Text>
+          <Text style={styles.sectionTitle}>📂 Contenido (Mock)</Text>
+          <View style={styles.cardsGrid}>
+            {mockItems.map((item) => (
+              <ContentCard
+                key={item.id}
+                data={item}
+                onPress={() => console.log('Pressed:', item.name)}
+              />
+            ))}
           </View>
         </View>
         
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>👁️ showCard=false</Text>
+          <ContentCard
+            data={mockFile}
+            onPress={() => {}}
+            showCard={false}
+          />
+          <Text style={styles.cardSubtitle}>↑ Esta card tiene showCard=false, no se renderiza</Text>
+        </View>
+
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>📊 Estadísticas</Text>
           <View style={styles.statsContainer}>
@@ -47,6 +159,7 @@ export default function LibraryScreen() {
           </View>
         </View>
       </ScrollView>
+
     </View>
   );
 }
@@ -59,6 +172,8 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 30,
     padding: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
@@ -78,6 +193,11 @@ const styles = StyleSheet.create({
   },
   section: {
     padding: 16,
+  },
+  cardsGrid: {
+    flexDirection: 'column',
+    flexWrap: 'wrap',
+    gap: 10,
   },
   sectionTitle: {
     fontSize: 18,
@@ -138,4 +258,6 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     textAlign: 'center',
   },
+  // Dropdown Styles
+  
 });

@@ -1,11 +1,11 @@
 import { BaseService } from './base/BaseService';
 import { 
-  Tag, 
   CreateTagInput,
   TagType
 } from '../types/entities/tag';
 import { UUID } from '../types/common/base';
 import { ColorInfo } from '../types/common/colors';
+import { TagModel, TagFactory } from '../models/tag';
 
 /**
  * TagService MVP - Funcionalidades básicas para desarrollo inicial
@@ -26,7 +26,7 @@ export class TagService extends BaseService {
   /**
    * Crear nuevo tag (operación básica)
    */
-  async createTag(input: CreateTagInput): Promise<Tag> {
+  async createTag(input: CreateTagInput): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
       
@@ -34,7 +34,8 @@ export class TagService extends BaseService {
       await this.validateUniqueTagName(input.name);
 
       // Crear tag usando el repositorio
-      return await this.tagRepo.create(input);
+      const tag = await this.tagRepo.create(input);
+      return TagFactory.fromJSON(tag);
       
     } catch (error) {
       return this.handleError(error, 'crear tag');
@@ -44,7 +45,7 @@ export class TagService extends BaseService {
   /**
    * Obtener tag por ID
    */
-  async getTag(tagId: UUID): Promise<Tag> {
+  async getTag(tagId: UUID): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
 
@@ -53,7 +54,7 @@ export class TagService extends BaseService {
         throw new Error('Tag no encontrado');
       }
 
-      return tag;
+      return TagFactory.fromJSON(tag);
       
     } catch (error) {
       return this.handleError(error, 'obtener tag');
@@ -63,11 +64,12 @@ export class TagService extends BaseService {
   /**
    * Obtener todos los tags activos
    */
-  async getAllTags(): Promise<Tag[]> {
+  async getAllTags(): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
-      return await this.tagRepo.findAll({ status: 'active' });
+      const tags = await this.tagRepo.findAll({ status: 'active' });
+      return tags.map(t => TagFactory.fromJSON(t));
       
     } catch (error) {
       return this.handleError(error, 'obtener todos los tags');
@@ -77,7 +79,7 @@ export class TagService extends BaseService {
   /**
    * Buscar tags por nombre (búsqueda parcial)
    */
-  async searchTagsByName(query: string): Promise<Tag[]> {
+  async searchTagsByName(query: string): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
@@ -85,7 +87,8 @@ export class TagService extends BaseService {
         return await this.getAllTags();
       }
 
-      return await this.tagRepo.search(query);
+      const tags = await this.tagRepo.search(query);
+      return tags.map(t => TagFactory.fromJSON(t));
       
     } catch (error) {
       return this.handleError(error, 'buscar tags');
@@ -95,14 +98,15 @@ export class TagService extends BaseService {
   /**
    * Obtener tags por tipo
    */
-  async getTagsByType(type: TagType): Promise<Tag[]> {
+  async getTagsByType(type: TagType): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
-      return await this.tagRepo.findAll({ 
+      const tags = await this.tagRepo.findAll({ 
         type,
         status: 'active' 
       });
+      return tags.map(t => TagFactory.fromJSON(t));
       
     } catch (error) {
       return this.handleError(error, 'obtener tags por tipo');
@@ -112,7 +116,7 @@ export class TagService extends BaseService {
   /**
    * Renombrar tag
    */
-  async renameTag(tagId: UUID, newName: string): Promise<Tag> {
+  async renameTag(tagId: UUID, newName: string): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
 
@@ -123,9 +127,10 @@ export class TagService extends BaseService {
       await this.validateUniqueTagName(newName, tagId);
 
       // Actualizar nombre
-      return await this.tagRepo.update(tagId, {
+      const updated = await this.tagRepo.update(tagId, {
         name: newName
       });
+      return TagFactory.fromJSON(updated);
       
     } catch (error) {
       return this.handleError(error, 'renombrar tag');
@@ -135,14 +140,15 @@ export class TagService extends BaseService {
   /**
    * Actualizar color del tag
    */
-  async updateTagColor(tagId: UUID, color: ColorInfo): Promise<Tag> {
+  async updateTagColor(tagId: UUID, color: ColorInfo): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
 
       const tag = await this.tagRepo.findById(tagId);
       if (!tag) throw new Error('Tag no encontrado');
 
-      return await this.tagRepo.update(tagId, { color });
+      const updated = await this.tagRepo.update(tagId, { color });
+      return TagFactory.fromJSON(updated);
       
     } catch (error) {
       return this.handleError(error, 'actualizar color del tag');
@@ -179,11 +185,12 @@ export class TagService extends BaseService {
   /**
    * Obtener tags más utilizados
    */
-  async getPopularTags(limit: number = 10): Promise<Tag[]> {
+  async getPopularTags(limit: number = 10): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
-      return await this.tagRepo.findMostUsed(limit);
+      const tags = await this.tagRepo.findMostUsed(limit);
+      return tags.map(t => TagFactory.fromJSON(t));
       
     } catch (error) {
       return this.handleError(error, 'obtener tags populares');
@@ -260,7 +267,7 @@ export class TagService extends BaseService {
   /**
    * Crear tags predeterminados del sistema
    */
-  async createSystemTags(): Promise<Tag[]> {
+  async createSystemTags(): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
@@ -273,7 +280,7 @@ export class TagService extends BaseService {
         { name: 'Favorito', color: { hex: '#ff44aa', rgb: { r: 255, g: 68, b: 170 }, isSystem: true, systemName: 'pink' as const }, type: 'system' as TagType }
       ];
 
-      const createdTags: Tag[] = [];
+      const createdTags: TagModel[] = [];
 
       for (const tagData of systemTags) {
         try {
@@ -281,7 +288,7 @@ export class TagService extends BaseService {
           const existing = await this.tagRepo.findByName(tagData.name);
           if (!existing) {
             const tag = await this.tagRepo.create(tagData);
-            createdTags.push(tag);
+            createdTags.push(TagFactory.fromJSON(tag));
           }
         } catch {
           // Continuar si hay error con un tag específico

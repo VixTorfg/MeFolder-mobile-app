@@ -15,8 +15,8 @@ import { Database } from '../../src/database/sqlite/Database';
 import { createFilesTable } from '../../src/database/migrations/files';
 import { createFoldersTable } from '../../src/database/migrations/folders';
 import { createTagsTable, createTagTriggers } from '../../src/database/migrations/tags';
-import { File } from '../../src/types/entities/file';
-import { Folder } from '../../src/types/entities/folder';
+import { FileModel } from '../../src/models/file';
+import { FolderModel } from '../../src/models/folder';
 import { UUID } from '../../src/types/common/base';
 import { useStyles, useTheme } from '../../src/hooks';
 import { MultiActionButton } from '@/src/components';
@@ -34,7 +34,7 @@ interface NavigationItem {
   id: UUID | 'back';
   name: string;
   type: 'folder' | 'file' | 'back';
-  data?: File | Folder;
+  data?: FileModel | FolderModel;
 }
 
 export default function HomeScreen() {

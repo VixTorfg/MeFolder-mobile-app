@@ -5,6 +5,7 @@ import {
   FileStatus
 } from '../types/entities/file';
 import { UUID } from '../types/common/base';
+import { FileModel, FileFactory } from '../models/file';
 
 /**
  * FileService MVP - Funcionalidades básicas para desarrollo inicial
@@ -24,7 +25,7 @@ export class FileService extends BaseService {
   /**
    * Crear nuevo archivo (operación básica sin auto-tags)
    */
-  async createFile(input: CreateFileInput): Promise<File> {
+  async createFile(input: CreateFileInput): Promise<FileModel> {
     try {
       this.ensureDbInitialized();
       
@@ -34,7 +35,8 @@ export class FileService extends BaseService {
       }
 
       // Crear archivo usando el repositorio
-      return await this.fileRepo.create(input);
+      const file = await this.fileRepo.create(input);
+      return FileFactory.fromJSON(file);
       
     } catch (error) {
       return this.handleError(error, 'crear archivo');
@@ -44,7 +46,7 @@ export class FileService extends BaseService {
   /**
    * Obtener archivo por ID
    */
-  async getFile(fileId: UUID): Promise<File> {
+  async getFile(fileId: UUID): Promise<FileModel> {
     try {
       this.ensureDbInitialized();
 
@@ -53,7 +55,7 @@ export class FileService extends BaseService {
         throw new Error('Archivo no encontrado');
       }
 
-      return file;
+      return FileFactory.fromJSON(file);
       
     } catch (error) {
       return this.handleError(error, 'obtener archivo');
@@ -63,16 +65,19 @@ export class FileService extends BaseService {
   /**
    * Obtener todos los archivos de una carpeta
    */
-  async getFilesInFolder(folderId?: UUID): Promise<File[]> {
+  async getFilesInFolder(folderId?: UUID): Promise<FileModel[]> {
     try {
       this.ensureDbInitialized();
 
+      let files: File[];
       if (folderId) {
-        return await this.fileRepo.findByFolderId(folderId);
+        files = await this.fileRepo.findByFolderId(folderId);
       } else {
         // Archivos sin carpeta (raíz)
-        return await this.fileRepo.findAll({ folderId: null });
+        files = await this.fileRepo.findAll({ folderId: null });
       }
+
+      return files.map(f => FileFactory.fromJSON(f));
       
     } catch (error) {
       return this.handleError(error, 'obtener archivos de carpeta');
@@ -82,7 +87,7 @@ export class FileService extends BaseService {
   /**
    * Mover archivo a otra carpeta
    */
-  async moveFile(fileId: UUID, targetFolderId: UUID): Promise<File> {
+  async moveFile(fileId: UUID, targetFolderId: UUID): Promise<FileModel> {
     try {
       this.ensureDbInitialized();
 
@@ -101,9 +106,10 @@ export class FileService extends BaseService {
       await this.validateUniqueFileName(file.name, targetFolderId, fileId);
 
       // Actualizar carpeta del archivo
-      return await this.fileRepo.update(fileId, {
+      const updated = await this.fileRepo.update(fileId, {
         folderId: targetFolderId
       });
+      return FileFactory.fromJSON(updated);
       
     } catch (error) {
       return this.handleError(error, 'mover archivo');
@@ -135,7 +141,7 @@ export class FileService extends BaseService {
   /**
    * Asignar tags a un archivo
    */
-  async addTagsToFile(fileId: UUID, tagIds: UUID[]): Promise<File> {
+  async addTagsToFile(fileId: UUID, tagIds: UUID[]): Promise<FileModel> {
     try {
       this.ensureDbInitialized();
 
@@ -159,7 +165,7 @@ export class FileService extends BaseService {
   /**
    * Remover tags de un archivo
    */
-  async removeTagsFromFile(fileId: UUID, tagIds: UUID[]): Promise<File> {
+  async removeTagsFromFile(fileId: UUID, tagIds: UUID[]): Promise<FileModel> {
     try {
       this.ensureDbInitialized();
 

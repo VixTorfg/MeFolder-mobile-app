@@ -1,6 +1,8 @@
 import { Ionicons }  from '@expo/vector-icons';
 import { UUID } from '../common/base';
 import { ColorInfo } from '../common/colors';
+import { FileModel } from '@/models/file';
+import { FolderModel } from '@/models/folder';
 
 export interface LoadingState {
   isLoading: boolean;
@@ -25,6 +27,20 @@ export interface MultiActionButtonProps {
   borderRadius?: number;
   size?: number;
   iconColor?: string;       
+}
+
+export interface ViewDropDownProps {
+  disabled?: boolean;
+  size?: number;
+  onChange?: (selectedMode: { id: string; name: string; icon: keyof typeof Ionicons.glyphMap }) => void;
+  defaultValue?: string;
+}
+
+export interface ContentCardProps {
+  onPress: () => Promise<void> | void;
+  disabled?: boolean;
+  data: FileModel | FolderModel;
+  showCard?: boolean;
 }
 
 export interface ErrorState {

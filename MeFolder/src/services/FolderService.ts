@@ -5,6 +5,7 @@ import {
   FolderStatus
 } from '../types/entities/folder';
 import { UUID } from '../types/common/base';
+import { FolderModel, FolderFactory } from '../models/folder';
 
 /**
  * FolderService MVP - Funcionalidades básicas para desarrollo inicial
@@ -24,7 +25,7 @@ export class FolderService extends BaseService {
   /**
    * Crear nueva carpeta (operación básica)
    */
-  async createFolder(input: CreateFolderInput): Promise<Folder> {
+  async createFolder(input: CreateFolderInput): Promise<FolderModel> {
     try {
       this.ensureDbInitialized();
       
@@ -37,7 +38,8 @@ export class FolderService extends BaseService {
       await this.validateUniqueFolderName(input.name, input.parentId || null);
 
       // Crear carpeta usando el repositorio
-      return await this.folderRepo.create(input);
+      const folder = await this.folderRepo.create(input);
+      return FolderFactory.fromJSON(folder);
       
     } catch (error) {
       return this.handleError(error, 'crear carpeta');
@@ -47,7 +49,7 @@ export class FolderService extends BaseService {
   /**
    * Obtener carpeta por ID
    */
-  async getFolder(folderId: UUID): Promise<Folder> {
+  async getFolder(folderId: UUID): Promise<FolderModel> {
     try {
       this.ensureDbInitialized();
 
@@ -56,7 +58,7 @@ export class FolderService extends BaseService {
         throw new Error('Carpeta no encontrada');
       }
 
-      return folder;
+      return FolderFactory.fromJSON(folder);
       
     } catch (error) {
       return this.handleError(error, 'obtener carpeta');
@@ -66,16 +68,19 @@ export class FolderService extends BaseService {
   /**
    * Obtener subcarpetas de una carpeta
    */
-  async getSubfolders(parentId?: UUID): Promise<Folder[]> {
+  async getSubfolders(parentId?: UUID): Promise<FolderModel[]> {
     try {
       this.ensureDbInitialized();
 
+      let folders: Folder[];
       if (parentId) {
-        return await this.folderRepo.findByFolderId(parentId);
+        folders = await this.folderRepo.findByFolderId(parentId);
       } else {
         // Carpetas de nivel raíz (sin padre)
-        return await this.folderRepo.findAll({ parentId: null });
+        folders = await this.folderRepo.findAll({ parentId: null });
       }
+
+      return folders.map(f => FolderFactory.fromJSON(f));
       
     } catch (error) {
       return this.handleError(error, 'obtener subcarpetas');
@@ -110,7 +115,7 @@ export class FolderService extends BaseService {
   /**
    * Mover carpeta a otro padre
    */
-  async moveFolder(folderId: UUID, newParentId: UUID | null): Promise<Folder> {
+  async moveFolder(folderId: UUID, newParentId: UUID | null): Promise<FolderModel> {
     try {
       this.ensureDbInitialized();
 
@@ -132,7 +137,8 @@ export class FolderService extends BaseService {
         updateData.parentId = newParentId;
       }
       
-      return await this.folderRepo.update(folderId, updateData);
+      const updated = await this.folderRepo.update(folderId, updateData);
+      return FolderFactory.fromJSON(updated);
       
     } catch (error) {
       return this.handleError(error, 'mover carpeta');
@@ -192,7 +198,7 @@ export class FolderService extends BaseService {
   /**
    * Renombrar carpeta
    */
-  async renameFolder(folderId: UUID, newName: string): Promise<Folder> {
+  async renameFolder(folderId: UUID, newName: string): Promise<FolderModel> {
     try {
       this.ensureDbInitialized();
 
@@ -203,9 +209,10 @@ export class FolderService extends BaseService {
       await this.validateUniqueFolderName(newName, folder.parentId || null, folderId);
 
       // Actualizar nombre
-      return await this.folderRepo.update(folderId, {
+      const updated = await this.folderRepo.update(folderId, {
         name: newName
       });
+      return FolderFactory.fromJSON(updated);
       
     } catch (error) {
       return this.handleError(error, 'renombrar carpeta');
