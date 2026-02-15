@@ -1,15 +1,14 @@
 import React from 'react';
 import { ViewCardsProps } from '@/types';
 import { View } from 'react-native';
-import { ContentCard } from './ContentCard';
-import { GridCard } from './GridCard';
+import { ContentCard, GridCard, ListCard } from '../ViewCards';
 
 export default function ViewCards({ viewConfig, ...cardProps }: ViewCardsProps) {
 
     const renderCard = () => {
         switch (viewConfig) { //futuro viewConfig?.mode
             case 'list':
-                return <View style={{ flexDirection: 'column' }} />;
+                return <ListCard {...cardProps} />;
             case 'grid':
                 return <GridCard {...cardProps} />;
             case 'big_icon':
