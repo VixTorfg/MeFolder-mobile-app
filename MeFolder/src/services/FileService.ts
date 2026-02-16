@@ -73,8 +73,7 @@ export class FileService extends BaseService {
       if (folderId) {
         files = await this.fileRepo.findByFolderId(folderId);
       } else {
-        // Archivos sin carpeta (raíz)
-        files = await this.fileRepo.findAll({ folderId: null });
+        files = await this.fileRepo.findRootFiles();
       }
 
       return files.map(f => FileFactory.fromJSON(f));

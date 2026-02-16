@@ -1,11 +1,18 @@
 import { ViewDropDown, ViewCards } from '@/components';
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
 import { FileModel, FolderModel } from '@/models';
 import type { File, Folder } from '@/types';
 import { modeView } from '@/types';
+import { useDatabase } from '@/providers/DatabaseProvider';
+import { useServices } from '@/src/providers';
 
-// ===== MOCK DATA =====
+/** Segmento del breadcrumb: guarda ID para navegación y nombre para display */
+interface PathSegment {
+  id: string | null;  // null = raíz
+  name: string;
+}
+
 const now = new Date();
 
 const mockFolder = new FolderModel({
@@ -113,11 +120,71 @@ const mockItems: (FileModel | FolderModel)[] = [
 ];
 
 export default function LibraryScreen() {
+  const { isReady } = useDatabase();
+  const { services } = useServices();
   const [selectedView, setSelectedView] = useState<modeView>('list');
+  const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
+  const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
+  
+  // Cada segmento guarda id (para navegación) y name (para display)
+  // Así al renombrar una carpeta solo actualizas el segmento, sin recargar el árbol
+  const [path, setPath] = useState<PathSegment[]>([
+    { id: null, name: 'Biblioteca' }
+  ]);
+
+  let folders: FolderModel[] = [];
+  let files: FileModel[] = [];
+
+   useEffect(() => {
+    if (!isReady) return;
+
+    const loadContent = async () => {
+      const folderService = services?.folderService;
+      const fileService = services?.fileService;
+
+      if(currentFolderId) {
+        folders = await folderService.getSubfolders(currentFolderId);
+        files = await fileService.getFilesInFolder(currentFolderId);
+      }else{
+        folders = await folderService.getSubfolders();
+        files = await fileService.getFilesInFolder();
+      }
+
+      setItems([...folders, ...files]); // carpetas primero, luego archivos
+    };
+
+    loadContent();
+  }, [isReady, currentFolderId]);
+
   const handleOnPress = (selectedMode: any) => {
     setSelectedView(selectedMode.id);
     console.log('Modo seleccionado:', selectedMode.id);
   }
+
+  const handleElementPress = (item: FileModel | FolderModel) => {
+    if (item instanceof FolderModel) {
+      setCurrentFolderId(item.id);
+      setPath(prev => [...prev, { id: item.id, name: item.name }]);
+    } else {
+      console.log('Abrir archivo:', item.name);
+    }
+  };
+
+  /** Navegar a un segmento anterior del breadcrumb */
+  const handlePressPath = (index: number) => {
+    const segment = path[index];
+    if (!segment) return;
+    setPath(prev => prev.slice(0, index + 1));
+    setCurrentFolderId(segment.id);
+  };
+
+  /** Útil cuando se renombre una carpeta: actualiza solo el nombre en el path */
+  const updatePathSegmentName = (folderId: string, newName: string) => {
+    setPath(prev =>
+      prev.map(seg => (seg.id === folderId ? { ...seg, name: newName } : seg))
+    );
+  };
+  
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -127,9 +194,26 @@ export default function LibraryScreen() {
           <ViewDropDown onChange={handleOnPress} defaultValue='list'/>
         </View>
       </View>
+
+      <View style={styles.breadcrumb}>
+        {path.map((segment, index) => (
+          <TouchableOpacity
+            key={segment.id ?? 'root'}
+            onPress={() => handlePressPath(index)}
+            disabled={index === path.length - 1} // último segmento no es clickeable
+          >
+            <Text style={[
+              styles.breadcrumbText,
+              index === path.length - 1 && styles.breadcrumbActive,
+            ]}>
+              {segment.name}{index < path.length - 1 && ' / '}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
       
       <FlatList
-        data={mockItems}
+        data={items}
         keyExtractor={(item) => item.id}
         key={selectedView === 'grid' ? 'grid' : 'list'}
         numColumns={selectedView === 'grid' ? 2 : 1}
@@ -137,7 +221,7 @@ export default function LibraryScreen() {
           <ViewCards
             data={item}
             viewConfig={selectedView}
-            onPress={() => console.log('Pressed:', item.name)}
+            onPress={() => handleElementPress(item)}
           />
         )}
         columnWrapperStyle={selectedView === 'grid' ? styles.gridRow : undefined}
@@ -145,39 +229,7 @@ export default function LibraryScreen() {
         ListHeaderComponent={
           <Text style={styles.sectionTitle}>📂 Contenido (Mock)</Text>
         }
-        ListFooterComponent={
-          <>
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>👁️ showCard=false</Text>
-              <ViewCards
-                data={mockFile}
-                onPress={() => {}}
-                showCard={false}
-              />
-              <Text style={styles.cardSubtitle}>↑ Esta card tiene showCard=false, no se renderiza</Text>
-            </View>
-
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>📊 Estadísticas</Text>
-              <View style={styles.statsContainer}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>127</Text>
-                  <Text style={styles.statLabel}>Archivos totales</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>45</Text>
-                  <Text style={styles.statLabel}>Carpetas</Text>
-                </View>
-                <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>2.3 GB</Text>
-                  <Text style={styles.statLabel}>Espacio usado</Text>
-                </View>
-              </View>
-            </View>
-          </>
-        }
       />
-
     </View>
   );
 }
@@ -206,8 +258,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#495057',
   },
-  content: {
-    flex: 1,
+  breadcrumb: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e9ecef',
+  },
+  breadcrumbText: {
+    fontSize: 14,
+    color: '#007bff',
+  },
+  breadcrumbActive: {
+    color: '#495057',
+    fontWeight: '600',
   },
   section: {
     padding: 16,

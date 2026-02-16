@@ -41,6 +41,24 @@ export class FileRepositoryImplementation implements FileRepository {
   }
 
   /**
+     * Buscar archivos raíz (sin carpeta padre)
+     */
+    async findRootFiles(): Promise<File[]> {
+      try {
+        const rows = await this.db.query<any>(
+          'SELECT * FROM files WHERE folder_id IS NULL AND status != ?',
+          ['deleted']
+        );
+  
+        return rows.map(this.mapRowToFile);
+      } catch (error) {
+        console.error('Error finding root files:', error);
+        throw new Error(`Error al buscar archivos raíz: ${error}`);
+      }
+    }
+
+
+  /**
    * Obtener todos los archivos con filtros opcionales
    */
   async findAll(filters?: any): Promise<File[]> {

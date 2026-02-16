@@ -42,6 +42,23 @@ export class FolderRepositoryImplementation implements FolderRepository {
   }
 
   /**
+   * Buscar carpetas raíz (sin carpeta padre)
+   */
+  async findRootFolders(): Promise<Folder[]> {
+    try {
+      const rows = await this.db.query<any>(
+        'SELECT * FROM folders WHERE parent_id IS NULL AND status != ?',
+        ['deleted']
+      );
+
+      return rows.map(this.mapRowToFolder);
+    } catch (error) {
+      console.error('Error finding root folders:', error);
+      throw new Error(`Error al buscar carpetas raíz: ${error}`);
+    }
+  }
+
+  /**
    * Obtener todas las carpetas con filtros opcionales
    */
   async findAll(filters?: any): Promise<Folder[]> {
@@ -278,7 +295,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
   /**
    * Buscar carpetas por carpeta padre
    */
-  async findByFolderId(folderId: UUID): Promise<Folder[]> {
+  async findByFolderId(folderId: UUID | null): Promise<Folder[]> {
     return this.findAll({ parentId: folderId });
   }
 

@@ -76,8 +76,7 @@ export class FolderService extends BaseService {
       if (parentId) {
         folders = await this.folderRepo.findByFolderId(parentId);
       } else {
-        // Carpetas de nivel raíz (sin padre)
-        folders = await this.folderRepo.findAll({ parentId: null });
+        folders = await this.folderRepo.findRootFolders();
       }
 
       return folders.map(f => FolderFactory.fromJSON(f));
@@ -102,7 +101,7 @@ export class FolderService extends BaseService {
         if (!folder) break;
         
         path.unshift(folder.name);
-        currentId = folder.parentId || null || null;
+        currentId = folder.parentId || null;
       }
 
       return path;
