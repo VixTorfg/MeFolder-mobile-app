@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useDatabase } from './DatabaseProvider';
-import { FileService } from '../services/FileService';
-import { FolderService } from '../services/FolderService';
-import { TagService } from '../services/TagService';
+import { FileService, FolderService, TagService, FileSystemService } from '@/services';
 
 interface Services {
   fileService: FileService;
@@ -66,6 +64,22 @@ const createServices = (): Services => {
 };
 
 /**
+ * Asegura que el directorio raíz de la app exista.
+ * Se ejecuta durante el arranque antes de exponer los servicios.
+ */
+const ensureRootDirectory = (): void => {
+  const fs = new FileSystemService();
+  const rootUri = fs.resolveUri('root');
+  const result = fs.ensureDirectory(rootUri);
+
+  if (result.success) {
+    console.log('AppBootstrap: Directorio root asegurado →', rootUri);
+  } else {
+    throw new Error(`No se pudo crear el directorio root: ${result.error}`);
+  }
+};
+
+/**
  * Componente de arranque de la aplicación.
  * 
  * Orquesta la secuencia de inicialización:
@@ -114,6 +128,8 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
     try {
       setStatus('initializing');
       console.log('AppBootstrap: Base de datos lista, inicializando servicios...');
+
+      ensureRootDirectory();
 
       const appServices = createServices();
       setServices(appServices);

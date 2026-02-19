@@ -33,7 +33,7 @@
       "@/themes": ["./src/constants/themes"],
       "@/themes/*": ["./src/constants/themes/*"],
       "@/providers": ["./src/providers"],
-      "@/providers/*": ["./src/providers/*"]
+      "@/providers/*": ["./src/providers/*"],   
     }
   },
   "include": [

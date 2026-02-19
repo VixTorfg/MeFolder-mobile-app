@@ -9,7 +9,8 @@ import {
   Modal,
   StatusBar
 } from 'react-native';
-
+import { useRouter } from 'expo-router';
+import * as DocumentPicker from 'expo-document-picker';
 import { FileService, FolderService } from '../../src/services';
 import { Database } from '../../src/database/sqlite/Database';
 import { createFilesTable } from '../../src/database/migrations/files';
@@ -41,7 +42,9 @@ export default function HomeScreen() {
   // Theme
   const { theme, setTheme, currentTheme } = useTheme();
   const { colors } = theme;
+  const { getDocumentAsync } = DocumentPicker;
   const isDark = currentTheme === 'dark';
+  const router = useRouter();
   
   // setTheme('dark');  // Cambiar a tema oscuro
   // setTheme('light'); // Cambiar a tema claro
@@ -321,6 +324,18 @@ const styles = useStyles(theme => ({
     }
   };
 
+  const handleGetItems = async () => {
+    try {
+      const result = await getDocumentAsync({
+        multiple: true
+      });
+      console.log('Documentos seleccionados:', result);
+    }catch (error) {
+      console.error('Error al obtener documentos:', error);
+      Alert.alert('Error', 'No se pudieron obtener los documentos');
+    }
+  }
+
   // Crear archivo demo
   const createDemoFile = async () => {
     if (!newFileName.trim()) {
@@ -487,12 +502,27 @@ const styles = useStyles(theme => ({
             <Text style={styles.headerButtonText}>📄</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            style={[styles.headerButton, { backgroundColor: colors.primary }]}
+            onPress={() => handleGetItems()}
+          >
+            <Text style={styles.headerButtonText}>T</Text>
+          </TouchableOpacity>
+
           {/* DEMO: Botón para cambiar tema - eliminar después */}
           <TouchableOpacity 
             style={[styles.headerButton, { backgroundColor: colors.secondary }]}
             onPress={() => setTheme(currentTheme === 'light' ? 'dark' : 'light')}
           >
             <Text style={styles.headerButtonText}>{currentTheme === 'light' ? '🌙' : '☀️'}</Text>
+          </TouchableOpacity>
+
+          {/* DEMO: Botón para abrir MediaLibrary demo - eliminar después */}
+          <TouchableOpacity 
+            style={[styles.headerButton, { backgroundColor: '#17a2b8' }]}
+            onPress={() => router.push('/media-library-demo')}
+          >
+            <Text style={styles.headerButtonText}>📸</Text>
           </TouchableOpacity>
         </View>
       </View>

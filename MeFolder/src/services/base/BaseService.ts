@@ -1,10 +1,10 @@
-import { Database } from '../../database/sqlite/Database';
+import { Database } from '@/database/sqlite/Database';
 import { 
   FileRepository,
   FolderRepository, 
   TagRepository,
   TagAssignmentRepository
-} from '../../database/repositories';
+} from '@/database/repositories';
 
 /**
  * Clase base para servicios con configuración común y validaciones
