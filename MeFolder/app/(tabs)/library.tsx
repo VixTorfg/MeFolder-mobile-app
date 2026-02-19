@@ -1,6 +1,7 @@
-import { ViewDropDown, ViewCards } from '@/components';
+import { ViewDropDown, ViewCards, ItemCreator } from '@/components';
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
 import type { File, Folder } from '@/types';
 import { modeView } from '@/types';
@@ -125,7 +126,8 @@ export default function LibraryScreen() {
   const [selectedView, setSelectedView] = useState<modeView>('list');
   const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
-  
+  const [creatorVisible, setCreatorVisible] = useState(false);
+
   // Cada segmento guarda id (para navegación) y name (para display)
   // Así al renombrar una carpeta solo actualizas el segmento, sin recargar el árbol
   const [path, setPath] = useState<PathSegment[]>([
@@ -212,6 +214,24 @@ export default function LibraryScreen() {
         ))}
       </View>
       
+      {/* FAB para añadir elemento */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => setCreatorVisible(true)}
+        activeOpacity={0.8}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
+
+      {/* Modal de creación */}
+      <ItemCreator
+        visible={creatorVisible}
+        onClose={() => setCreatorVisible(false)}
+        currentFolderId={currentFolderId}
+        onSaveFile={(data) => { console.log('Guardar archivo:', data); }}
+        onSaveFolder={(data) => { console.log('Crear carpeta:', data); }}
+      />
+
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
@@ -346,6 +366,21 @@ const styles = StyleSheet.create({
     color: '#6c757d',
     textAlign: 'center',
   },
-  // Dropdown Styles
-  
+  fab: {
+    position: 'absolute',
+    bottom: 90,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F2C94C',
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    zIndex: 100,
+  },
 });
