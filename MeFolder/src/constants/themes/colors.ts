@@ -1,4 +1,4 @@
-import { ColorInfo } from '@/src/types/common/colors';
+import { ColorInfo, SystemColorName } from '@/src/types/common/colors';
 import { Colors } from './types';
 
 export const lightColors: Colors = {
@@ -80,3 +80,76 @@ export const defaultColor: ColorInfo = {
   name: 'Primary',
   isSystem: false
 }
+
+export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
+  yellow: {
+    hex: '#F2C94C',
+    rgb: { r: 242, g: 201, b: 76 },
+    name: 'Yellow',
+    isSystem: true,
+    systemName: 'yellow',
+  },
+  red: {
+    hex: '#EB5757',
+    rgb: { r: 235, g: 87, b: 87 },
+    name: 'Red',
+    isSystem: true,
+    systemName: 'red',
+  },
+  blue: {
+    hex: '#5DA9C7',
+    rgb: { r: 93, g: 169, b: 199 },
+    name: 'Blue',
+    isSystem: true,
+    systemName: 'blue',
+  },
+  green: {
+    hex: '#6FCF97',
+    rgb: { r: 111, g: 207, b: 151 },
+    name: 'Green',
+    isSystem: true,
+    systemName: 'green',
+  }, 
+  purple: {
+    hex: '#9B51E0',
+    rgb: { r: 155, g: 81, b: 224 },
+    name: 'Purple',
+    isSystem: true,
+    systemName: 'purple',
+  },
+  orange: {
+    hex: '#F2994A',
+    rgb: { r: 242, g: 153, b: 74 },
+    name: 'Orange',
+    isSystem: true,
+    systemName: 'orange',
+  },
+  pink: {
+    hex: '#F06292',
+    rgb: { r: 240, g: 98, b: 146 },
+    name: 'Pink',
+    isSystem: true,
+    systemName: 'pink',
+  },
+  cyan: {
+    hex: '#4DB6AC',
+    rgb: { r: 77, g: 182, b: 172 },
+    name: 'Cyan',
+    isSystem: true,
+    systemName: 'cyan',
+  },
+  gray: {
+    hex: '#9A9A90',
+    rgb: { r: 154, g: 154, b: 144 },
+    name: 'Gray',
+    isSystem: true,
+    systemName: 'gray',
+  },
+  black: {
+    hex: '#2B2B28',
+    rgb: { r: 43, g: 43, b: 40 },
+    name: 'Black',
+    isSystem: true,
+    systemName: 'black',
+  },
+};

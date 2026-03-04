@@ -296,6 +296,7 @@ export const useFolderCreatorStyles = () => {
     },
     colorList: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       gap: theme.spacing.sm,
     },
     colorOption: {

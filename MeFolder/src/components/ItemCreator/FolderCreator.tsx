@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/providers';
 import { useFolderCreatorStyles } from './styles';
+import { ColorInfo, SystemColorName } from '@/types/common/colors';
+import { SYSTEM_COLORS } from '@/constants/themes/colors';
 
 interface MockTag {
   id: string;
@@ -10,22 +12,19 @@ interface MockTag {
   color: string;
 }
 
-interface FolderCreatorProps {
-  onSave: (data: any) => Promise<void> | void;
-  currentFolderId?: string | null | undefined;
+interface NewFolder {
+  name: string;
+  description: string | undefined;
+  color: ColorInfo | undefined;
+  icon: keyof typeof Ionicons.glyphMap | undefined | SVGAElement;
+  tags: string[];
+  parentId: string | null | undefined;
 }
 
-// Colores predefinidos para carpetas
-const FOLDER_COLORS = [
-  { id: 'yellow', hex: '#F2C94C' },
-  { id: 'blue', hex: '#5DA9C7' },
-  { id: 'green', hex: '#6FCF97' },
-  { id: 'red', hex: '#EB5757' },
-  { id: 'orange', hex: '#F2994A' },
-  { id: 'purple', hex: '#9B51E0' },
-  { id: 'pink', hex: '#F06292' },
-  { id: 'teal', hex: '#4DB6AC' },
-];
+interface FolderCreatorProps {
+  onSave: (data: NewFolder) => Promise<void> | void;
+  currentFolderId?: string | null | undefined;
+}
 
 // Iconos predefinidos para carpetas
 const FOLDER_ICONS: Array<{ id: string; icon: keyof typeof Ionicons.glyphMap }> = [
@@ -40,7 +39,7 @@ const FOLDER_ICONS: Array<{ id: string; icon: keyof typeof Ionicons.glyphMap }> 
   { id: 'code-slash', icon: 'code-slash' },
   { id: 'airplane', icon: 'airplane' },
   { id: 'fitness', icon: 'fitness' },
-  { id: 'restaurant', icon: 'restaurant' },
+  { id: 'add', icon: 'add' },
 ];
 
 const MOCK_TAGS: MockTag[] = [
@@ -57,7 +56,7 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
 
   const [folderName, setFolderName] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedColor, setSelectedColor] = useState<string>(FOLDER_COLORS[0]!.id);
+  const [selectedColor, setSelectedColor] = useState<SystemColorName>('yellow');
   const [selectedIcon, setSelectedIcon] = useState<string>(FOLDER_ICONS[0]!.id);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [nameFocused, setNameFocused] = useState(false);
@@ -79,18 +78,26 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
 
   const handleSave = async (): Promise<void> => {
     if (!canSave) return;
-    const color = FOLDER_COLORS.find(c => c.id === selectedColor);
+    const color: ColorInfo = SYSTEM_COLORS[selectedColor];
     const icon = FOLDER_ICONS.find(i => i.id === selectedIcon);
 
     await onSave({
       name: folderName.trim(),
       description: description.trim() || undefined,
-      color: color ? { hex: color.hex, name: color.id } : undefined,
+      color,
       icon: icon?.icon,
       tags: Array.from(selectedTags),
       parentId: currentFolderId,
     });
   };
+
+  const handleSelectIcon = (iconId: string): void => {
+    if (iconId === 'add') {
+      Alert.alert('Icono personalizado', 'Funcionalidad de icono personalizado no implementada en esta demo.');
+      return;
+    }
+    setSelectedIcon(iconId);
+  }
 
   return (
     <View style={styles.container}>
@@ -133,14 +140,14 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       <View style={styles.colorSection}>
         <Text style={styles.label}>Color</Text>
         <View style={styles.colorList}>
-          {FOLDER_COLORS.map(color => (
+          {Object.entries(SYSTEM_COLORS).map(([key, color]) => (
             <TouchableOpacity
-              key={color.id}
+              key={key}
               style={[
                 styles.colorOption,
-                selectedColor === color.id && styles.colorOptionSelected,
+                selectedColor === key && styles.colorOptionSelected,
               ]}
-              onPress={() => setSelectedColor(color.id)}
+              onPress={() => setSelectedColor(key as SystemColorName)}
               activeOpacity={0.7}
             >
               <View
@@ -148,6 +155,7 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
               />
             </TouchableOpacity>
           ))}
+          {/* TODO: Custom color picker button */}
         </View>
       </View>
 
@@ -162,7 +170,7 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
                 styles.iconOption,
                 selectedIcon === item.id && styles.iconOptionSelected,
               ]}
-              onPress={() => setSelectedIcon(item.id)}
+              onPress={() => handleSelectIcon(item.id)}
               activeOpacity={0.7}
             >
               <Ionicons
@@ -171,7 +179,9 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
                 color={
                   selectedIcon === item.id
                     ? theme.colors.primary
-                    : theme.colors.textSecondary
+                    : (item.id === 'add' 
+                      ? theme.colors.warning
+                      : theme.colors.textSecondary)
                 }
               />
             </TouchableOpacity>
