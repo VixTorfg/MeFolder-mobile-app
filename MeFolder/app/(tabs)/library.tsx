@@ -1,124 +1,20 @@
 import { ViewDropDown, ViewCards, ItemCreator } from '@/components';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
-import type { File, Folder } from '@/types';
+import type { CreateFileInput, File, FileCategory, FileMetadata, Folder, FSFileInfo } from '@/types';
 import { modeView } from '@/types';
-import { useDatabase } from '@/providers/DatabaseProvider';
-import { useServices } from '@/src/providers';
+import { useDatabase, useServices  } from '@/providers';
+import { useFileSystem, useMedia } from '@/hooks';
+import type { newFile } from '@/components/ItemCreator/FileCreator';
+import mime from 'mime';
 
 /** Segmento del breadcrumb: guarda ID para navegación y nombre para display */
 interface PathSegment {
   id: string | null;  // null = raíz
   name: string;
 }
-
-const now = new Date();
-
-const mockFolder = new FolderModel({
-  id: 'folder_mock_001',
-  name: 'Documentos Recientes largosssssssssssssssssssssssssssssss',
-  path: 'Documentos Recientes',
-  level: 0,
-  status: 'active',
-  type: 'regular',
-  visibility: 'private',
-  tagIds: [],
-  viewSettings: {
-    sortBy: 'name',
-    sortOrder: 'asc',
-    viewMode: 'list',
-    showHiddenFiles: false,
-  },
-  isFavorite: true,
-  isProtected: false,
-  isSystemFolder: false,
-  createdAt: now,
-  updatedAt: now,
-} as Folder);
-
-const mockFile = new FileModel({
-  id: 'file_mock_001',
-  name: 'informe-2026.pdf',
-  originalName: 'informe-2026.pdf',
-  extension: 'pdf',
-  category: 'document',
-  path: 'Documentos Recientes/informe-2026.pdf',
-  folderId: 'folder_mock_001',
-  status: 'active',
-  visibility: 'private',
-  metadata: {
-    size: 2_400_000,
-    mimeType: 'application/pdf',
-  },
-  tagIds: [],
-  createdAt: now,
-  updatedAt: now,
-} as File);
-
-const mockItems: (FileModel | FolderModel)[] = [
-  mockFolder,
-  new FolderModel({
-    id: 'folder_mock_002',
-    name: 'Favoritos',
-    path: 'Favoritos',
-    level: 0,
-    status: 'active',
-    type: 'favorite',
-    visibility: 'private',
-    tagIds: [],
-    viewSettings: { sortBy: 'date', sortOrder: 'desc', viewMode: 'grid', showHiddenFiles: false },
-    isFavorite: true,
-    isProtected: false,
-    isSystemFolder: false,
-    createdAt: now,
-    updatedAt: now,
-  } as Folder),
-  mockFile,
-  new FileModel({
-    id: 'file_mock_002',
-    name: 'foto-vacaciones.jpg',
-    originalName: 'IMG_20260101.jpg',
-    extension: 'jpg',
-    category: 'image',
-    path: 'foto-vacaciones.jpg',
-    status: 'active',
-    visibility: 'private',
-    metadata: { size: 5_800_000, mimeType: 'image/jpeg' },
-    tagIds: [],
-    createdAt: now,
-    updatedAt: now,
-  } as File),
-  new FileModel({
-    id: 'file_mock_003',
-    name: 'notas.txt',
-    originalName: 'notas.txt',
-    extension: 'txt',
-    category: 'document',
-    path: 'notas.txt',
-    status: 'active',
-    visibility: 'private',
-    metadata: { size: 1_200, mimeType: 'text/plain' },
-    tagIds: [],
-    createdAt: now,
-    updatedAt: now,
-  } as File),
-  new FileModel({
-    id: 'file_mock_004',
-    name: 'vacaciones-playa.mp4',
-    originalName: 'VID_20260110.mp4',
-    extension: 'mp4',
-    category: 'video',
-    path: 'vacaciones-playa.mp4',
-    status: 'active',
-    visibility: 'private',
-    metadata: { size: 150_000_000, mimeType: 'video/mp4', videoMetadata: { duration: 225, width: 1920, height: 1080 } },
-    tagIds: [],
-    createdAt: now,
-    updatedAt: now,
-  } as File),
-];
 
 export default function LibraryScreen() {
   const { isReady } = useDatabase();
@@ -127,6 +23,9 @@ export default function LibraryScreen() {
   const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<string | null>(null);
   const [creatorVisible, setCreatorVisible] = useState(false);
+
+  const fs = useFileSystem();
+  const media = useMedia();
 
   // Cada segmento guarda id (para navegación) y name (para display)
   // Así al renombrar una carpeta solo actualizas el segmento, sin recargar el árbol
@@ -168,7 +67,10 @@ export default function LibraryScreen() {
       setCurrentFolderId(item.id);
       setPath(prev => [...prev, { id: item.id, name: item.name }]);
     } else {
-      console.log('Abrir archivo:', item.name);
+      Alert.alert(
+        `📄 ${item.name}`,
+        JSON.stringify(item.toJSON(), null, 2),
+      );
     }
   };
 
@@ -186,7 +88,112 @@ export default function LibraryScreen() {
       prev.map(seg => (seg.id === folderId ? { ...seg, name: newName } : seg))
     );
   };
-  
+
+  const buildFileMetadata = async (category: FileCategory, uri: string, fsInfo: FSFileInfo | null, fileMimeType?: string): Promise<FileMetadata> => {
+    const mimeType = fileMimeType || fsInfo?.mimeType || '';
+    const base: FileMetadata = {
+      size: fsInfo?.size ?? 0,
+      ...(mimeType && { mimeType }),
+      ...(fsInfo?.md5 && { checksum: fsInfo.md5 }),
+    };
+
+    switch (category) {
+      case 'video': {
+        const videoMeta = await media.getVideoMetadata(uri);
+        if (videoMeta) {
+          return { ...base, videoMetadata: videoMeta };
+        }
+        return base;
+      }
+      case 'audio': {
+        const audioMeta = await media.getAudioMetadata(uri);
+        if (audioMeta) {
+          return { ...base, audioMetadata: audioMeta };
+        }
+        return base;
+      }
+      case 'image': {
+        const imageMeta = await media.getImageMetadata(uri);
+        if (imageMeta) {
+          return { ...base, imageMetadata: imageMeta };
+        }
+        return base;
+      }
+      default:
+        return base;
+    }
+  }
+
+  const handleSaveFile = async (data: newFile): Promise<void> => {
+    const { files, tags, folderId } = data;
+
+    console.log('Archivos a guardar:', files);
+    const fileService = services?.fileService;
+    const targetFolderId = folderId ?? currentFolderId ?? 'root';
+    const failed: { name: string; error: string }[] = [];
+
+    for (const file of files) {
+      let copiedUri: string | null = null;
+
+      try {
+        const resolvedExt = (
+          (file.mimeType && mime.getExtension(file.mimeType)) ||
+          ''
+        );
+
+        const fileNameWithExt = resolvedExt && !file.name.endsWith(`.${resolvedExt}`)
+          ? `${file.name}.${resolvedExt}`
+          : file.name;
+
+        const destinationUri = fs.resolveUri(`${targetFolderId}/${fileNameWithExt}`);
+        const copyResult = fs.copyFile(file.uri, destinationUri);
+
+        if (!copyResult.toUri) {
+          failed.push({ name: file.name, error: 'Error al copiar el archivo' });
+          continue;
+        }
+
+        copiedUri = copyResult.toUri;
+
+        const metadata = fs.getFileInfo(copiedUri);
+        console.log(`Archivo copiado: ${file.name}, URI: ${copiedUri}, Metadata:`, metadata);
+
+        if (!metadata) {
+          throw new Error('No se pudo obtener información del archivo');
+        }
+
+        const fileMetadata = await buildFileMetadata(file.type, copiedUri, metadata, file.mimeType);
+
+        const fileResult = await fileService?.createFile({
+          name: file.name,
+          originalName: file.originalName,
+          extension: (resolvedExt || metadata.extension || '') as CreateFileInput['extension'],
+          folderId: folderId,
+          visibility: 'private',
+          metadata: fileMetadata,
+          tagIds: tags,
+          storageUrl: copiedUri,
+        } as CreateFileInput);
+      
+      setItems(prev => [...prev, fileResult]);
+      } catch (error) {
+        if (copiedUri) {
+          try {
+            fs.deleteFile(copiedUri);
+            console.warn(`Archivo temporal eliminado: ${copiedUri}`);
+          } catch (cleanupError) {
+            console.warn(`Rollback fallido para ${file.name}:`, cleanupError);
+          }
+        }
+        failed.push({ name: file.name, error: String(error) });
+      }
+    }
+
+    if (failed.length > 0) {
+      console.warn('Archivos que no se pudieron guardar:', failed);
+      // TODO: Mostrar notificación al usuario con los archivos fallidos
+    }
+  };
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -228,7 +235,7 @@ export default function LibraryScreen() {
         visible={creatorVisible}
         onClose={() => setCreatorVisible(false)}
         currentFolderId={currentFolderId}
-        onSaveFile={(data) => { console.log('Guardar archivo:', data); }}
+        onSaveFile={(data) => {handleSaveFile(data)}}
         onSaveFolder={(data) => { console.log('Crear carpeta:', data); }}
       />
 

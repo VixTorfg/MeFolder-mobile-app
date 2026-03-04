@@ -1,7 +1,9 @@
 import React from 'react';
 import { ViewCardsProps } from '@/types';
 import { View } from 'react-native';
-import { ContentCard, GridCard, ListCard } from '../ViewCards';
+import { ContentCard } from './ContentCard';
+import { GridCard } from './GridCard';
+import { ListCard } from './ListCard';
 
 export default function ViewCards({ viewConfig, ...cardProps }: ViewCardsProps) {
 

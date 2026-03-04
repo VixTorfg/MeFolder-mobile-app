@@ -59,6 +59,86 @@ export interface FileTypeInfo {
   defaultIcon: string;
 }
 
+export const EXTENSION_MIME_MAP: Record<FileExtension, string> = {
+  // Documentos
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  txt: 'text/plain',
+  rtf: 'application/rtf',
+  md: 'text/markdown',
+
+  // Imágenes
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  bmp: 'image/bmp',
+  svg: 'image/svg+xml',
+  webp: 'image/webp',
+
+  // Videos
+  mp4: 'video/mp4',
+  avi: 'video/x-msvideo',
+  mov: 'video/quicktime',
+  mkv: 'video/x-matroska',
+  wmv: 'video/x-ms-wmv',
+  flv: 'video/x-flv',
+
+  // Audio
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  flac: 'audio/flac',
+  aac: 'audio/aac',
+  m4a: 'audio/mp4',
+
+  // Código
+  js: 'application/javascript',
+  ts: 'application/typescript',
+  jsx: 'text/jsx',
+  tsx: 'text/tsx',
+  html: 'text/html',
+  css: 'text/css',
+  scss: 'text/x-scss',
+  java: 'text/x-java-source',
+  py: 'text/x-python',
+  cpp: 'text/x-c++src',
+  c: 'text/x-csrc',
+  php: 'application/x-httpd-php',
+  go: 'text/x-go',
+  rs: 'text/x-rustsrc',
+
+  // Comprimidos
+  zip: 'application/zip',
+  rar: 'application/vnd.rar',
+  '7z': 'application/x-7z-compressed',
+  tar: 'application/x-tar',
+  gz: 'application/gzip',
+
+  // Otros
+  json: 'application/json',
+  xml: 'application/xml',
+  csv: 'text/csv',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+};
+
+/** Categorías que se pueden detectar directamente por prefijo MIME (type/*) */
+export const MIME_PREFIX_CATEGORIES: Record<string, FileCategory> = {
+  'image/': 'image',
+  'video/': 'video',
+  'audio/': 'audio',
+};
+
+export const MIME_TO_CATEGORY_MAP: Record<string, FileCategory> = Object.entries(
+  EXTENSION_MIME_MAP
+).reduce(
+  (acc, [ext, mime]) => {
+    acc[mime] = FILE_CATEGORY_MAP[ext as FileExtension];
+    return acc;
+  },
+  {} as Record<string, FileCategory>
+);
+
 export const EXTENSION_LABELS: Record<FileExtensionWithoutVideo, string> = {
   // Documentos
   pdf: 'Documento PDF',

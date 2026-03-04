@@ -3,6 +3,7 @@ import {
   Directory as FSDirectory,
   Paths,
 } from 'expo-file-system';
+import mime from 'mime';
 import type {
   FSFileInfo,
   FSDirectoryInfo,
@@ -69,19 +70,21 @@ export class FileSystemService {
         };
       }
 
+      const mimeType = file.type ?? '';
+
       return {
         success: true,
         uri,
         data: {
           uri: file.uri,
           name: file.name ?? this.getFileName(uri),
-          extension: this.getExtension(uri),
+          extension: this.getExtension(uri, mimeType),
           exists: true,
           size: file.size ?? 0,
           modificationTime: file.modificationTime ?? null,
           creationTime: file.creationTime ?? null,
           md5: file.md5 ?? null,
-          mimeType: file.type ?? '',
+          mimeType,
         },
       };
     } catch (error) {
@@ -538,9 +541,16 @@ export class FileSystemService {
 
   /**
    * Extrae la extensión de un archivo.
-   * @example getExtension('photo.jpg') → 'jpg'
+   * Si se proporciona mimeType, se usa la librería `mime` para resolverla.
+   * Si no, se extrae del nombre de archivo como fallback.
+   * @example getExtension('photo.jpg')                  → 'jpg'
+   * @example getExtension('archivo_sin_ext', 'image/png') → 'png'
    */
-  getExtension(uri: string): string {
+  getExtension(uri: string, mimeType?: string): string {
+    if (mimeType) {
+      const ext = mime.getExtension(mimeType);
+      if (ext) return ext;
+    }
     const name = this.getFileName(uri);
     const dotIndex = name.lastIndexOf('.');
     return dotIndex > 0 ? name.substring(dotIndex + 1).toLowerCase() : '';

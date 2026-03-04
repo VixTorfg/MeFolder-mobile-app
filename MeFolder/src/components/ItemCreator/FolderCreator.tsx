@@ -43,7 +43,6 @@ const FOLDER_ICONS: Array<{ id: string; icon: keyof typeof Ionicons.glyphMap }> 
   { id: 'restaurant', icon: 'restaurant' },
 ];
 
-// Tags de ejemplo para la parte visual
 const MOCK_TAGS: MockTag[] = [
   { id: '1', name: 'Personal', color: '#F2C94C' },
   { id: '2', name: 'Trabajo', color: '#5DA9C7' },
@@ -110,7 +109,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
         />
       </View>
 
-      {/* Descripción */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Descripción (opcional)</Text>
         <TextInput

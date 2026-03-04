@@ -135,7 +135,7 @@ export class FileRepositoryImplementation implements FileRepository {
             last_accessed_at, archived_at, storage_url, thumbnail_url
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
-            file.id, file.createdAt, file.updatedAt,
+            file.id, file.createdAt.getTime(), file.updatedAt.getTime(),
             file.name, file.originalName, file.extension, file.category, file.description,
             file.folderId, file.path, file.status, file.visibility,
             file.metadata.size, file.metadata.mimeType, file.metadata.checksum,

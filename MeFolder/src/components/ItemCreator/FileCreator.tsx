@@ -3,16 +3,26 @@ import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/providers';
 import { useFileCreatorStyles } from './styles';
+import { getDocumentAsync } from 'expo-document-picker';
+import { formatFileSize } from '@/utils/format/bytes';
+import { FileCategory, MIME_PREFIX_CATEGORIES, MIME_TO_CATEGORY_MAP } from '@/types/common/file-extensions';
 
 type FileSource = 'gallery' | 'document' | 'camera';
 
 interface SelectedFile {
   id: string;
   name: string;
+  originalName: string;
   uri: string;
   size?: number;
   mimeType?: string;
-  type: 'image' | 'video' | 'document';
+  type: FileCategory;
+}
+
+export type newFile = {
+  files: SelectedFile[];
+  tags: string[];
+  folderId: string | null | undefined;
 }
 
 interface MockTag {
@@ -22,7 +32,7 @@ interface MockTag {
 }
 
 interface FileCreatorProps {
-  onSave: (data: any) => Promise<void> | void;
+  onSave: (data: newFile) => Promise<void> | void;
   currentFolderId?: string | null | undefined;
 }
 
@@ -43,6 +53,18 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
+  const getFileCategoryFromMime = (mimeType?: string): FileCategory => {
+    if (!mimeType) return 'other';
+
+    const mime = mimeType.toLowerCase();
+
+    for (const [prefix, category] of Object.entries(MIME_PREFIX_CATEGORIES)) {
+      if (mime.startsWith(prefix)) return category;
+    }
+
+    return MIME_TO_CATEGORY_MAP[mime] ?? 'other';
+  };
+
   /**
    * Simula la selección de archivos desde la galería (media-library).
    * En el futuro se conectará con expo-media-library.
@@ -53,6 +75,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
       {
         id: `file_${Date.now()}_1`,
         name: 'IMG_20260219_001.jpg',
+        originalName: 'IMG_20260219_001.jpg',
         uri: 'mock://gallery/photo1.jpg',
         size: 3456789,
         mimeType: 'image/jpeg',
@@ -61,6 +84,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
       {
         id: `file_${Date.now()}_2`,
         name: 'VID_20260219_002.mp4',
+        originalName: 'VID_20260219_002.mp4',
         uri: 'mock://gallery/video1.mp4',
         size: 15678900,
         mimeType: 'video/mp4',
@@ -70,23 +94,30 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
     setSelectedFiles(mockFiles);
   };
 
-  /**
-   * Simula la selección desde el picker de documentos.
-   * En el futuro se conectará con expo-document-picker.
-   */
   const handlePickDocument = async (): Promise<void> => {
-    // TODO: Conectar con expo-document-picker
-    const mockFiles: SelectedFile[] = [
-      {
-        id: `file_${Date.now()}_1`,
-        name: 'documento_importante.pdf',
-        uri: 'mock://documents/doc1.pdf',
-        size: 1234567,
-        mimeType: 'application/pdf',
-        type: 'document',
-      },
-    ];
-    setSelectedFiles(mockFiles);
+    const result = await getDocumentAsync({
+        multiple: true
+      });
+
+    if (result.canceled === true) {
+      setSelectedFiles([]);
+      return;
+    }
+
+    const pickedFiles: SelectedFile[] = result.assets.map((asset, index) => {
+      const fileName = asset.name || `archivo_${Date.now()}`;
+      return {
+        id: `file_${Date.now()}_${index}`,
+        name: fileName,
+        originalName: fileName,
+        uri: asset.uri,
+        ...(asset.size != null && { size: asset.size }),
+        ...(asset.mimeType != null && { mimeType: asset.mimeType }),
+        type: getFileCategoryFromMime(asset.mimeType),
+      };
+    });
+      
+    setSelectedFiles(pickedFiles);
   };
 
   /**
@@ -95,9 +126,11 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
    */
   const handleCaptureFromCamera = async (): Promise<void> => {
     // TODO: Conectar con expo-camera / expo-image-picker
+    const captureName = `Captura_${Date.now()}.jpg`;
     const mockFile: SelectedFile = {
       id: `file_${Date.now()}`,
-      name: `Captura_${Date.now()}.jpg`,
+      name: captureName,
+      originalName: captureName,
       uri: 'mock://camera/capture.jpg',
       size: 2345678,
       mimeType: 'image/jpeg',
@@ -145,18 +178,16 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
     });
   };
 
-  const formatSize = (bytes?: number): string => {
-    if (!bytes) return '';
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1048576) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / 1048576).toFixed(1)} MB`;
-  };
-
   const getFileIcon = (type: SelectedFile['type']): keyof typeof Ionicons.glyphMap => {
     switch (type) {
       case 'image': return 'image-outline';
       case 'video': return 'videocam-outline';
+      case 'audio': return 'musical-notes-outline';
       case 'document': return 'document-text-outline';
+      case 'code': return 'code-slash-outline';
+      case 'archive': return 'file-tray-stacked-outline';
+      case 'spreadsheet': return 'grid-outline';
+      default: return 'document-outline';
     }
   };
 
@@ -309,10 +340,9 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
                   placeholderTextColor={theme.colors.textMuted}
                   selectTextOnFocus
                 />
-                <Text style={styles.fileSize}>{formatSize(file.size)}</Text>
+                <Text style={styles.fileSize}>{formatFileSize(file.size)}</Text>
               </View>
 
-              {/* Botón eliminar */}
               <TouchableOpacity
                 style={styles.removeFileButton}
                 onPress={() => handleRemoveFile(file.id)}
@@ -340,7 +370,6 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
         </View>
       ) : null}
 
-      {/* Sección de etiquetas */}
       {selectedFiles.length > 0 && (
         <View style={styles.tagSection}>
           <Text style={styles.sectionTitle}>Etiquetas</Text>
