@@ -224,18 +224,25 @@ export class FileModel extends BaseModel<File> {
 }
 
 export class FileFactory {
-  /** Crea nuevo archivo con categoría auto-detectada */
-  static create(input: CreateFileInput): FileModel {
+  /** 
+   * Crea nuevo archivo con categoría auto-detectada.
+   * @param input - Datos de entrada para el archivo
+   * @param folderPath - Path completo de la carpeta padre (basado en IDs). Si no se provee y hay folderId, usa solo folderId.
+   */
+  static create(input: CreateFileInput, folderPath?: string): FileModel {
     const now = new Date();
     const category = FILE_CATEGORY_MAP[input.extension] || 'other';
+    const trimmedName = input.name.trim();
     
     const file: File = {
       id: this.generateId(),
-      name: input.name.trim(),
+      name: trimmedName,
       originalName: input.originalName.trim(),
       extension: input.extension,
       category,
-      path: input.folderId ? `${input.folderId}/${input.name}` : input.name,
+      path: input.folderId
+        ? `${folderPath || input.folderId}/${trimmedName}`
+        : trimmedName,
       status: 'active',
       visibility: input.visibility || 'private',
       metadata: input.metadata,

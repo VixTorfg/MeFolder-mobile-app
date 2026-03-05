@@ -21,7 +21,7 @@ export interface FloatingTabBarProps {
 export interface MultiActionButtonProps {
   onPress: () => Promise<void> | void;
   icon?: keyof typeof Ionicons.glyphMap; 
-  backgroundColor?: ColorInfo;            
+  backgroundColor?: ColorInfo | string;            
   label?: string;          
   disabled?: boolean;  
   borderRadius?: number;
@@ -35,6 +35,24 @@ export interface ViewDropDownProps {
   onChange?: (selectedMode: { id: string; name: string; icon: keyof typeof Ionicons.glyphMap }) => void;
   defaultValue?: string;
 }
+
+export interface SearchResultItem {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+}
+
+export type SearchHandler = (query: string) => Promise<SearchResultItem[]>;
+
+export interface SearchBoxProps {
+  placeholder?: string;
+  onSearch?: SearchHandler;
+  onClear?: () => void;
+  onChangeText?: (text: string) => void;
+  disabled?: boolean;
+  iconSize?: number;
+}
+
 
 export interface CommunCardProps {
   onPress: () => Promise<void> | void;

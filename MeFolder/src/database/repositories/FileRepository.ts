@@ -108,11 +108,13 @@ export class FileRepositoryImplementation implements FileRepository {
   }
 
   /**
-   * Crear nuevo archivo
+   * Crear nuevo archivo.
+   * @param input - Datos del archivo
+   * @param folderPath - Path completo de la carpeta padre (resuelto por el servicio)
    */
-  async create(input: CreateFileInput): Promise<File> {
+  async create(input: CreateFileInput, folderPath?: string): Promise<File> {
     try {
-      const fileModel = FileFactory.create(input);
+      const fileModel = FileFactory.create(input, folderPath);
       const file = fileModel.toJSON();
 
       // Validar antes de insertar

@@ -15,7 +15,7 @@ export default function MultiActionButton({
   disabled = false,
   borderRadius,
   iconColor = '#FFFFFF',
-  size = 56,
+  size = 38,
   onPress,
 }: MultiActionButtonProps) {
   
@@ -31,6 +31,10 @@ export default function MultiActionButton({
     }
   };
   
+  const resolvedBackgroundColor = typeof backgroundColor === 'string'
+    ? backgroundColor
+    : backgroundColor.hex;
+
   return (
     <TouchableOpacity 
       style={styles.buttonContainer} 
@@ -41,7 +45,7 @@ export default function MultiActionButton({
       <View style={[
         styles.iconContainer,
         { 
-          backgroundColor: backgroundColor.hex,
+          backgroundColor: resolvedBackgroundColor,
           borderRadius: borderRadius ?? dimensions.borderRadius,        
         }
       ]}>

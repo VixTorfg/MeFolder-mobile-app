@@ -21,6 +21,7 @@ export const useViewDropDownStyles = (responsive: {
     },
     dropdown: {
       ...cardShadow(theme),
+      borderWidth: theme.effects.borderWidth.xs,
       backgroundColor: theme.colors.background,
       borderRadius: 8,
       minWidth: 200,

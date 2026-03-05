@@ -21,6 +21,7 @@ export const useFloatingTabBarStyles = (responsive:
       floatingTabBar: {
         ...cardShadow(theme),
         flexDirection: 'row',
+        borderWidth: theme.effects.borderWidth.xs,
         paddingHorizontal: responsive.padding,
         paddingVertical: theme.spacing.sm, //8
       },

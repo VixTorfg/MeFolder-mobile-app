@@ -11,7 +11,7 @@ export interface FileRepository extends BaseRepository<File, CreateFileInput, Up
   findAll(filters?: any): Promise<File[]>;
   search(query: string, filters?: any): Promise<File[]>; 
   
-  create(input: CreateFileInput): Promise<File>;
+  create(input: CreateFileInput, folderPath?: string): Promise<File>;
   update(id: UUID, input: UpdateFileInput): Promise<File>;
   updateTags(fileId: UUID, tagIds: UUID[]): Promise<void>;
   delete(id: UUID): Promise<boolean>;

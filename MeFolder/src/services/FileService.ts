@@ -23,19 +23,22 @@ import { FileModel, FileFactory } from '../models/file';
 export class FileService extends BaseService {
   
   /**
-   * Crear nuevo archivo (operación básica sin auto-tags)
+   * Crear nuevo archivo (operación básica sin auto-tags).
+   * Resuelve automáticamente el path completo a partir de la carpeta padre.
    */
   async createFile(input: CreateFileInput): Promise<FileModel> {
     try {
       this.ensureDbInitialized();
       
-      // Validar carpeta destino si se especifica
+      // Validar y obtener carpeta destino si se especifica
+      let folderPath: string | undefined;
       if (input.folderId) {
-        await this.validateTargetFolder(input.folderId);
+        const folder = await this.validateTargetFolder(input.folderId);
+        folderPath = folder.path;
       }
 
-      // Crear archivo usando el repositorio
-      const file = await this.fileRepo.create(input);
+      // Crear archivo pasando el path completo de la carpeta
+      const file = await this.fileRepo.create(input, folderPath);
       return FileFactory.fromJSON(file);
       
     } catch (error) {
@@ -199,8 +202,21 @@ export class FileService extends BaseService {
     }
   }
 
-  /** Validar que la carpeta destino existe y acepta archivos */
-  private async validateTargetFolder(folderId: UUID): Promise<void> {
+  /**
+   * Resuelve el path de almacenamiento para una carpeta.
+   * Útil para que el front sepa dónde copiar archivos en el filesystem.
+   */
+  async resolveStoragePath(folderId?: UUID | null): Promise<string> {
+    if (!folderId) return 'root';
+
+    this.ensureDbInitialized();
+    const folder = await this.folderRepo.findById(folderId);
+    if (!folder) throw new Error('Carpeta no encontrada');
+    return folder.path;
+  }
+
+  /** Validar que la carpeta destino existe y acepta archivos. Retorna la carpeta. */
+  private async validateTargetFolder(folderId: UUID): Promise<import('../types/entities/folder').Folder> {
     const folder = await this.folderRepo.findById(folderId);
     if (!folder) {
       throw new Error('Carpeta destino no encontrada');
@@ -208,6 +224,7 @@ export class FileService extends BaseService {
     if (folder.status === 'deleted') {
       throw new Error('No se puede crear archivo en carpeta eliminada');
     }
+    return folder;
   }
 
   /** Validar que el movimiento de archivo es permitido */

@@ -34,6 +34,10 @@
       "@/themes/*": ["./src/constants/themes/*"],
       "@/providers": ["./src/providers"],
       "@/providers/*": ["./src/providers/*"],   
+      "@/screenStyles": ["./src/screenStyles"],
+      "@/screenStyles/*": ["./src/screenStyles/*"],
+      "@/stores": ["./src/stores"],
+      "@/stores/*": ["./src/stores/*"]
     }
   },
   "include": [
