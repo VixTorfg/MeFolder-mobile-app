@@ -115,11 +115,21 @@ export class FolderRepositoryImplementation implements FolderRepository {
   }
 
   /**
-   * Crear nueva carpeta
+   * Crear nueva carpeta.
+   * Resuelve automáticamente el path (basado en IDs) y level a partir del padre.
    */
   async create(input: CreateFolderInput): Promise<Folder> {
     try {
-      const folderModel = FolderFactory.create(input);
+      // Resolver info del padre para calcular path y level correctamente
+      let parentInfo: { path: string; level: number } | undefined;
+      if (input.parentId) {
+        const parent = await this.findById(input.parentId);
+        if (parent) {
+          parentInfo = { path: parent.path, level: parent.level };
+        }
+      }
+
+      const folderModel = FolderFactory.create(input, parentInfo);
       const folder = folderModel.toJSON();
 
       const validation = folderModel.validate();
@@ -165,7 +175,8 @@ export class FolderRepositoryImplementation implements FolderRepository {
   }
 
   /**
-   * Actualizar carpeta existente
+   * Actualizar carpeta existente.
+   * Si cambia parentId, recalcula automáticamente path (basado en IDs) y level.
    */
   async update(id: UUID, input: UpdateFolderInput): Promise<Folder> {
     try {
@@ -176,7 +187,23 @@ export class FolderRepositoryImplementation implements FolderRepository {
 
       const folderModel = FolderFactory.fromJSON(existingFolder);
 
-      const updateData: any = { ...input };
+      // Si cambia el parentId, recalcular path y level usando setParent
+      if ('parentId' in input && input.parentId !== existingFolder.parentId) {
+        let parentPath: string | undefined;
+        let parentLevel: number | undefined;
+        if (input.parentId) {
+          const newParent = await this.findById(input.parentId);
+          if (newParent) {
+            parentPath = newParent.path;
+            parentLevel = newParent.level;
+          }
+        }
+        folderModel.setParent(input.parentId, parentPath, parentLevel);
+      }
+
+      // Aplicar el resto de cambios (excluir parentId ya manejado arriba)
+      const { parentId: _parentId, ...restInput } = input;
+      const updateData: any = { ...restInput };
       
       if (input.viewSettings) {
         updateData.viewSettings = {
@@ -185,7 +212,9 @@ export class FolderRepositoryImplementation implements FolderRepository {
         };
       }
       
-      folderModel.update(updateData);
+      if (Object.keys(updateData).length > 0) {
+        folderModel.update(updateData);
+      }
 
       const validation = folderModel.validate();
       if (!validation.isValid) {

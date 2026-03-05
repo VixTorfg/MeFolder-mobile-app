@@ -19,7 +19,7 @@ interface SelectedFile {
   type: FileCategory;
 }
 
-export type newFile = {
+export type NewFile = {
   files: SelectedFile[];
   tags: string[];
   folderId: string | null | undefined;
@@ -32,7 +32,7 @@ interface MockTag {
 }
 
 interface FileCreatorProps {
-  onSave: (data: newFile) => Promise<void> | void;
+  onSave: (data: NewFile) => Promise<void> | void;
   currentFolderId?: string | null | undefined;
 }
 

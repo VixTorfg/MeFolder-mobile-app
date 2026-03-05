@@ -3,11 +3,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
-import type { CreateFileInput, File, FileCategory, FileMetadata, Folder, FSFileInfo } from '@/types';
+import type { CreateFileInput, FileCategory, FileMetadata, FSFileInfo } from '@/types';
 import { modeView } from '@/types';
 import { useDatabase, useServices  } from '@/providers';
 import { useFileSystem, useMedia } from '@/hooks';
-import type { newFile } from '@/components/ItemCreator/FileCreator';
+import type { NewFile } from '@/components/ItemCreator/FileCreator';
+import type { NewFolder } from '@/components/ItemCreator/FolderCreator';
 import mime from 'mime';
 
 /** Segmento del breadcrumb: guarda ID para navegación y nombre para display */
@@ -51,7 +52,7 @@ export default function LibraryScreen() {
         files = await fileService.getFilesInFolder();
       }
 
-      setItems([...folders, ...files]); // carpetas primero, luego archivos
+      setItems([...folders, ...files]);
     };
 
     loadContent();
@@ -124,10 +125,9 @@ export default function LibraryScreen() {
     }
   }
 
-  const handleSaveFile = async (data: newFile): Promise<void> => {
+  const handleSaveFile = async (data: NewFile): Promise<void> => {
     const { files, tags, folderId } = data;
 
-    console.log('Archivos a guardar:', files);
     const fileService = services?.fileService;
     const targetFolderId = folderId ?? currentFolderId ?? 'root';
     const failed: { name: string; error: string }[] = [];
@@ -156,7 +156,6 @@ export default function LibraryScreen() {
         copiedUri = copyResult.toUri;
 
         const metadata = fs.getFileInfo(copiedUri);
-        console.log(`Archivo copiado: ${file.name}, URI: ${copiedUri}, Metadata:`, metadata);
 
         if (!metadata) {
           throw new Error('No se pudo obtener información del archivo');
@@ -194,6 +193,34 @@ export default function LibraryScreen() {
       // TODO: Mostrar notificación al usuario con los archivos fallidos
     }
   };
+
+  const handleSaveFolder = async (data: NewFolder): Promise<void> => {
+    const { name, description, color, icon, tags, parentId } = data;
+
+    const folderService = services?.folderService;
+    const resolvedParentId = parentId ?? currentFolderId;
+
+    const folderResult = await folderService.createFolder({
+      name,
+      ...(description && { description }),
+      ...(color && { color }),
+      ...(icon && { icon }),
+      tagIds: tags,
+      ...(resolvedParentId && { parentId: resolvedParentId }),
+    });
+
+    const destinationUri = fs.resolveUri(folderResult.path);
+    const success = fs.makeDirectory(destinationUri);
+
+    if (!success) {
+      await folderService.deleteFolder(folderResult.id, true);
+      Alert.alert('Error', 'No se pudo crear la carpeta en el sistema de archivos');
+      return;
+    }
+
+    setItems(prev => [...prev, folderResult]);
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -236,7 +263,7 @@ export default function LibraryScreen() {
         onClose={() => setCreatorVisible(false)}
         currentFolderId={currentFolderId}
         onSaveFile={(data) => {handleSaveFile(data)}}
-        onSaveFolder={(data) => { console.log('Crear carpeta:', data); }}
+        onSaveFolder={(data) => {handleSaveFolder(data)}}
       />
 
       <FlatList

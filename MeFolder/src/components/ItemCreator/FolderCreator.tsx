@@ -12,18 +12,18 @@ interface MockTag {
   color: string;
 }
 
-interface NewFolder {
+export interface NewFolder {
   name: string;
-  description: string | undefined;
+  description: string | null;
   color: ColorInfo | undefined;
-  icon: keyof typeof Ionicons.glyphMap | undefined | SVGAElement;
+  icon: keyof typeof Ionicons.glyphMap | undefined ;
   tags: string[];
-  parentId: string | null | undefined;
+  parentId: string | null;
 }
 
 interface FolderCreatorProps {
   onSave: (data: NewFolder) => Promise<void> | void;
-  currentFolderId?: string | null | undefined;
+  currentFolderId?: string | null;
 }
 
 // Iconos predefinidos para carpetas
@@ -83,11 +83,11 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
 
     await onSave({
       name: folderName.trim(),
-      description: description.trim() || undefined,
+      description: description.trim() || null,
       color,
       icon: icon?.icon,
       tags: Array.from(selectedTags),
-      parentId: currentFolderId,
+      parentId: currentFolderId ?? null,
     });
   };
 
@@ -101,7 +101,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
 
   return (
     <View style={styles.container}>
-      {/* Nombre de la carpeta */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Nombre</Text>
         <TextInput
@@ -136,7 +135,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
         />
       </View>
 
-      {/* Selector de color */}
       <View style={styles.colorSection}>
         <Text style={styles.label}>Color</Text>
         <View style={styles.colorList}>
@@ -159,7 +157,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
         </View>
       </View>
 
-      {/* Selector de icono */}
       <View style={styles.iconSection}>
         <Text style={styles.label}>Icono</Text>
         <View style={styles.iconGrid}>
@@ -189,7 +186,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
         </View>
       </View>
 
-      {/* Sección de etiquetas */}
       <View style={styles.tagSection}>
         <Text style={styles.label}>Etiquetas</Text>
         <View style={styles.tagList}>
@@ -219,7 +215,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
         </View>
       </View>
 
-      {/* Botón guardar */}
       <TouchableOpacity
         style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
         onPress={handleSave}

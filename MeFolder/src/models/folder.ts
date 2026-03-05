@@ -75,13 +75,13 @@ export class FolderModel extends BaseModel<Folder> {
     return this.data.isSystemFolder;
   }
 
-  /** Establece nuevo nombre de carpeta */
+  /** Establece nuevo nombre de carpeta (no afecta al path interno basado en IDs) */
   setName(name: string): void {
     const cleanName = name.trim();
     if (!cleanName) throw new Error('El nombre no puede estar vacío');
     
     this.data.name = cleanName;
-    this.updatePath();
+    this.data.updatedAt = new Date();
   }
 
   /** Establece descripción de la carpeta */
@@ -94,20 +94,22 @@ export class FolderModel extends BaseModel<Folder> {
     this.data.updatedAt = new Date();
   }
 
-  /** Establece carpeta padre y nivel */
-  setParent(parentId: UUID | undefined, parentPath?: string): void {
+  /** Establece carpeta padre, recalculando path (basado en IDs) y level */
+  setParent(parentId: UUID | undefined, parentPath?: string, parentLevel?: number): void {
     if (parentId === this.data.id) {
       throw new Error('Una carpeta no puede ser su propia carpeta padre');
     }
 
-    if (parentId){
-        this.data.parentId = parentId;
-        this.data.level = parentId ? (parentPath?.split('/').length || 0) + 1 : 0;
-    }else{
-        delete this.data.parentId;
-        this.data.level = 0;
-    } 
-    this.updatePath(parentPath);
+    if (parentId) {
+      this.data.parentId = parentId;
+      this.data.level = (parentLevel ?? 0) + 1;
+      this.data.path = parentPath ? `${parentPath}/${this.data.id}` : `${parentId}/${this.data.id}`;
+    } else {
+      delete this.data.parentId;
+      this.data.level = 0;
+      this.data.path = this.data.id;
+    }
+    this.data.updatedAt = new Date();
   }
 
   /** Cambia estado de la carpeta */
@@ -201,15 +203,6 @@ export class FolderModel extends BaseModel<Folder> {
     this.data.updatedAt = new Date();
   }
 
-  private updatePath(parentPath?: string): void {
-    if (this.data.parentId && parentPath) {
-      this.data.path = `${parentPath}/${this.data.name}`;
-    } else {
-      this.data.path = this.data.name;
-    }
-    this.data.updatedAt = new Date();
-  }
-
   /** Valida datos de la carpeta */
   validate(): ValidationResult {
     const errors = [];
@@ -287,15 +280,20 @@ export class FolderModel extends BaseModel<Folder> {
 }
 
 export class FolderFactory {
-  /** Crea nueva carpeta con configuración por defecto */
-  static create(input: CreateFolderInput): FolderModel {
+  /** 
+   * Crea nueva carpeta con configuración por defecto.
+   * @param input - Datos de entrada para la carpeta
+   * @param parentInfo - Info del padre para calcular path (IDs) y level. Si no se provee, se crea como raíz.
+   */
+  static create(input: CreateFolderInput, parentInfo?: { path: string; level: number }): FolderModel {
     const now = new Date();
+    const id = this.generateId();
     
     const folder: Folder = {
-      id: this.generateId(),
+      id,
       name: input.name.trim(),
-      path: input.parentId ? `${input.parentId}/${input.name}` : input.name,
-      level: 0,
+      path: parentInfo ? `${parentInfo.path}/${id}` : id,
+      level: parentInfo ? parentInfo.level + 1 : 0,
       status: 'active',
       type: input.type || 'regular',
       visibility: input.visibility || 'private',
