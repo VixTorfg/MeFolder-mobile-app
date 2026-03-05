@@ -3,6 +3,7 @@ import { Database } from '@/database/sqlite/Database';
 import { createFilesTable } from '@/database/migrations/files';
 import { createFoldersTable } from '@/database/migrations/folders';
 import { createTagsTable } from '@/database/migrations/tags';
+import { seedSystemFolders } from '@/database/seeds/systemFolders';
 
 interface DatabaseContextType {
   /** Instancia singleton de la base de datos */
@@ -48,6 +49,9 @@ const runMigrations = async (): Promise<void> => {
   await createFoldersTable();
   await createFilesTable();
   await createTagsTable();
+
+  // Seeds: carpetas del sistema (idempotente, segura en cada arranque)
+  await seedSystemFolders();
 
   console.log('Migraciones completadas exitosamente');
 };

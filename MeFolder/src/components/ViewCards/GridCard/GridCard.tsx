@@ -15,6 +15,7 @@ export default function GridCard({
   showCard = true
 }: CommunCardProps) {
   const styles = useGridCardStyles();
+  const isFile = data instanceof FileModel;
  
   const handlePress = async (): Promise<void> => {
     if (onPress && !disabled) {
@@ -35,7 +36,7 @@ export default function GridCard({
       disabled={disabled}
       activeOpacity={0.8}
     >
-      {data instanceof FileModel ? (
+      {isFile ? (
         <View style={styles.fileThumbnail}>
           <Ionicons 
             name={getIconByCategory(data.category)} 
@@ -54,11 +55,11 @@ export default function GridCard({
       )}
 
       <View style={styles.fileDetails}>
-        <Text style={styles.fileNameText} numberOfLines={2} ellipsizeMode='tail'>
+        <Text style={styles.fileNameText} numberOfLines={isFile ? 2 : 1} ellipsizeMode='tail'>
           {data.name}
         </Text>
 
-        {data instanceof FileModel && (
+        {isFile && (
           <View>
             <Text style={styles.fileDetailsText}>
               {data.category === 'video'

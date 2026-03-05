@@ -59,7 +59,7 @@ export default function ContentCard({
 
       <View style={styles.fileDetails}>
         <Text style={styles.fileDetailsText}>
-          {formatDate(data.updatedAt)}
+          {data instanceof FileModel ? formatDate(data.updatedAt) : null}
         </Text>
 
         <Text style={styles.fileDetailsText}>

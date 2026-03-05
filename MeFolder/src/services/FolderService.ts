@@ -155,6 +155,14 @@ export class FolderService extends BaseService {
       const folder = await this.folderRepo.findById(folderId);
       if (!folder) throw new Error('Carpeta no encontrada');
 
+      // Las carpetas del sistema y protegidas no se pueden eliminar
+      if (folder.isSystemFolder) {
+        throw new Error('No se puede eliminar una carpeta del sistema');
+      }
+      if (folder.isProtected) {
+        throw new Error('No se puede eliminar una carpeta protegida');
+      }
+
       // Verificar si está vacía (no forzado)
       if (!force) {
         await this.validateFolderEmpty(folderId);
