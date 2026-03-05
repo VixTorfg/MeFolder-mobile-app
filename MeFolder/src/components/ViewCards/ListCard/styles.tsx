@@ -6,8 +6,9 @@ export const useListCardStyles = () => {
         cardContainer:{
             ...basicCard(theme),
             flex: 1,
-            padding: theme.spacing.md,
-
+            paddingRight: theme.spacing.md,
+            paddingLeft: theme.spacing.md - 4,
+            paddingVertical: theme.spacing.sm,
             flexDirection: 'row',
             justifyContent: 'space-between',
             gap: 24,
@@ -25,6 +26,21 @@ export const useListCardStyles = () => {
             fontFamily: theme.typography.fontFamily.title.semiBold,
             fontSize: theme.typography.fontSize.md,
             color: theme.colors.textPrimary,
-        }
+        },
+         fileThumbnail: {
+            width: 48,
+            height: 48,
+            borderRadius: theme.effects.radius.xs,
+            backgroundColor: theme.colors.subCard,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        folderContainer: {
+            width: 48,
+            alignItems: 'center', 
+        },
+        iconColor: {
+            color: theme.colors.textSecondary,
+        },
     }));
 };

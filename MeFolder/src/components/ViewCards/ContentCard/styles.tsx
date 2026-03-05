@@ -6,11 +6,12 @@ export const useContentCardStyles = () => {
         cardContainer:{
             ...basicCard(theme),
             flex: 1,
-            padding: theme.spacing.md,
+            paddingHorizontal: theme.spacing.md - 4,
+            paddingVertical: theme.spacing.sm,
 
             flexDirection: 'row',
             justifyContent: 'space-between',
-            gap: 24,
+            gap: 16,
             alignItems: 'center',
         },
         iconNameContainer: {
@@ -34,6 +35,21 @@ export const useContentCardStyles = () => {
         fileDetailsText: {
             fontFamily: theme.typography.fontFamily.primary.regular,
             fontSize: theme.typography.fontSize.sm,
+            color: theme.colors.textSecondary,
+        },
+        fileThumbnail: {
+            width: 48,
+            height: 48,
+            borderRadius: theme.effects.radius.xs,
+            backgroundColor: theme.colors.subCard,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        folderContainer: {
+            width: 48,
+            alignItems: 'center', 
+        },
+        iconColor: {
             color: theme.colors.textSecondary,
         },
     }));

@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useListCardStyles } from './styles';
 import { CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
+import { getIconByCategory } from '@/utils';
 
 export default function ListCard({
   onPress,
@@ -32,11 +33,23 @@ export default function ListCard({
       activeOpacity={0.8}
     >
       <View style={styles.iconNameContainer}>
-        <Ionicons 
-          name={data instanceof FileModel ? 'document-outline' : 'folder-outline'} 
-          size={30} 
-          color={'red'}
-        />
+        {data instanceof FileModel ? (
+          <View style={styles.fileThumbnail}>
+            <Ionicons 
+              name={getIconByCategory(data.category)} 
+              size={30} 
+              color={data.color?.hex || styles.iconColor.color}
+            />
+          </View>
+        ) : (
+          <View style={styles.folderContainer}>
+            <Ionicons 
+                name={data.icon as keyof typeof Ionicons.glyphMap} 
+                size={30} 
+                color={data.color?.hex || styles.iconColor.color}
+              />
+          </View>
+        )}
 
         <Text style={styles.fileNameText} numberOfLines={1} ellipsizeMode='tail'>
           {data.name}

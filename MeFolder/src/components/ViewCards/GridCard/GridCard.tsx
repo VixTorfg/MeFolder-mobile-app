@@ -3,7 +3,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useGridCardStyles } from './styles';
 import { EXTENSION_LABELS, CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
-import { formatFileSize, formatVideoDuration } from '@/utils';
+import { formatFileSize, formatVideoDuration, getIconByCategory } from '@/utils';
 import type { FileExtensionWithoutVideo } from '@/types/common/file-extensions';
 
 
@@ -35,11 +35,23 @@ export default function GridCard({
       disabled={disabled}
       activeOpacity={0.8}
     >
-        <Ionicons 
-          name={data instanceof FileModel ? 'document-outline' : 'folder-outline'} 
-          size={30} 
-          color={'red'}
-        />
+      {data instanceof FileModel ? (
+        <View style={styles.fileThumbnail}>
+          <Ionicons 
+            name={getIconByCategory(data.category)} 
+            size={30} 
+            color={data.color?.hex || styles.iconColor.color}
+          />
+        </View>
+      ) : (
+        <View style={styles.folderContainer}>
+          <Ionicons 
+              name={data.icon as keyof typeof Ionicons.glyphMap} 
+              size={30} 
+              color={data.color?.hex || styles.iconColor.color}
+            />
+        </View>
+      )}
 
       <View style={styles.fileDetails}>
         <Text style={styles.fileNameText} numberOfLines={2} ellipsizeMode='tail'>

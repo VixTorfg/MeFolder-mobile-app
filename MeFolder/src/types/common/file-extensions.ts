@@ -1,4 +1,4 @@
-export type FileVideoExtension = 'mp4' | 'avi' | 'mov' | 'mkv' | 'wmv' | 'flv';
+export type FileVideoExtension = 'mp4' | 'avi' | 'mov' | 'mkv' | 'wmv' | 'flv' | 'webm';
 
 export type FileExtension = 
   // Documentos
@@ -39,7 +39,7 @@ export const FILE_CATEGORY_MAP: Record<FileExtension, FileCategory> = {
   bmp: 'image', svg: 'image', webp: 'image',
  
   mp4: 'video', avi: 'video', mov: 'video', mkv: 'video',
-  wmv: 'video', flv: 'video',
+  wmv: 'video', flv: 'video', webm: 'video',
   
   mp3: 'audio', wav: 'audio', flac: 'audio', aac: 'audio', m4a: 'audio',
   
@@ -84,6 +84,7 @@ export const EXTENSION_MIME_MAP: Record<FileExtension, string> = {
   mkv: 'video/x-matroska',
   wmv: 'video/x-ms-wmv',
   flv: 'video/x-flv',
+  webm: 'video/webm',
 
   // Audio
   mp3: 'audio/mpeg',

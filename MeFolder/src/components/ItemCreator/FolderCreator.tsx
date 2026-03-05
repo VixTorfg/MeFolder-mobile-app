@@ -15,7 +15,7 @@ interface MockTag {
 export interface NewFolder {
   name: string;
   description: string | null;
-  color: ColorInfo | undefined;
+  color: ColorInfo;
   icon: keyof typeof Ionicons.glyphMap | undefined ;
   tags: string[];
   parentId: string | null;
@@ -84,7 +84,7 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
     await onSave({
       name: folderName.trim(),
       description: description.trim() || null,
-      color,
+      color: color || SYSTEM_COLORS['yellow'], 
       icon: icon?.icon,
       tags: Array.from(selectedTags),
       parentId: currentFolderId ?? null,

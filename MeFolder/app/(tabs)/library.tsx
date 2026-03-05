@@ -217,7 +217,6 @@ export default function LibraryScreen() {
       Alert.alert('Error', 'No se pudo crear la carpeta en el sistema de archivos');
       return;
     }
-
     setItems(prev => [...prev, folderResult]);
   }
 
