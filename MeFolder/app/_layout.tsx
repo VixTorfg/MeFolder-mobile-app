@@ -3,6 +3,7 @@ import { ThemeProvider, DatabaseProvider, AppBootstrap } from "@/providers";
 import { useFonts } from "expo-font";
 import { fontAssets } from "@/constants/fonts";
 import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 /** Pantalla de carga durante el arranque */
 function LoadingScreen() {
@@ -35,20 +36,22 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider>
-      <DatabaseProvider>
-        <AppBootstrap
-          loadingFallback={<LoadingScreen />}
-          errorFallback={(error, retry) => <ErrorScreen error={error} onRetry={retry} />}
-        >
-          <Stack
-            screenOptions={{
-              headerShown: false,
-            }}
-          />
-        </AppBootstrap>
-      </DatabaseProvider>
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        <DatabaseProvider>
+          <AppBootstrap
+            loadingFallback={<LoadingScreen />}
+            errorFallback={(error, retry) => <ErrorScreen error={error} onRetry={retry} />}
+          >
+            <Stack
+              screenOptions={{
+                headerShown: false,
+              }}
+            />
+          </AppBootstrap>
+        </DatabaseProvider>
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
 
