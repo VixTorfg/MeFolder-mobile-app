@@ -189,8 +189,11 @@ export default function LibraryScreen() {
       ...(resolvedParentId && { parentId: resolvedParentId }),
     });
 
+    console.log('[handleSaveFolder] folderResult.path:', folderResult.path);
     const destinationUri = fs.resolveUri(folderResult.path);
-    const success = fs.makeDirectory(destinationUri);
+    console.log('[handleSaveFolder] destinationUri:', destinationUri);
+    const success = fs.makeDirectory(destinationUri, { intermediates: true });
+    console.log('[handleSaveFolder] makeDirectory success:', success, '| fs.error:', fs.error);
 
     if (!success) {
       await folderService.deleteFolder(folderResult.id, true);
@@ -236,7 +239,6 @@ export default function LibraryScreen() {
         <Ionicons name="add" size={28} color="#fff" />
       </TouchableOpacity>
 
-      {/* Modal de creación */}
       <ItemCreator
         visible={creatorVisible}
         onClose={() => setCreatorVisible(false)}

@@ -9,6 +9,7 @@ import {
 import { UUID } from '../types/common/base';
 import { ColorInfo } from '../types/common/colors';
 import { BaseModel, ValidationResult, ValidationUtils } from './base';
+import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
 
 export class FolderModel extends BaseModel<Folder> {
   constructor(data: Folder) {
@@ -243,7 +244,7 @@ export class FolderModel extends BaseModel<Folder> {
 
   /** Verifica si es carpeta raíz */
   isRoot(): boolean {
-    return !this.data.parentId;
+    return this.data.id === ROOT_FOLDER_ID;
   }
 
   /** Verifica si es carpeta del sistema */
@@ -322,10 +323,24 @@ export class FolderFactory {
 
   /** Crea carpeta raíz del sistema */
   static createRoot(): FolderModel {
-    return this.create({
-      name: 'Root',
-      type: 'system'
-    });
+    const now = new Date();
+    const folder: Folder = {
+      id: ROOT_FOLDER_ID,
+      name: 'Inicio',
+      path: ROOT_FOLDER_ID,
+      level: 0,
+      status: 'active',
+      type: 'system',
+      visibility: 'private',
+      tagIds: [],
+      viewSettings: { sortBy: 'name', sortOrder: 'asc', viewMode: 'list', showHiddenFiles: false },
+      isFavorite: false,
+      isProtected: true,
+      isSystemFolder: true,
+      createdAt: now,
+      updatedAt: now,
+    };
+    return new FolderModel(folder);
   }
 
   /** Crea carpeta del sistema protegida */

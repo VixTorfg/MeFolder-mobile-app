@@ -16,11 +16,13 @@ import { Database } from '../../src/database/sqlite/Database';
 import { createFilesTable } from '../../src/database/migrations/files';
 import { createFoldersTable } from '../../src/database/migrations/folders';
 import { createTagsTable, createTagTriggers } from '../../src/database/migrations/tags';
+import { seedSystemFolders } from '../../src/database/seeds/systemFolders';
 import { FileModel } from '../../src/models/file';
 import { FolderModel } from '../../src/models/folder';
 import { UUID } from '../../src/types/common/base';
 import { useStyles, useTheme } from '../../src/hooks';
 import { MultiActionButton } from '@/src/components';
+import { ROOT_FOLDER_ID } from '../../src/database/seeds/systemFolders';
 
 // Iconos simples usando emojis
 const ICONS = {
@@ -50,7 +52,7 @@ export default function HomeScreen() {
   // setTheme('light'); // Cambiar a tema claro
   
   // Estados principales
-  const [currentFolderId, setCurrentFolderId] = useState<UUID | null>(null);
+  const [currentFolderId, setCurrentFolderId] = useState<UUID>(ROOT_FOLDER_ID);
   const [items, setItems] = useState<NavigationItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [breadcrumbs, setBreadcrumbs] = useState<string[]>(['Inicio']);
@@ -231,11 +233,14 @@ const styles = useStyles(theme => ({
       await createFilesTable();
       await createTagsTable();
       await createTagTriggers();
+
+      // Seeds: carpetas del sistema
+      await seedSystemFolders();
       
       console.log('✅ Base de datos lista!');
       
       // 3. Cargar contenido inicial
-      await loadFolderContent(null);
+      await loadFolderContent(ROOT_FOLDER_ID);
     } catch (error) {
       console.error('❌ Error inicializando:', error);
       Alert.alert('Error', 'No se pudo inicializar la base de datos');
@@ -243,19 +248,19 @@ const styles = useStyles(theme => ({
   };
 
   // Cargar contenido de la carpeta actual
-  const loadFolderContent = async (folderId: UUID | null) => {
+  const loadFolderContent = async (folderId: UUID) => {
     try {
       setLoading(true);
       
       const [folders, files] = await Promise.all([
-        folderService.getSubfolders(folderId || undefined),
-        fileService.getFilesInFolder(folderId || undefined)
+        folderService.getSubfolders(folderId),
+        fileService.getFilesInFolder(folderId)
       ]);
 
       const navigationItems: NavigationItem[] = [];
 
       // Añadir botón "Atrás" si no estamos en la raíz
-      if (folderId !== null) {
+      if (folderId !== ROOT_FOLDER_ID) {
         navigationItems.push({
           id: 'back',
           name: '.. Volver',
@@ -293,10 +298,10 @@ const styles = useStyles(theme => ({
   };
 
   // Navegar a una carpeta
-  const navigateToFolder = async (folderId: UUID | null, folderName?: string) => {
+  const navigateToFolder = async (folderId: UUID, folderName?: string) => {
     setCurrentFolderId(folderId);
     
-    if (folderId === null) {
+    if (folderId === ROOT_FOLDER_ID) {
       setBreadcrumbs(['Inicio']);
     } else if (folderName) {
       setBreadcrumbs(prev => [...prev, folderName]);
@@ -307,12 +312,12 @@ const styles = useStyles(theme => ({
 
   // Volver a la carpeta padre
   const goBack = async () => {
-    if (currentFolderId === null) return;
+    if (currentFolderId === ROOT_FOLDER_ID) return;
     
     try {
       // Obtener carpeta actual para saber su padre
       const currentFolder = await folderService.getFolder(currentFolderId);
-      const parentId = currentFolder.parentId || null;
+      const parentId = currentFolder.parentId || ROOT_FOLDER_ID;
       
       setBreadcrumbs(prev => prev.slice(0, -1));
       setCurrentFolderId(parentId);
@@ -320,7 +325,7 @@ const styles = useStyles(theme => ({
     } catch (error) {
       console.error('Error al volver:', error);
       // Si hay error, ir a la raíz
-      navigateToFolder(null);
+      navigateToFolder(ROOT_FOLDER_ID);
     }
   };
 
@@ -356,8 +361,8 @@ const styles = useStyles(theme => ({
         }
       };
 
-      // Solo agregar folderId si no es null
-      if (currentFolderId) {
+      // Solo agregar folderId si no es root
+      if (currentFolderId !== ROOT_FOLDER_ID) {
         createFileInput.folderId = currentFolderId;
         // Actualizar path para incluir la ruta de la carpeta
         const folderPath = breadcrumbs.length > 1 
@@ -399,12 +404,9 @@ const styles = useStyles(theme => ({
     try {
       let createFolderInput: any = {
         name: newFolderName.trim(),
-        description: `Carpeta ${newFolderName.trim()}`,    
+        description: `Carpeta ${newFolderName.trim()}`,
+        parentId: currentFolderId,
       };
-
-      if(currentFolderId) {
-        createFolderInput = {...createFolderInput, parentId: currentFolderId };
-      }
 
       await folderService.createFolder(createFolderInput);
 

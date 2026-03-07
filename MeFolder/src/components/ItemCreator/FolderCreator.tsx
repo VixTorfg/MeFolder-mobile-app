@@ -18,12 +18,12 @@ export interface NewFolder {
   color: ColorInfo;
   icon: keyof typeof Ionicons.glyphMap | undefined ;
   tags: string[];
-  parentId: string | null;
+  parentId: string;
 }
 
 interface FolderCreatorProps {
   onSave: (data: NewFolder) => Promise<void> | void;
-  currentFolderId?: string | null;
+  currentFolderId?: string;
 }
 
 // Iconos predefinidos para carpetas
@@ -87,7 +87,7 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       color: color || SYSTEM_COLORS['yellow'], 
       icon: icon?.icon,
       tags: Array.from(selectedTags),
-      parentId: currentFolderId ?? null,
+      parentId: currentFolderId ?? '',
     });
   };
 

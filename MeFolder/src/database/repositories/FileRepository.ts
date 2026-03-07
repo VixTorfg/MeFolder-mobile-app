@@ -11,6 +11,7 @@ import {
 import { FileExtension, FileCategory } from '../../types/common/file-extensions';
 import { UUID } from '../../types/common/base';
 import { FileRepository } from '../../types/repositories/file';
+import { ROOT_FOLDER_ID } from '../seeds/systemFolders';
 
 /**
  * Implementación del repositorio de archivos.
@@ -41,13 +42,13 @@ export class FileRepositoryImplementation implements FileRepository {
   }
 
   /**
-     * Buscar archivos raíz (sin carpeta padre)
+     * Buscar archivos raíz (en sys_root, con fallback para folder_id NULL)
      */
     async findRootFiles(): Promise<File[]> {
       try {
         const rows = await this.db.query<any>(
-          'SELECT * FROM files WHERE folder_id IS NULL AND status != ?',
-          ['deleted']
+          'SELECT * FROM files WHERE (folder_id = ? OR folder_id IS NULL) AND status != ?',
+          [ROOT_FOLDER_ID, 'deleted']
         );
   
         return rows.map(this.mapRowToFile);

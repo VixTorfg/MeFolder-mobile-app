@@ -6,6 +6,7 @@ import {
 } from '../types/entities/file';
 import { UUID } from '../types/common/base';
 import { FileModel, FileFactory } from '../models/file';
+import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
 
 /**
  * FileService MVP - Funcionalidades básicas para desarrollo inicial
@@ -30,15 +31,12 @@ export class FileService extends BaseService {
     try {
       this.ensureDbInitialized();
       
-      // Validar y obtener carpeta destino si se especifica
-      let folderPath: string | undefined;
-      if (input.folderId) {
-        const folder = await this.validateTargetFolder(input.folderId);
-        folderPath = folder.path;
-      }
+      // Si no se especifica carpeta, usa root
+      const folderId = input.folderId || ROOT_FOLDER_ID;
+      const folder = await this.validateTargetFolder(folderId);
 
       // Crear archivo pasando el path completo de la carpeta
-      const file = await this.fileRepo.create(input, folderPath);
+      const file = await this.fileRepo.create({ ...input, folderId }, folder.path);
       return FileFactory.fromJSON(file);
       
     } catch (error) {
@@ -68,16 +66,13 @@ export class FileService extends BaseService {
   /**
    * Obtener todos los archivos de una carpeta
    */
-  async getFilesInFolder(folderId?: UUID): Promise<FileModel[]> {
+  async getFilesInFolder(folderId: UUID = ROOT_FOLDER_ID): Promise<FileModel[]> {
     try {
       this.ensureDbInitialized();
 
-      let files: File[];
-      if (folderId) {
-        files = await this.fileRepo.findByFolderId(folderId);
-      } else {
-        files = await this.fileRepo.findRootFiles();
-      }
+      const files = folderId === ROOT_FOLDER_ID
+        ? await this.fileRepo.findRootFiles()
+        : await this.fileRepo.findByFolderId(folderId);
 
       return files.map(f => FileFactory.fromJSON(f));
       
@@ -204,11 +199,8 @@ export class FileService extends BaseService {
 
   /**
    * Resuelve el path de almacenamiento para una carpeta.
-   * Útil para que el front sepa dónde copiar archivos en el filesystem.
    */
-  async resolveStoragePath(folderId?: UUID | null): Promise<string> {
-    if (!folderId) return 'root';
-
+  async resolveStoragePath(folderId: UUID = ROOT_FOLDER_ID): Promise<string> {
     this.ensureDbInitialized();
     const folder = await this.folderRepo.findById(folderId);
     if (!folder) throw new Error('Carpeta no encontrada');

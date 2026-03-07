@@ -12,6 +12,7 @@ import {
 import { UUID } from '../../types/common/base';
 import { ColorInfo } from '../../types/common/colors';
 import { FolderRepository } from '../../types/repositories/folder';
+import { ROOT_FOLDER_ID } from '../seeds/systemFolders';
 
 /**
  * Implementación del repositorio de carpetas.
@@ -42,13 +43,13 @@ export class FolderRepositoryImplementation implements FolderRepository {
   }
 
   /**
-   * Buscar carpetas raíz (sin carpeta padre)
+   * Buscar carpetas raíz (hijas de sys_root, con fallback para parent_id NULL)
    */
   async findRootFolders(): Promise<Folder[]> {
     try {
       const rows = await this.db.query<any>(
-        'SELECT * FROM folders WHERE parent_id IS NULL AND status != ?',
-        ['deleted']
+        'SELECT * FROM folders WHERE (parent_id = ? OR parent_id IS NULL) AND id != ? AND status != ?',
+        [ROOT_FOLDER_ID, ROOT_FOLDER_ID, 'deleted']
       );
 
       return rows.map(this.mapRowToFolder);
@@ -324,7 +325,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
   /**
    * Buscar carpetas por carpeta padre
    */
-  async findByFolderId(folderId: UUID | null): Promise<Folder[]> {
+  async findByFolderId(folderId: UUID): Promise<Folder[]> {
     return this.findAll({ parentId: folderId });
   }
 

@@ -1,8 +1,11 @@
 import { Database } from '../sqlite/Database';
 import { SYSTEM_COLORS } from '@/constants/themes/colors';
 
+/** ID fijo de la carpeta raíz del sistema */
+export const ROOT_FOLDER_ID = 'sys_root' as const;
+
 /**
- * Carpetas del sistema predeterminadas.
+ * Carpetas del sistema predeterminadas (hijas de root).
  */
 const SYSTEM_FOLDERS = [
   { id: 'sys_downloads',  name: 'Descargas',   icon: 'folder' },
@@ -20,7 +23,29 @@ export const seedSystemFolders = async (): Promise<void> => {
   const now = new Date().toISOString();
   const color = SYSTEM_COLORS.yellow;
 
-  const queries = SYSTEM_FOLDERS.map((folder) => ({
+  // Carpeta raíz del sistema (sin padre)
+  const rootQuery = {
+    sql: `INSERT OR IGNORE INTO folders (
+      id, created_at, updated_at,
+      name, description, parent_id, path, level,
+      status, type, visibility,
+      color_hex, color_rgb_r, color_rgb_g, color_rgb_b,
+      icon, is_favorite, is_protected, is_system_folder,
+      view_settings_sort_by, view_settings_sort_order,
+      view_settings_view_mode, view_settings_show_hidden_files
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    params: [
+      ROOT_FOLDER_ID, now, now,
+      'Inicio', null, null, ROOT_FOLDER_ID, 0,
+      'active', 'system', 'private',
+      color.hex, color.rgb.r, color.rgb.g, color.rgb.b,
+      'folder', false, true, true,
+      'name', 'asc', 'list', false,
+    ],
+  };
+
+  // Carpetas hijas del root
+  const childQueries = SYSTEM_FOLDERS.map((folder) => ({
     sql: `INSERT OR IGNORE INTO folders (
       id, created_at, updated_at,
       name, description, parent_id, path, level,
@@ -32,7 +57,7 @@ export const seedSystemFolders = async (): Promise<void> => {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     params: [
       folder.id, now, now,
-      folder.name, null, null, folder.id, 0,
+      folder.name, null, ROOT_FOLDER_ID, `${ROOT_FOLDER_ID}/${folder.id}`, 1,
       'active', 'system', 'private',
       color.hex, color.rgb.r, color.rgb.g, color.rgb.b,
       folder.icon, false, true, true,
@@ -42,7 +67,7 @@ export const seedSystemFolders = async (): Promise<void> => {
 
   try {
     console.log('Insertando carpetas del sistema...');
-    await db.transaction(queries);
+    await db.transaction([rootQuery, ...childQueries]);
     console.log('Carpetas del sistema listas');
   } catch (error) {
     console.error('Error al insertar carpetas del sistema:', error);
@@ -51,7 +76,7 @@ export const seedSystemFolders = async (): Promise<void> => {
 };
 
 /** IDs de las carpetas del sistema, útil para validaciones */
-export const SYSTEM_FOLDER_IDS = SYSTEM_FOLDERS.map((f) => f.id);
+export const SYSTEM_FOLDER_IDS = [ROOT_FOLDER_ID, ...SYSTEM_FOLDERS.map((f) => f.id)];
 
 /** Tipo unión de IDs de carpetas del sistema */
-export type SystemFolderId = (typeof SYSTEM_FOLDERS)[number]['id'];
+export type SystemFolderId = typeof ROOT_FOLDER_ID | (typeof SYSTEM_FOLDERS)[number]['id'];

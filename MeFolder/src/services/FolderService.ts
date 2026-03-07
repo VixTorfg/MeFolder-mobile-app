@@ -6,6 +6,7 @@ import {
 } from '../types/entities/folder';
 import { UUID } from '../types/common/base';
 import { FolderModel, FolderFactory } from '../models/folder';
+import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
 
 /**
  * FolderService MVP - Funcionalidades básicas para desarrollo inicial
@@ -29,16 +30,17 @@ export class FolderService extends BaseService {
     try {
       this.ensureDbInitialized();
       
-      // Validar carpeta padre si se especifica
-      if (input.parentId) {
-        await this.validateParentFolder(input.parentId);
-      }
+      // Si no se especifica padre, usa root
+      const parentId = input.parentId || ROOT_FOLDER_ID;
+
+      // Validar carpeta padre
+      await this.validateParentFolder(parentId);
 
       // Validar nombre único en el mismo nivel
-      await this.validateUniqueFolderName(input.name, input.parentId || null);
+      await this.validateUniqueFolderName(input.name, parentId);
 
       // Crear carpeta usando el repositorio
-      const folder = await this.folderRepo.create(input);
+      const folder = await this.folderRepo.create({ ...input, parentId });
       return FolderFactory.fromJSON(folder);
       
     } catch (error) {
@@ -68,16 +70,13 @@ export class FolderService extends BaseService {
   /**
    * Obtener subcarpetas de una carpeta
    */
-  async getSubfolders(parentId?: UUID): Promise<FolderModel[]> {
+  async getSubfolders(parentId: UUID = ROOT_FOLDER_ID): Promise<FolderModel[]> {
     try {
       this.ensureDbInitialized();
 
-      let folders: Folder[];
-      if (parentId) {
-        folders = await this.folderRepo.findByFolderId(parentId);
-      } else {
-        folders = await this.folderRepo.findRootFolders();
-      }
+      const folders = parentId === ROOT_FOLDER_ID
+        ? await this.folderRepo.findRootFolders()
+        : await this.folderRepo.findByFolderId(parentId);
 
       return folders.map(f => FolderFactory.fromJSON(f));
       
@@ -96,7 +95,7 @@ export class FolderService extends BaseService {
       const path: string[] = [];
       let currentId: UUID | null = folderId;
       
-      while (currentId) {
+      while (currentId && currentId !== ROOT_FOLDER_ID) {
         const folder = await this.folderRepo.findById(currentId);
         if (!folder) break;
         
@@ -114,7 +113,7 @@ export class FolderService extends BaseService {
   /**
    * Mover carpeta a otro padre
    */
-  async moveFolder(folderId: UUID, newParentId: UUID | null): Promise<FolderModel> {
+  async moveFolder(folderId: UUID, newParentId: UUID = ROOT_FOLDER_ID): Promise<FolderModel> {
     try {
       this.ensureDbInitialized();
 
@@ -122,21 +121,18 @@ export class FolderService extends BaseService {
       if (!folder) throw new Error('Carpeta no encontrada');
 
       // Validar que no sea su propio descendiente (evitar bucles)
-      if (newParentId) {
+      if (newParentId !== ROOT_FOLDER_ID) {
         await this.validateNotDescendant(folderId, newParentId);
-        await this.validateParentFolder(newParentId);
       }
+      await this.validateParentFolder(newParentId);
 
       // Validar nombre único en nuevo nivel
       await this.validateUniqueFolderName(folder.name, newParentId, folderId);
 
       // Actualizar carpeta padre
-      const updateData: { parentId?: UUID } = {};
-      if (newParentId !== null) {
-        updateData.parentId = newParentId;
-      }
-      
-      const updated = await this.folderRepo.update(folderId, updateData);
+      const updated = await this.folderRepo.update(folderId, {
+        parentId: newParentId
+      });
       return FolderFactory.fromJSON(updated);
       
     } catch (error) {
@@ -213,7 +209,7 @@ export class FolderService extends BaseService {
       if (!folder) throw new Error('Carpeta no encontrada');
 
       // Validar nombre único en el mismo nivel
-      await this.validateUniqueFolderName(newName, folder.parentId || null, folderId);
+      await this.validateUniqueFolderName(newName, folder.parentId || ROOT_FOLDER_ID, folderId);
 
       // Actualizar nombre
       const updated = await this.folderRepo.update(folderId, {
@@ -240,8 +236,10 @@ export class FolderService extends BaseService {
   }
 
   /** Validar que no existe otra carpeta con el mismo nombre en el nivel */
-  private async validateUniqueFolderName(name: string, parentId: UUID | null, excludeFolderId?: UUID): Promise<void> {
-    const siblings = parentId ? await this.folderRepo.findByFolderId(parentId) : await this.folderRepo.findAll({ parentId: null });
+  private async validateUniqueFolderName(name: string, parentId: UUID, excludeFolderId?: UUID): Promise<void> {
+    const siblings = parentId === ROOT_FOLDER_ID
+      ? await this.folderRepo.findRootFolders()
+      : await this.folderRepo.findByFolderId(parentId);
     const conflicting = siblings.find((f: Folder) => 
       f.name === name && f.id !== excludeFolderId
     );
@@ -255,7 +253,7 @@ export class FolderService extends BaseService {
   private async validateNotDescendant(folderId: UUID, targetParentId: UUID): Promise<void> {
     let currentId: UUID | null = targetParentId;
     
-    while (currentId) {
+    while (currentId && currentId !== ROOT_FOLDER_ID) {
       if (currentId === folderId) {
         throw new Error('No se puede mover una carpeta dentro de sí misma');
       }

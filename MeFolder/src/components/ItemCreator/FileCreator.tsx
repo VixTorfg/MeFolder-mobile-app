@@ -22,7 +22,7 @@ interface SelectedFile {
 export type NewFile = {
   files: SelectedFile[];
   tags: string[];
-  folderId: string | null | undefined;
+  folderId: string | undefined;
 }
 
 interface MockTag {
@@ -33,7 +33,7 @@ interface MockTag {
 
 interface FileCreatorProps {
   onSave: (data: NewFile) => Promise<void> | void;
-  currentFolderId?: string | null | undefined;
+  currentFolderId?: string;
 }
 
 // Tags de ejemplo para la parte visual

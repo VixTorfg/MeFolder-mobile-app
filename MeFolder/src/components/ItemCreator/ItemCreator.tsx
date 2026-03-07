@@ -13,7 +13,7 @@ interface ItemCreatorProps {
   onClose: () => void;
   onSaveFile?: (data: any) => Promise<void> | void;
   onSaveFolder?: (data: any) => Promise<void> | void;
-  currentFolderId?: string | null;
+  currentFolderId?: string;
 }
 
 export default function ItemCreator({

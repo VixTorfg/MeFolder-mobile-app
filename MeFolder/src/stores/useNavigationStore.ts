@@ -1,13 +1,14 @@
 import { create } from 'zustand';
+import { ROOT_FOLDER_ID } from '@/database/seeds/systemFolders';
 
 export interface PathSegment {
-  id: string | null;  // null = raíz
+  id: string;
   name: string;
 }
 
 interface NavigationState {
   segments: PathSegment[];
-  currentFolderId: string | null;
+  currentFolderId: string;
 }
 
 interface NavigationActions {
@@ -21,11 +22,11 @@ interface NavigationActions {
   renameSegment: (id: string, newName: string) => void;
 }
 
-const ROOT_SEGMENT: PathSegment = { id: null, name: 'Inicio' };
+const ROOT_SEGMENT: PathSegment = { id: ROOT_FOLDER_ID, name: 'Inicio' };
 
 export const useNavigationStore = create<NavigationState & NavigationActions>((set) => ({
   segments: [ROOT_SEGMENT],
-  currentFolderId: null,
+  currentFolderId: ROOT_FOLDER_ID,
 
   navigateTo: (id, name) =>
     set((state) => ({
@@ -46,7 +47,7 @@ export const useNavigationStore = create<NavigationState & NavigationActions>((s
   navigateToRoot: () =>
     set({
       segments: [ROOT_SEGMENT],
-      currentFolderId: null,
+      currentFolderId: ROOT_FOLDER_ID,
     }),
 
   renameSegment: (id, newName) =>
