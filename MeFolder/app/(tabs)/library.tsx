@@ -4,14 +4,15 @@ import { View, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { useNavigationStore } from '@/stores';
 import { Ionicons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
-import type { CreateFileInput, FileCategory, FileMetadata, FSFileInfo } from '@/types';
-import { modeView } from '@/types';
+import type { CreateFileInput, FileCategory, FileMetadata, FSFileInfo, OptionsType } from '@/types';
+import { modeView, OptionsIds } from '@/types';
 import { useDatabase, useServices  } from '@/providers';
 import { useFileSystem, useMedia } from '@/hooks';
 import type { NewFile } from '@/components/ItemCreator/FileCreator';
 import type { NewFolder } from '@/components/ItemCreator/FolderCreator';
 import mime from 'mime';
 import { useLibraryStyles } from '@/screenStyles/libraryStyle';
+import OptionDropDown from '@/components/OptionDropDown/OptionDropDown';
 
 export default function LibraryScreen() {
   const { isReady } = useDatabase();
@@ -74,6 +75,29 @@ export default function LibraryScreen() {
         ? prev.filter(i => i.id !== item.id)
         : [...prev, item]
     );
+  };
+
+  const handleOnSelectOption = (option: OptionsType) => {
+    switch (option.id) {
+      case OptionsIds.SELECT_ALL:
+        setItemsSelected([...items]);
+        break;
+      case OptionsIds.NO_SELECT:
+        setItemsSelected([]);
+        break;
+      case OptionsIds.INVERT_SELECT:
+        setItemsSelected(prev => {
+          const selectedIds = new Set(prev.map(item => item.id));
+          return items.filter(item => !selectedIds.has(item.id));
+        });
+        break;
+      case OptionsIds.PROPERTIES:
+        console.log('Seleccionaste Propiedades');
+        break;
+      case OptionsIds.SETTINGS:
+        console.log('Seleccionaste Configuración');
+        break;
+    }
   };
 
   const buildFileMetadata = async (category: FileCategory, uri: string, fsInfo: FSFileInfo | null, fileMimeType?: string): Promise<FileMetadata> => {
@@ -230,13 +254,7 @@ export default function LibraryScreen() {
       <View style={styles.breadcrumb}>
         <Breadcrumb />
         <View style={styles.buttonsGroup}>
-          <MultiActionButton
-            icon={"ellipsis-vertical"}
-            size={38}
-            backgroundColor={'transparent'}
-            iconColor={'red'}
-            onPress={() => console.log('ellipsis')}
-          />
+          <OptionDropDown onSelect={handleOnSelectOption}/>
           <ViewDropDown onChange={handleOnPress} defaultValue='list'/>
         </View>
       </View>

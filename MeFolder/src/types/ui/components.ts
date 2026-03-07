@@ -36,6 +36,28 @@ export interface ViewDropDownProps {
   defaultValue?: string;
 }
 
+export const OptionsIds = {
+  SELECT_ALL: 'select_all',
+  NO_SELECT: 'no_select',
+  INVERT_SELECT: 'invert_select',
+  PROPERTIES: 'properties',
+  SETTINGS: 'settings',
+} as const;
+
+export type OptionsIds = (typeof OptionsIds)[keyof typeof OptionsIds];
+
+export interface OptionsType {
+  id: OptionsIds;
+  name: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}
+
+export interface OptionDropDownProps {
+  disabled?: boolean;
+  size?: number;
+  onSelect?: (options: OptionsType) => void;
+}
+
 export interface SearchResultItem {
   id: string;
   name: string;
