@@ -18,7 +18,9 @@ export default function LibraryScreen() {
   const { services } = useServices();
   const [selectedView, setSelectedView] = useState<modeView>('list');
   const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
+  const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
   const [creatorVisible, setCreatorVisible] = useState(false);
+  const selectionMode = itemsSelected.length > 0;
 
   const styles = useLibraryStyles();
   const fs = useFileSystem();
@@ -59,11 +61,19 @@ export default function LibraryScreen() {
     if (item instanceof FolderModel) {
       navigateTo(item.id, item.name);
     } else {
-      Alert.alert(
+      /*Alert.alert(
         `📄 ${item.name}`,
         JSON.stringify(item.toJSON(), null, 2),
-      );
+      );*/
     }
+  };
+
+  const toggleSelection = (item: FileModel | FolderModel) => {
+    setItemsSelected(prev =>
+      prev.some(i => i.id === item.id)
+        ? prev.filter(i => i.id !== item.id)
+        : [...prev, item]
+    );
   };
 
   const buildFileMetadata = async (category: FileCategory, uri: string, fsInfo: FSFileInfo | null, fileMimeType?: string): Promise<FileMetadata> => {
@@ -256,7 +266,9 @@ export default function LibraryScreen() {
           <ViewCards
             data={item}
             viewConfig={selectedView}
-            onPress={() => handleElementPress(item)}
+            selected={itemsSelected.some(i => i.id === item.id)}
+            onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
+            onLongPress={() => toggleSelection(item)}
           />
         )}
         columnWrapperStyle={selectedView === 'grid' ? styles.gridRow : undefined}

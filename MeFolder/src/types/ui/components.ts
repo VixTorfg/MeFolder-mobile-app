@@ -56,9 +56,11 @@ export interface SearchBoxProps {
 
 export interface CommunCardProps {
   onPress: () => Promise<void> | void;
+  onLongPress?: () => Promise<void> | void;
   disabled?: boolean;
   data: FileModel | FolderModel;
   showCard?: boolean;
+  selected?: boolean;
 }
 
 export interface ViewCardsProps extends CommunCardProps {

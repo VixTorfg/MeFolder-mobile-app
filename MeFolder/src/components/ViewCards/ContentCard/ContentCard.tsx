@@ -8,9 +8,11 @@ import { formatDate, formatFileSize, getIconByCategory } from '@/utils';
 
 export default function ContentCard({
   onPress,
+  onLongPress,
   disabled = false,
   data,
-  showCard = true
+  showCard = true,
+  selected = false
 }: CommunCardProps) {
   
   const styles = useContentCardStyles();
@@ -23,15 +25,22 @@ export default function ContentCard({
       await onPress();
     }
   };
+
+  const handleLongPress = async (): Promise<void> => {
+    if (onLongPress && !disabled) {
+      await onLongPress();
+    }
+  };
   
   if (!showCard) return null;
 
   return (
     <TouchableOpacity 
-      style={styles.cardContainer} 
+      style={selected ? styles.cardContainerSelected : styles.cardContainer} 
       onPress={handlePress} 
       disabled={disabled}
       activeOpacity={0.8}
+      onLongPress={handleLongPress}
     >
       <View style={styles.iconNameContainer}>
           {data instanceof FileModel ? (

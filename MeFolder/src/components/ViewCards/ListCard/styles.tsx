@@ -14,6 +14,18 @@ export const useListCardStyles = () => {
             gap: 24,
             alignItems: 'center',
         },
+        cardContainerSelected:{
+            ...basicCard(theme),
+            flex: 1,
+            backgroundColor: theme.colors.primarySoft,
+            paddingRight: theme.spacing.md,
+            paddingLeft: theme.spacing.md - 4,
+            paddingVertical: theme.spacing.sm,
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            gap: 24,
+            alignItems: 'center',
+        },
         iconNameContainer: {
             flex: 1,
             flexDirection: 'row',

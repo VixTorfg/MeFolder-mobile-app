@@ -10,16 +10,25 @@ import type { FileExtensionWithoutVideo } from '@/types/common/file-extensions';
 
 export default function GridCard({
   onPress,
+  onLongPress,
   disabled = false,
   data,
-  showCard = true
+  showCard = true,
+  selected = false
 }: CommunCardProps) {
+
   const styles = useGridCardStyles();
   const isFile = data instanceof FileModel;
  
   const handlePress = async (): Promise<void> => {
     if (onPress && !disabled) {
       await onPress();
+    }
+  };
+
+  const handleLongPress = async (): Promise<void> => {
+    if (onLongPress && !disabled) {
+      await onLongPress();
     }
   };
   
@@ -31,10 +40,11 @@ export default function GridCard({
 
   return (
     <TouchableOpacity 
-      style={styles.cardContainer} 
+      style={selected ? styles.cardContainerSelected : styles.cardContainer} 
       onPress={handlePress} 
       disabled={disabled}
       activeOpacity={0.8}
+      onLongPress={handleLongPress}
     >
       {isFile ? (
         <View style={styles.fileThumbnail}>

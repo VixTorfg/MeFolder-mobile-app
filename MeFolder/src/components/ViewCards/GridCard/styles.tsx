@@ -14,6 +14,18 @@ export const useGridCardStyles = () => {
             gap: 16,
             alignItems: 'center',
         },
+        cardContainerSelected:{
+            ...basicCard(theme),
+            flex: 1,
+            backgroundColor: theme.colors.primarySoft,
+            paddingHorizontal: theme.spacing.md - 4,
+            paddingVertical: theme.spacing.sm,
+
+            flexDirection: 'row',
+            justifyContent: 'space-between',
+            gap: 16,
+            alignItems: 'center',
+        },
         fileNameText: {
             fontFamily: theme.typography.fontFamily.title.semiBold,
             fontSize: theme.typography.fontSize.sm,
