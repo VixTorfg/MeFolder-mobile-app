@@ -31,8 +31,8 @@ export class FolderRepositoryImplementation implements FolderRepository {
   async findById(id: UUID): Promise<Folder | null> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT * FROM folders WHERE id = ? AND status != ?',
-        [id, 'deleted']
+        'SELECT * FROM folders WHERE id = ?',
+        [id]
       );
 
       return row ? this.mapRowToFolder(row) : null;
@@ -62,10 +62,13 @@ export class FolderRepositoryImplementation implements FolderRepository {
   /**
    * Obtener todas las carpetas con filtros opcionales
    */
-  async findAll(filters?: any): Promise<Folder[]> {
+  async findAll(filters?: any, includeDeleted = false): Promise<Folder[]> {
     try {
-      let sql = 'SELECT * FROM folders WHERE status != ?';
-      const params: any[] = ['deleted'];
+
+      let sql = includeDeleted
+        ? 'SELECT * FROM folders WHERE 1=1'
+        : 'SELECT * FROM folders WHERE status != ?';
+      const params: any[] = includeDeleted ? [] : ['deleted'];
 
       // Aplicar filtros si existen
       if (filters) {
@@ -112,6 +115,36 @@ export class FolderRepositoryImplementation implements FolderRepository {
     } catch (error) {
       console.error('Error finding all folders:', error);
       throw new Error(`Error al buscar carpetas: ${error}`);
+    }
+  }
+
+  /** 
+   * Actualizar estado de la carpeta
+   */
+  async updateStatus(folderId: UUID, status: string): Promise<void> {
+    try {
+      await this.db.execute(
+        'UPDATE folders SET status = ?, updated_at = ? WHERE id = ?',
+        [status, new Date().getTime(), folderId]
+      );
+    } catch (error) {
+      console.error('Error updating folder status:', error);
+      throw new Error(`Error al actualizar estado de la carpeta: ${error}`);
+    }
+  }
+
+  /**
+   * Restaurar carpeta eliminado 
+   */
+  async restore(folderId: UUID): Promise<void> {
+    try {
+      await this.db.execute(
+        'UPDATE folders SET status = ?, updated_at = ? WHERE id = ?',
+        ['active', new Date().getTime(), folderId]
+      );
+    } catch (error) {
+      console.error('Error restoring folder:', error);
+      throw new Error(`Error al restaurar carpeta: ${error}`);
     }
   }
 
@@ -348,6 +381,13 @@ export class FolderRepositoryImplementation implements FolderRepository {
    */
   async findByStatus(status: string): Promise<Folder[]> {
     return this.findAll({ status });
+  }
+
+  /**
+   * Buscar carpetas eliminadas (status = 'deleted')
+   */
+  async findDeletedFolders(): Promise<Folder[]> {
+    return this.findAll({ status: 'deleted' }, true);
   }
 
   /**

@@ -204,7 +204,7 @@ export class FileService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      const deletedFiles = await this.fileRepo.findByStatus('deleted'); 
+      const deletedFiles = await this.fileRepo.findDeletedFiles();
       const deletedFileModels = deletedFiles.map(f => FileFactory.fromJSON(f)); 
     
       return deletedFileModels;
@@ -234,6 +234,46 @@ export class FileService extends BaseService {
     } catch (error) {
       return this.handleError(error, 'obtener archivos eliminados');
     }
+  }
+
+  /**
+   * Restaurar archivo eliminado (cambiar status de 'deleted' a 'active').
+   * Devuelve los UUIDs de todos los elementos restaurados (archivo + carpetas padre).
+   */
+  async restoreFile(fileId: UUID): Promise<UUID[]> {
+    try {
+      this.ensureDbInitialized();
+      const file = await this.fileRepo.findById(fileId);
+      if (!file) throw new Error('Archivo no encontrado');
+      if (file.status !== 'deleted') throw new Error('El archivo no está eliminado');
+
+      const restoredIds: UUID[] = [];
+
+      await this.restoreParentChain(file.folderId || ROOT_FOLDER_ID, restoredIds);
+
+      await this.fileRepo.restore(fileId);
+      restoredIds.push(fileId);
+
+      return restoredIds;
+
+    }catch (error) {
+      return this.handleError(error, 'restaurar archivo');
+    }
+  }
+
+  /**
+   * Restaura recursivamente la cadena de carpetas padre eliminadas
+   */
+  private async restoreParentChain(folderId: UUID, restoredIds: UUID[]): Promise<void> {
+    const folder = await this.folderRepo.findById(folderId);
+    if (!folder || folder.status !== 'deleted') return;
+
+    if (folder.parentId) {
+      await this.restoreParentChain(folder.parentId, restoredIds);
+    }
+
+    await this.folderRepo.restore(folderId);
+    restoredIds.push(folderId);
   }
 
   /**

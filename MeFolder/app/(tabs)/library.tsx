@@ -99,6 +99,37 @@ export default function LibraryScreen() {
     }
   };
 
+  const handleDeleteElements = () => {
+    
+    /*
+    Alert.alert(
+      'Confirmar eliminación',
+      `¿Estás seguro de que deseas eliminar ${itemsSelected.length} elemento(s)?`,
+      [
+        { text: 'Cancelar', style: 'cancel', onPress: () => {deleteFile = false}},
+        { text: 'Eliminar', style: 'destructive', onPress: () => {deleteFile = true}}, 
+      ]
+    );*/
+
+    const folderService = services?.folderService;
+    const fileService = services?.fileService;
+
+    const folderIdsToDelete = itemsSelected.filter(i => i instanceof FolderModel).map(f => f.id);
+    const fileIdsToDelete = itemsSelected.filter(i => i instanceof FileModel).map(f => f.id);
+
+    const successFolders = folderIdsToDelete.map(folderId => folderService.deleteFolder(folderId, true));
+    const successFiles = fileIdsToDelete.map(fileId => fileService.deleteFile(fileId));
+
+    console.log('Resultados eliminación carpetas:', successFolders);
+    console.log('Resultados eliminación archivos:', successFiles);
+      if(successFolders.every(s => s) && successFiles.every(s => s)){
+        setItems(prev => prev.filter(i => !itemsSelected.some(s => s.id === i.id)));
+        setItemsSelected([]);
+      } else {
+        Alert.alert('Error', 'No se pudieron eliminar todos los elementos seleccionados');
+      }
+  };
+
   const buildFileMetadata = async (category: FileCategory, uri: string, fsInfo: FSFileInfo | null, fileMimeType?: string): Promise<FileMetadata> => {
     const mimeType = fileMimeType || fsInfo?.mimeType || '';
     const base: FileMetadata = {
@@ -243,6 +274,14 @@ export default function LibraryScreen() {
           onSearch={async (query) => { /* futuro */ return []; }}
           onClear={() => { /* futuro */ }}
         />
+        {selectionMode && (
+          <MultiActionButton
+            icon={"trash-outline"}
+            backgroundColor="#E53935"
+            size={38}
+            onPress={() => {handleDeleteElements()}}
+          />
+        )}
         <MultiActionButton
           icon={"settings"}
           size={38}

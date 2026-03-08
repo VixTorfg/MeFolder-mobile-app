@@ -165,9 +165,10 @@ export class FolderService extends BaseService {
       }
 
       // Cambiar status a eliminado
-      await this.folderRepo.update(folderId, { 
-        status: 'deleted' as FolderStatus 
-      });
+      await this.folderRepo.delete(folderId);
+
+      // Eliminar toda la jerarquía inferior
+      await this.deleteChildrenRecursive(folderId);
       
       return true;
       
@@ -183,7 +184,7 @@ export class FolderService extends BaseService {
     try {
       this.ensureDbInitialized();
   
-      const deletedFolders = await this.folderRepo.findByStatus('deleted'); 
+      const deletedFolders = await this.folderRepo.findDeletedFolders(); 
       const deletedFolderModels = deletedFolders.map(f => FolderFactory.fromJSON(f)); 
       
       return deletedFolderModels;
@@ -234,6 +235,36 @@ export class FolderService extends BaseService {
       
     } catch (error) {
       return this.handleError(error, 'contar contenido de carpeta');
+    }
+  }
+
+  /**
+   * Restaurar carpeta eliminada, incluyendo padres hacia arriba e hijos hacia abajo.
+   * Devuelve los UUIDs de todos los elementos restaurados.
+   */
+  async restoreFolder(folderId: UUID): Promise<UUID[]> {
+    try {
+      this.ensureDbInitialized();
+      const folder = await this.folderRepo.findById(folderId);
+      if (!folder) throw new Error('Carpeta no encontrada');
+      if (folder.status !== 'deleted') throw new Error('La carpeta no está eliminada');
+
+      const restoredIds: UUID[] = [];
+
+      // Restaurar padres hacia arriba
+      await this.restoreParentChain(folder.parentId || ROOT_FOLDER_ID, restoredIds);
+
+      // Restaurar la carpeta
+      await this.folderRepo.restore(folderId);
+      restoredIds.push(folderId);
+
+      // Restaurar hijos hacia abajo
+      await this.restoreChildrenRecursive(folderId, restoredIds);
+
+      return restoredIds;
+
+    } catch (error) {
+      return this.handleError(error, 'restaurar carpeta');
     }
   }
 
@@ -310,5 +341,53 @@ export class FolderService extends BaseService {
     if (content.files > 0 || content.folders > 0) {
       throw new Error('No se puede eliminar carpeta que contiene archivos o subcarpetas');
     }
+  }
+
+  /**
+   * Elimina recursivamente todos los hijos de una carpeta (subcarpetas y archivos)
+   */
+  private async deleteChildrenRecursive(folderId: UUID): Promise<void> {
+
+    const files = await this.fileRepo.findByFolderId(folderId);
+    await Promise.all(files.map(f => this.fileRepo.delete(f.id)));
+
+    const subfolders = await this.folderRepo.findByFolderId(folderId);
+    await Promise.all(subfolders.map(async f => {
+      await this.deleteChildrenRecursive(f.id);
+      await this.folderRepo.delete(f.id);
+    }));
+  }
+
+  /**
+   * Restaura recursivamente la cadena de carpetas padre eliminadas
+   */
+  private async restoreParentChain(folderId: UUID, restoredIds: UUID[]): Promise<void> {
+    const folder = await this.folderRepo.findById(folderId);
+    if (!folder || folder.status !== 'deleted') return;
+
+    if (folder.parentId) {
+      await this.restoreParentChain(folder.parentId, restoredIds);
+    }
+
+    await this.folderRepo.restore(folderId);
+    restoredIds.push(folderId);
+  }
+
+  /**
+   * Restaura recursivamente todos los hijos de una carpeta (subcarpetas y archivos)
+   */
+  private async restoreChildrenRecursive(folderId: UUID, restoredIds: UUID[]): Promise<void> {
+    const files = await this.fileRepo.findAll({ folderId, status: 'deleted' }, true);
+    await Promise.all(files.map(async f => {
+      await this.fileRepo.restore(f.id);
+      restoredIds.push(f.id);
+    }));
+
+    const subfolders = await this.folderRepo.findAll({ parentId: folderId, status: 'deleted' }, true);
+    await Promise.all(subfolders.map(async f => {
+      await this.folderRepo.restore(f.id);
+      restoredIds.push(f.id);
+      await this.restoreChildrenRecursive(f.id, restoredIds);
+    }));
   }
 }

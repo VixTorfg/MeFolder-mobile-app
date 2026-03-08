@@ -30,8 +30,8 @@ export class FileRepositoryImplementation implements FileRepository {
   async findById(id: UUID): Promise<File | null> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT * FROM files WHERE id = ? AND status != ?',
-        [id, 'deleted']
+        'SELECT * FROM files WHERE id = ?',
+        [id]
       );
 
       return row ? this.mapRowToFile(row) : null;
@@ -62,10 +62,12 @@ export class FileRepositoryImplementation implements FileRepository {
   /**
    * Obtener todos los archivos con filtros opcionales
    */
-  async findAll(filters?: any): Promise<File[]> {
+  async findAll(filters?: any, includeDeleted = false): Promise<File[]> {
     try {
-      let sql = 'SELECT * FROM files WHERE status != ?';
-      const params: any[] = ['deleted'];
+      let sql = includeDeleted
+        ? 'SELECT * FROM files WHERE 1=1'
+        : 'SELECT * FROM files WHERE status != ?';
+      const params: any[] = includeDeleted ? [] : ['deleted'];
 
       // Aplicar filtros si existen
       if (filters) {
@@ -200,7 +202,7 @@ export class FileRepositoryImplementation implements FileRepository {
           archived_at = ?
         WHERE id = ?
       `, [
-        file.updatedAt,
+        file.updatedAt.getTime(),
         file.name, file.folderId, file.path, file.status, file.visibility, file.description,
         file.color?.hex, file.color?.rgb.r, file.color?.rgb.g, file.color?.rgb.b,
         file.lastAccessedAt, file.archivedAt,
@@ -214,6 +216,21 @@ export class FileRepositoryImplementation implements FileRepository {
     }
   }
 
+  /** 
+  * Actualizar estado del archivo 
+  */
+  async updateStatus(fileId: UUID, status: string): Promise<void> {
+      try {
+        await this.db.execute(
+          'UPDATE files SET status = ?, updated_at = ? WHERE id = ?',
+          [status, new Date().getTime(), fileId]
+        );
+      } catch (error) {
+        console.error('Error updating file status:', error);
+        throw new Error(`Error al actualizar estado del archivo: ${error}`);
+      }
+  }
+
   /**
    * Eliminación lógica (cambiar status a 'deleted')
    */
@@ -221,7 +238,7 @@ export class FileRepositoryImplementation implements FileRepository {
     try {
       const result = await this.db.execute(
         'UPDATE files SET status = ?, updated_at = ? WHERE id = ?',
-        ['deleted', new Date(), id]
+        ['deleted', new Date().getTime(), id]
       );
 
       return result.changes > 0;
@@ -297,6 +314,13 @@ export class FileRepositoryImplementation implements FileRepository {
   }
 
   /**
+  * Buscar archivos eliminados (status = 'deleted')
+  */
+  async findDeletedFiles(): Promise<File[]> {
+    return this.findAll({ status: 'deleted' }, true);
+  }
+
+  /**
    * Buscar archivos que tengan ciertos tags
    */
   async findByTagIds(tagIds: UUID[]): Promise<File[]> {
@@ -317,6 +341,21 @@ export class FileRepositoryImplementation implements FileRepository {
     } catch (error) {
       console.error('Error finding files by tags:', error);
       throw new Error(`Error al buscar archivos por tags: ${error}`);
+    }
+  }
+
+  /**
+   * Restaurar archivo eliminado 
+   */
+  async restore(fileId: UUID): Promise<void> {
+    try {
+      await this.db.execute(
+        'UPDATE files SET status = ?, updated_at = ? WHERE id = ?',
+        ['active', new Date().getTime(), fileId]
+      );
+    } catch (error) {
+      console.error('Error restoring file:', error);
+      throw new Error(`Error al restaurar archivo: ${error}`);
     }
   }
 

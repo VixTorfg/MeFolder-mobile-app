@@ -3,7 +3,8 @@ import { FileModel, FolderModel } from '@/models';
 import { useServices, useDatabase } from '@/providers';
 import { useFileSystem } from '@/hooks/useFileSystem';
 import { useLibraryStyles } from '@/src/screenStyles/libraryStyle';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
 import { View, Alert, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { modeView, OptionsIds, OptionsType } from '@/types';
@@ -22,21 +23,23 @@ export default function TrashScreen() {
   let folders: FolderModel[] = [];
   let files: FileModel[] = [];
 
-  useEffect(() => {
-    if (!isReady) return;
-  
-    const loadContent = async () => {
-      const folderService = services?.folderService;
-      const fileService = services?.fileService;
+  useFocusEffect(
+    useCallback(() => {
+      if (!isReady) return;
+
+      const loadContent = async () => {
+        const folderService = services?.folderService;
+        const fileService = services?.fileService;
 
         folders = await folderService.getDeletedFolders();
         files = await fileService.getDeletedFiles();
 
-      setItems([...folders, ...files]);
-    };
-  
-    loadContent();
-  }, [isReady]);
+        setItems([...folders, ...files]);
+      };
+
+      loadContent();
+    }, [isReady])
+  );
 
   const handleRestore = (itemName: string) => {
     Alert.alert(
@@ -103,6 +106,26 @@ export default function TrashScreen() {
       );
     };
   
+    const handleRestoreSelected = async () => {
+      const fileService = services?.fileService;
+      const folderService = services?.folderService;
+
+      const allRestoredIds = new Set<string>();
+
+      for (const item of itemsSelected) {
+        if (item instanceof FolderModel) {
+          const restoredIds = await folderService.restoreFolder(item.id);
+          restoredIds.forEach((id: string) => allRestoredIds.add(id));
+        } else {
+          const restoredIds = await fileService.restoreFile(item.id);
+          restoredIds.forEach((id: string) => allRestoredIds.add(id));
+        }
+      }
+
+      setItems(prev => prev.filter(i => !allRestoredIds.has(i.id)));
+      setItemsSelected([]);
+    };
+
     const handleOnSelectOption = (option: OptionsType) => {
       switch (option.id) {
         case OptionsIds.SELECT_ALL:
@@ -133,6 +156,14 @@ export default function TrashScreen() {
           onSearch={async (query) => { /* futuro */ return []; }}
           onClear={() => { /* futuro */ }}
         />
+        {selectionMode && (
+          <MultiActionButton
+            icon={"refresh-outline"}
+            backgroundColor="#4CAF50"
+            size={38}
+            onPress={handleRestoreSelected}
+          />
+        )}
         <MultiActionButton
           icon={"settings"}
           size={38}

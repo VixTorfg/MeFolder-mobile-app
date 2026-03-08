@@ -7,25 +7,28 @@ export interface FileRepository extends BaseRepository<File, CreateFileInput, Up
   findByExtension(extension: FileExtension): Promise<File[]>;
   findByTagIds(tagIds: UUID[]): Promise<File[]>;
   findByCategory(category: string): Promise<File[]>;
+  findDeletedFiles(): Promise<File[]>;
   findByStatus(status: string): Promise<File[]>; 
-  findAll(filters?: any): Promise<File[]>;
+  findAll(filters?: any, includeDeleted?: boolean): Promise<File[]>;
   search(query: string, filters?: any): Promise<File[]>; 
   
   create(input: CreateFileInput, folderPath?: string): Promise<File>;
   update(id: UUID, input: UpdateFileInput): Promise<File>;
   updateTags(fileId: UUID, tagIds: UUID[]): Promise<void>;
+  updateStatus(fileId: UUID, status: string): Promise<void>;
   delete(id: UUID): Promise<boolean>;
   count(filters?: any): Promise<number>;
   exists(id: UUID): Promise<boolean>;
+
+  restore(fileId: UUID): Promise<void>;
   
   //TODO
   /*markAsAccessed(fileId: UUID);
   move(fileId, folderId, newPath);
   archive(fileId)
-  restore(fileId)
   bulkCreate(files: CreateFileInput[])
   findRecentlyAccessed(limit)
-  updateStatus(fileId, status)
+  
 
   Tipa filter
   */
