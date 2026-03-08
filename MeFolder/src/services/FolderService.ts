@@ -177,6 +177,45 @@ export class FolderService extends BaseService {
   }
 
   /**
+     * Devuelve la lista de carpetas eliminadas.
+     */
+  async getDeletedFolders(): Promise<FolderModel[]> {
+    try {
+      this.ensureDbInitialized();
+  
+      const deletedFolders = await this.folderRepo.findByStatus('deleted'); 
+      const deletedFolderModels = deletedFolders.map(f => FolderFactory.fromJSON(f)); 
+      
+      return deletedFolderModels;
+        
+    } catch (error) {
+      return this.handleError(error, 'obtener carpetas eliminadas');
+    }
+  }
+
+  /**
+     * Devuelve la lista de subcarpetas eliminadas dado un parentId.
+     */
+  async getDeletedInFolder(parentId: UUID): Promise<FolderModel[]> {
+    try {
+      this.ensureDbInitialized();
+  
+      const filter = {
+        parentId,
+        status: 'deleted' as FolderStatus
+      };
+
+      const deletedFolders = await this.folderRepo.findAll(filter); 
+      const deletedFolderModels = deletedFolders.map(f => FolderFactory.fromJSON(f)); 
+      
+      return deletedFolderModels;
+        
+    } catch (error) {
+      return this.handleError(error, 'obtener carpetas eliminadas');
+    }
+  }
+
+  /**
    * Contar contenido de una carpeta (archivos + subcarpetas)
    */
   async getFolderContentCount(folderId: UUID): Promise<{ files: number; folders: number }> {
@@ -222,7 +261,6 @@ export class FolderService extends BaseService {
     }
   }
 
-  // ===== MÉTODOS PRIVADOS DE VALIDACIÓN =====
 
   /** Validar que la carpeta padre existe */
   private async validateParentFolder(parentId: UUID): Promise<void> {

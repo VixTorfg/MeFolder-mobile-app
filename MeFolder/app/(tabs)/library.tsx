@@ -1,4 +1,4 @@
-import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, Breadcrumb } from '@/components';
+import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, Breadcrumb, OptionDropDown } from '@/components';
 import React, { useEffect, useState } from 'react';
 import { View, FlatList, TouchableOpacity, Alert } from 'react-native';
 import { useNavigationStore } from '@/stores';
@@ -12,7 +12,6 @@ import type { NewFile } from '@/components/ItemCreator/FileCreator';
 import type { NewFolder } from '@/components/ItemCreator/FolderCreator';
 import mime from 'mime';
 import { useLibraryStyles } from '@/screenStyles/libraryStyle';
-import OptionDropDown from '@/components/OptionDropDown/OptionDropDown';
 
 export default function LibraryScreen() {
   const { isReady } = useDatabase();

@@ -198,6 +198,45 @@ export class FileService extends BaseService {
   }
 
   /**
+   * Devuelve la lista de archivos eliminados..
+   */
+  async getDeletedFiles(): Promise<FileModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      const deletedFiles = await this.fileRepo.findByStatus('deleted'); 
+      const deletedFileModels = deletedFiles.map(f => FileFactory.fromJSON(f)); 
+    
+      return deletedFileModels;
+      
+    } catch (error) {
+      return this.handleError(error, 'obtener archivos eliminados');
+    }
+  }
+
+/**
+     * Devuelve la lista de archivos dentro de una carpeta eliminadas dado un parentId.
+     */
+  async getDeletedInFolder(parentId: UUID): Promise<FileModel[]> {
+    try {
+      this.ensureDbInitialized();
+  
+      const filter = {
+        parentId,
+        status: 'deleted' as FileStatus
+      };
+
+      const deletedFiles = await this.fileRepo.findAll(filter); 
+      const deletedFileModels = deletedFiles.map(f => FileFactory.fromJSON(f)); 
+      
+      return deletedFileModels;
+        
+    } catch (error) {
+      return this.handleError(error, 'obtener archivos eliminados');
+    }
+  }
+
+  /**
    * Resuelve el path de almacenamiento para una carpeta.
    */
   async resolveStoragePath(folderId: UUID = ROOT_FOLDER_ID): Promise<string> {

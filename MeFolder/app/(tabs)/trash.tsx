@@ -1,14 +1,43 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-
-const SAMPLE_TRASH_ITEMS = [
-  { id: 1, name: 'Documento viejo.pdf', type: 'file', deletedDate: '2024-02-01', size: '2.3 MB' },
-  { id: 2, name: 'Carpeta Temporal', type: 'folder', deletedDate: '2024-01-28', size: '5 archivos' },
-  { id: 3, name: 'imagen_prueba.jpg', type: 'file', deletedDate: '2024-01-25', size: '856 KB' },
-  { id: 4, name: 'notas_borrador.txt', type: 'file', deletedDate: '2024-01-20', size: '1.2 KB' },
-];
+import { ViewDropDown, ViewCards, SearchBox, MultiActionButton, Breadcrumb, OptionDropDown } from '@/components';
+import { FileModel, FolderModel } from '@/models';
+import { useServices, useDatabase } from '@/providers';
+import { useFileSystem } from '@/hooks/useFileSystem';
+import { useLibraryStyles } from '@/src/screenStyles/libraryStyle';
+import React, { useEffect, useState } from 'react';
+import { View, Alert, FlatList } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { modeView, OptionsIds, OptionsType } from '@/types';
 
 export default function TrashScreen() {
+  const { isReady } = useDatabase();
+  const { services } = useServices();
+  const [selectedView, setSelectedView] = useState<modeView>('list');
+  const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
+  const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
+  const selectionMode = itemsSelected.length > 0;
+
+  const styles = useLibraryStyles();
+  const fs = useFileSystem();
+  
+  let folders: FolderModel[] = [];
+  let files: FileModel[] = [];
+
+  useEffect(() => {
+    if (!isReady) return;
+  
+    const loadContent = async () => {
+      const folderService = services?.folderService;
+      const fileService = services?.fileService;
+
+        folders = await folderService.getDeletedFolders();
+        files = await fileService.getDeletedFiles();
+
+      setItems([...folders, ...files]);
+    };
+  
+    loadContent();
+  }, [isReady]);
+
   const handleRestore = (itemName: string) => {
     Alert.alert(
       'Restaurar elemento',
@@ -50,234 +79,91 @@ export default function TrashScreen() {
     );
   };
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerIcon}>🗑️</Text>
-          <Text style={styles.headerText}>Papelera</Text>
-        </View>
+  const handleOnPress = (selectedMode: any) => {
+      setSelectedView(selectedMode.id);
+      console.log('Modo seleccionado:', selectedMode.id);
+    }
+  
+    const handleElementPress = (item: FileModel | FolderModel) => {
+      if (item instanceof FolderModel) {
         
-        {SAMPLE_TRASH_ITEMS.length > 0 && (
-          <TouchableOpacity 
-            style={styles.emptyButton}
-            onPress={handleEmptyTrash}
-          >
-            <Text style={styles.emptyButtonText}>Vaciar</Text>
-          </TouchableOpacity>
-        )}
+      } else {
+        /*Alert.alert(
+          `📄 ${item.name}`,
+          JSON.stringify(item.toJSON(), null, 2),
+        );*/
+      }
+    };
+  
+    const toggleSelection = (item: FileModel | FolderModel) => {
+      setItemsSelected(prev =>
+        prev.some(i => i.id === item.id)
+          ? prev.filter(i => i.id !== item.id)
+          : [...prev, item]
+      );
+    };
+  
+    const handleOnSelectOption = (option: OptionsType) => {
+      switch (option.id) {
+        case OptionsIds.SELECT_ALL:
+          setItemsSelected([...items]);
+          break;
+        case OptionsIds.NO_SELECT:
+          setItemsSelected([]);
+          break;
+        case OptionsIds.INVERT_SELECT:
+          setItemsSelected(prev => {
+            const selectedIds = new Set(prev.map(item => item.id));
+            return items.filter(item => !selectedIds.has(item.id));
+          });
+          break;
+        case OptionsIds.PROPERTIES:
+          console.log('Seleccionaste Propiedades');
+          break;
+        case OptionsIds.SETTINGS:
+          console.log('Seleccionaste Configuración');
+          break;
+      }
+    };
+
+  return (
+   <View style={styles.container}>
+      <View style={styles.header}>
+        <SearchBox
+          onSearch={async (query) => { /* futuro */ return []; }}
+          onClear={() => { /* futuro */ }}
+        />
+        <MultiActionButton
+          icon={"settings"}
+          size={38}
+          onPress={() => console.log("hola")}
+        />
       </View>
-      
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={{ paddingBottom: 120 }} // Espacio para el tab bar flotante
-      >
-        {SAMPLE_TRASH_ITEMS.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🗑️</Text>
-            <Text style={styles.emptyTitle}>Papelera vacía</Text>
-            <Text style={styles.emptyMessage}>
-              Los archivos y carpetas eliminados aparecerán aquí.
-            </Text>
-          </View>
-        ) : (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📄 Elementos eliminados</Text>
-            {SAMPLE_TRASH_ITEMS.map((item) => (
-              <View key={item.id} style={styles.trashItem}>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemIcon}>
-                    {item.type === 'folder' ? '📁' : '📄'}
-                  </Text>
-                  <View style={styles.itemDetails}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemMeta}>
-                      Eliminado: {item.deletedDate} • {item.size}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.itemActions}>
-                  <TouchableOpacity 
-                    style={styles.restoreButton}
-                    onPress={() => handleRestore(item.name)}
-                  >
-                    <Text style={styles.restoreButtonText}>↩️</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handlePermanentDelete(item.name)}
-                  >
-                    <Text style={styles.deleteButtonText}>❌</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-            
-            <View style={styles.infoBox}>
-              <Text style={styles.infoText}>
-                💡 Los elementos en la papelera se eliminarán automáticamente después de 30 días.
-              </Text>
-            </View>
-          </View>
+
+      <View style={styles.breadcrumb}>
+        <View style={styles.buttonsGroup}>
+          <OptionDropDown onSelect={handleOnSelectOption}/>
+          <ViewDropDown onChange={handleOnPress} defaultValue='list'/>
+        </View>
+      </View>
+
+      <FlatList
+        data={items}
+        keyExtractor={(item) => item.id}
+        key={selectedView === 'grid' ? 'grid' : 'list'}
+        numColumns={selectedView === 'grid' ? 2 : 1}
+        renderItem={({ item }) => (
+          <ViewCards
+            data={item}
+            viewConfig={selectedView}
+            selected={itemsSelected.some(i => i.id === item.id)}
+            onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
+            onLongPress={() => toggleSelection(item)}
+          />
         )}
-      </ScrollView>
+        columnWrapperStyle={selectedView === 'grid' ? styles.gridRow : undefined}
+        contentContainerStyle={{ paddingBottom: 120, gap: 10, padding: 16 }}
+      />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  headerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
-  },
-  emptyButton: {
-    backgroundColor: '#dc3545',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  emptyButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212529',
-    marginBottom: 12,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    marginTop: 100,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    opacity: 0.5,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#6c757d',
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 16,
-    color: '#6c757d',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  trashItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  itemInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  itemIcon: {
-    fontSize: 20,
-    marginRight: 12,
-    opacity: 0.7,
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#495057',
-    marginBottom: 4,
-  },
-  itemMeta: {
-    fontSize: 12,
-    color: '#6c757d',
-  },
-  itemActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  restoreButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#28a745',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  restoreButtonText: {
-    fontSize: 16,
-  },
-  deleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#dc3545',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteButtonText: {
-    fontSize: 14,
-  },
-  infoBox: {
-    backgroundColor: '#fff3cd',
-    padding: 12,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#ffc107',
-    marginTop: 16,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#856404',
-    lineHeight: 20,
-  },
-});

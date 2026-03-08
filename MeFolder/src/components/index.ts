@@ -5,3 +5,4 @@ export { SearchBox } from './SearchBox';
 export { ViewDropDown } from './ViewDropDown';
 export { ViewCards } from './ViewCards';
 export { ItemCreator, FileCreator, FolderCreator } from './ItemCreator';
+export { OptionDropDown } from './OptionDropDown';
