@@ -1,11 +1,12 @@
-import { ViewDropDown, ViewCards, SearchBox, MultiActionButton, Breadcrumb, OptionDropDown } from '@/components';
+import { ViewDropDown, ViewCards, SearchBox, MultiActionButton, OptionDropDown } from '@/components';
 import { FileModel, FolderModel } from '@/models';
 import { useServices, useDatabase } from '@/providers';
+import { useAlert } from '@/hooks';
 import { useFileSystem } from '@/hooks/useFileSystem';
 import { useLibraryStyles } from '@/src/screenStyles/libraryStyle';
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
-import { View, Alert, FlatList } from 'react-native';
+import { View, FlatList } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { modeView, OptionsIds, OptionsType } from '@/types';
 
@@ -19,6 +20,7 @@ export default function TrashScreen() {
 
   const styles = useLibraryStyles();
   const fs = useFileSystem();
+  const { showAlert } = useAlert();
   
   let folders: FolderModel[] = [];
   let files: FileModel[] = [];
@@ -42,44 +44,44 @@ export default function TrashScreen() {
   );
 
   const handleRestore = (itemName: string) => {
-    Alert.alert(
-      'Restaurar elemento',
-      `¿Deseas restaurar "${itemName}"?`,
-      [
+    showAlert({
+      title: 'Restaurar elemento',
+      message: `¿Deseas restaurar "${itemName}"?`,
+      buttons: [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Restaurar', onPress: () => console.log('Restaurando:', itemName) }
-      ]
-    );
+      ],
+    });
   };
 
-  const handlePermanentDelete = (itemName: string) => {
-    Alert.alert(
-      'Eliminar permanentemente',
-      `¿Estás seguro de que deseas eliminar permanentemente "${itemName}"? Esta acción no se puede deshacer.`,
-      [
+  const handlePermanentDelete = () => {
+    showAlert({
+      title: 'Eliminar permanentemente',
+      message: '¿Estás seguro de que deseas eliminar permanentemente los elementos seleccionados? Esta acción no se puede deshacer.',
+      buttons: [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
+        {
+          text: 'Eliminar',
           style: 'destructive',
-          onPress: () => console.log('Eliminando permanentemente:', itemName) 
-        }
-      ]
-    );
+          onPress: () => console.log('Eliminando permanentemente:', itemsSelected.map(item => item.name)),
+        },
+      ],
+    });
   };
 
   const handleEmptyTrash = () => {
-    Alert.alert(
-      'Vaciar papelera',
-      '¿Estás seguro de que deseas vaciar toda la papelera? Esta acción no se puede deshacer.',
-      [
+    showAlert({
+      title: 'Vaciar papelera',
+      message: '¿Estás seguro de que deseas vaciar toda la papelera? Esta acción no se puede deshacer.',
+      buttons: [
         { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Vaciar', 
+        {
+          text: 'Vaciar',
           style: 'destructive',
-          onPress: () => console.log('Vaciando papelera...') 
-        }
-      ]
-    );
+          onPress: () => console.log('Vaciando papelera...'),
+        },
+      ],
+    });
   };
 
   const handleOnPress = (selectedMode: any) => {
@@ -162,8 +164,18 @@ export default function TrashScreen() {
             backgroundColor="#4CAF50"
             size={38}
             onPress={handleRestoreSelected}
-          />
+          />         
         )}
+
+        {selectionMode && (
+           <MultiActionButton
+            icon={"trash-outline"}
+            backgroundColor="red"
+            size={38}
+            onPress={handlePermanentDelete}
+          />    
+        )}
+
         <MultiActionButton
           icon={"settings"}
           size={38}

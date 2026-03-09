@@ -1,5 +1,5 @@
 import { Stack } from "expo-router";
-import { ThemeProvider, DatabaseProvider, AppBootstrap } from "@/providers";
+import { ThemeProvider, DatabaseProvider, AppBootstrap, AlertProvider } from "@/providers";
 import { useFonts } from "expo-font";
 import { fontAssets } from "@/constants/fonts";
 import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet } from "react-native";
@@ -43,11 +43,13 @@ export default function RootLayout() {
             loadingFallback={<LoadingScreen />}
             errorFallback={(error, retry) => <ErrorScreen error={error} onRetry={retry} />}
           >
-            <Stack
-              screenOptions={{
-                headerShown: false,
-              }}
-            />
+            <AlertProvider>
+              <Stack
+                screenOptions={{
+                  headerShown: false,
+                }}
+              />
+            </AlertProvider>
           </AppBootstrap>
         </DatabaseProvider>
       </ThemeProvider>

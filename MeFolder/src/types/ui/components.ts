@@ -36,6 +36,30 @@ export interface ViewDropDownProps {
   defaultValue?: string;
 }
 
+export interface CustomAlertButton {
+  text: string;
+  onPress?: () => void;
+  style?: 'default' | 'cancel' | 'destructive';
+}
+
+export interface CustomAlertOptions {
+  title: string;
+  message?: string;
+  buttons?: CustomAlertButton[];
+}
+
+export interface CustomAlertProps {
+  title: string;
+  message?: string;
+  buttons: CustomAlertButton[];
+  isVisible: boolean;
+  onDismiss: () => void;
+}
+
+export interface AlertContextType {
+  showAlert: (options: CustomAlertOptions) => void;
+}
+
 export const OptionsIds = {
   SELECT_ALL: 'select_all',
   NO_SELECT: 'no_select',
