@@ -1,29 +1,36 @@
+import { StyleSheet } from 'react-native';
 import { useStyles } from '@/hooks';
 import { basicCard } from '@/constants/styles/cards';
 
 export const useItemCreatorStyles = () => {
   return useStyles(theme => ({
     overlay: {
-      flex: 1,
+      ...StyleSheet.absoluteFillObject,
       backgroundColor: 'rgba(0,0,0,0.5)',
-      justifyContent: 'flex-end',
+    },
+    containerWrapper: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      maxHeight: '90%',
     },
     container: {
       backgroundColor: theme.colors.background,
       borderTopLeftRadius: theme.effects.radius.lg + 8,
       borderTopRightRadius: theme.effects.radius.lg + 8,
-      paddingTop: theme.spacing.md,
       paddingBottom: theme.spacing.xxl,
       paddingHorizontal: theme.spacing.lg,
-      maxHeight: '90%',
+    },
+    handleZone: {
+      alignItems: 'center',
+      paddingVertical: theme.spacing.md,
     },
     handle: {
       width: 40,
       height: 4,
       backgroundColor: theme.colors.borderSoft,
       borderRadius: theme.effects.radius.exs,
-      alignSelf: 'center',
-      marginBottom: theme.spacing.md,
     },
     header: {
       flexDirection: 'row',
