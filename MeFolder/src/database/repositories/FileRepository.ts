@@ -249,6 +249,23 @@ export class FileRepositoryImplementation implements FileRepository {
   }
 
   /**
+   * Eliminación física permanente de la carpeta
+   */
+  async permanentDelete(id: UUID): Promise<boolean> {
+    try {
+      const result = await this.db.execute(
+        'DELETE FROM files WHERE id = ?',
+        [id]
+      );
+
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error deleting file:', error);
+      throw new Error(`Error al eliminar archivo: ${error}`);
+    }
+  }
+
+  /**
    * Contar archivos con filtros opcionales
    */
   async count(filters?: any): Promise<number> {

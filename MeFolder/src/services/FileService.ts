@@ -7,6 +7,7 @@ import {
 import { UUID } from '../types/common/base';
 import { FileModel, FileFactory } from '../models/file';
 import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
+import { FileSystemService } from './filesystem/FileSystemService';
 
 /**
  * FileService MVP - Funcionalidades básicas para desarrollo inicial
@@ -22,7 +23,7 @@ import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
  * Perfecta para construir MVP y entender la arquitectura
  */
 export class FileService extends BaseService {
-  
+  private fs = new FileSystemService();
   /**
    * Crear nuevo archivo (operación básica sin auto-tags).
    * Resuelve automáticamente el path completo a partir de la carpeta padre.
@@ -96,13 +97,10 @@ export class FileService extends BaseService {
       if (!file) throw new Error('Archivo no encontrado');
       if (!targetFolder) throw new Error('Carpeta destino no encontrada');
 
-      // Validaciones básicas
       this.validateFileMove(file, targetFolder);
       
-      // Validar nombre único en carpeta destino
       await this.validateUniqueFileName(file.name, targetFolderId, fileId);
 
-      // Actualizar carpeta del archivo
       const updated = await this.fileRepo.update(fileId, {
         folderId: targetFolderId
       });
@@ -124,10 +122,32 @@ export class FileService extends BaseService {
       if (!file) throw new Error('Archivo no encontrado');
 
       // Cambiar status a eliminado
-      await this.fileRepo.update(fileId, { 
-        status: 'deleted' as FileStatus 
-      });
+      await this.fileRepo.delete(fileId);
       
+      return true;
+      
+    } catch (error) {
+      return this.handleError(error, 'eliminar archivo');
+    }
+  }
+
+  /**
+   * Eliminar archivo permanentemente (hard delete)
+   */
+  async permanentDeleteFile(fileId: UUID): Promise<boolean> {
+    try {
+      this.ensureDbInitialized();
+
+      const file = await this.fileRepo.findById(fileId);
+      if (!file) throw new Error('Archivo no encontrado');
+    
+      await this.fileRepo.permanentDelete(fileId);
+
+      const fsResult = this.fs.deleteFile(file.path);
+      if (!fsResult.success) {
+        console.warn(`No se pudo eliminar archivo del disco: ${fsResult.error}`);
+      }
+
       return true;
       
     } catch (error) {

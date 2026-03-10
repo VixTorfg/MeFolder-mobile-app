@@ -2,7 +2,6 @@ import { ViewDropDown, ViewCards, SearchBox, MultiActionButton, OptionDropDown }
 import { FileModel, FolderModel } from '@/models';
 import { useServices, useDatabase } from '@/providers';
 import { useAlert } from '@/hooks';
-import { useFileSystem } from '@/hooks/useFileSystem';
 import { useLibraryStyles } from '@/src/screenStyles/libraryStyle';
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
@@ -19,7 +18,6 @@ export default function TrashScreen() {
   const selectionMode = itemsSelected.length > 0;
 
   const styles = useLibraryStyles();
-  const fs = useFileSystem();
   const { showAlert } = useAlert();
   
   let folders: FolderModel[] = [];
@@ -63,7 +61,21 @@ export default function TrashScreen() {
         {
           text: 'Eliminar',
           style: 'destructive',
-          onPress: () => console.log('Eliminando permanentemente:', itemsSelected.map(item => item.name)),
+          onPress: async () => {
+            const fileService = services?.fileService;
+            const folderService = services?.folderService;
+
+            for (const item of itemsSelected) {
+              if (item instanceof FolderModel) {
+                await folderService.permanentDeleteFolder(item.id);
+              } else {
+                await fileService.permanentDeleteFile(item.id);
+              }
+            }
+
+            setItems(prev => prev.filter(i => !itemsSelected.includes(i)));
+            setItemsSelected([]);
+          },
         },
       ],
     });
@@ -78,7 +90,23 @@ export default function TrashScreen() {
         {
           text: 'Vaciar',
           style: 'destructive',
-          onPress: () => console.log('Vaciando papelera...'),
+         onPress: async () => {
+            const fileService = services?.fileService;
+            const folderService = services?.folderService;
+
+            const filesOnly = items.filter(i => i instanceof FileModel);
+            const foldersOnly = items.filter(i => i instanceof FolderModel);
+
+            for (const file of filesOnly) {
+              await fileService.permanentDeleteFile(file.id);
+            }
+            for (const folder of foldersOnly) {
+              await folderService.permanentDeleteFolder(folder.id);
+            }
+
+            setItems([]);
+            setItemsSelected([]);
+          },
         },
       ],
     });

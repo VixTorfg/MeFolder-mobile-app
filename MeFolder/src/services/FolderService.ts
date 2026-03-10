@@ -7,6 +7,7 @@ import {
 import { UUID } from '../types/common/base';
 import { FolderModel, FolderFactory } from '../models/folder';
 import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
+import { FileSystemService } from './filesystem/FileSystemService';
 
 /**
  * FolderService MVP - Funcionalidades básicas para desarrollo inicial
@@ -22,7 +23,8 @@ import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
  * Perfecta para construir MVP y entender la arquitectura de carpetas
  */
 export class FolderService extends BaseService {
-  
+  private fs = new FileSystemService();
+
   /**
    * Crear nueva carpeta (operación básica)
    */
@@ -151,6 +153,38 @@ export class FolderService extends BaseService {
       const folder = await this.folderRepo.findById(folderId);
       if (!folder) throw new Error('Carpeta no encontrada');
 
+      if (folder.isSystemFolder) {
+        throw new Error('No se puede eliminar una carpeta del sistema');
+      }
+      if (folder.isProtected) {
+        throw new Error('No se puede eliminar una carpeta protegida');
+      }
+
+      if (!force) {
+        await this.validateFolderEmpty(folderId);
+      }
+
+      await this.folderRepo.delete(folderId);
+
+      await this.deleteChildrenRecursive(folderId);
+      
+      return true;
+      
+    } catch (error) {
+      return this.handleError(error, 'eliminar carpeta');
+    }
+  }
+
+  /**
+   * Eliminar carpeta permanentemente (hard delete)
+   */
+  async permanentDeleteFolder(folderId: UUID): Promise<boolean> {
+    try {
+      this.ensureDbInitialized();
+
+      const folder = await this.folderRepo.findById(folderId);
+      if (!folder) throw new Error('Carpeta no encontrada');
+
       // Las carpetas del sistema y protegidas no se pueden eliminar
       if (folder.isSystemFolder) {
         throw new Error('No se puede eliminar una carpeta del sistema');
@@ -159,16 +193,13 @@ export class FolderService extends BaseService {
         throw new Error('No se puede eliminar una carpeta protegida');
       }
 
-      // Verificar si está vacía (no forzado)
-      if (!force) {
-        await this.validateFolderEmpty(folderId);
+      await this.permanentDeleteChildrenRecursive(folderId);
+      await this.folderRepo.permanentDelete(folderId);
+
+      const fsResult = this.fs.deleteDirectory(folder.path);
+      if (!fsResult.success) {
+        console.warn(`No se pudo eliminar carpeta del disco: ${fsResult.error}`);
       }
-
-      // Cambiar status a eliminado
-      await this.folderRepo.delete(folderId);
-
-      // Eliminar toda la jerarquía inferior
-      await this.deleteChildrenRecursive(folderId);
       
       return true;
       
@@ -355,6 +386,21 @@ export class FolderService extends BaseService {
     await Promise.all(subfolders.map(async f => {
       await this.deleteChildrenRecursive(f.id);
       await this.folderRepo.delete(f.id);
+    }));
+  }
+
+  /**
+   * Permanentemente elimina recursivamente todos los hijos de una carpeta (subcarpetas y archivos)
+   */
+  private async permanentDeleteChildrenRecursive(folderId: UUID): Promise<void> {
+
+    const files = await this.fileRepo.findByFolderId(folderId);
+    await Promise.all(files.map(f => this.fileRepo.permanentDelete(f.id)));
+
+    const subfolders = await this.folderRepo.findByFolderId(folderId);
+    await Promise.all(subfolders.map(async f => {
+      await this.permanentDeleteChildrenRecursive(f.id);
+      await this.folderRepo.permanentDelete(f.id);
     }));
   }
 

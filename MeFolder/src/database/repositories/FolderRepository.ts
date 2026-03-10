@@ -319,6 +319,24 @@ export class FolderRepositoryImplementation implements FolderRepository {
   }
 
   /**
+   * Eliminación física permanente de la carpeta
+   */
+   async permanentDelete(id: UUID): Promise<boolean> {
+    try {
+      const result = await this.db.execute(
+        'DELETE FROM folders WHERE id = ?',
+        [id]
+      );
+
+      return result.changes > 0;
+    } catch (error) {
+      console.error('Error deleting folder:', error);
+      throw new Error(`Error al eliminar carpeta: ${error}`);
+    }
+  }
+
+
+  /**
    * Contar carpetas con filtros opcionales
    */
   async count(filters?: any): Promise<number> {
