@@ -220,7 +220,12 @@ export default function ItemCreator({
             </View>
 
             {/* Contenido dinámico */}
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView 
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ 
+                paddingBottom: 4 * theme.spacing.xxl, 
+              }}
+             >
               {selectedType === 'file' ? (
                 <FileCreator
                   onSave={handleSaveFile}

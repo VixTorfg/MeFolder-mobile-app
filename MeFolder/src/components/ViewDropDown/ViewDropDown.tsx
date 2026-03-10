@@ -67,6 +67,8 @@ export default function ViewDropDown({
     <MultiActionButton 
         icon={'eye-outline'} 
         size={size} 
+        backgroundColor='transparent'
+        iconColor={styles.primary.color}
         onPress={toggleDropdown}
         disabled={disabled}
         />

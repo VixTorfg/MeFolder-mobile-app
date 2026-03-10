@@ -1,6 +1,6 @@
 import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, Breadcrumb, OptionDropDown } from '@/components';
-import React, { useEffect, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Alert } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { View, FlatList, TouchableOpacity, Alert, Animated } from 'react-native';
 import { useNavigationStore } from '@/stores';
 import { Ionicons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
@@ -20,13 +20,32 @@ export default function LibraryScreen() {
   const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
   const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
   const [creatorVisible, setCreatorVisible] = useState(false);
+  const [, setIsAddVisible] = useState(true);
   const selectionMode = itemsSelected.length > 0;
 
   const styles = useLibraryStyles();
   const fs = useFileSystem();
   const media = useMedia();
 
+  const fadeAnim = useRef(new Animated.Value(0.8)).current;
   const { currentFolderId, navigateTo } = useNavigationStore();
+
+  const handleScrollBegin = () => {
+    Animated.timing(fadeAnim, {
+      toValue: 0,
+      duration: 150,
+      useNativeDriver: true,
+    }).start(() => setIsAddVisible(false));
+  };
+
+  const handleScrollEnd = () => {
+    setIsAddVisible(true);
+    Animated.timing(fadeAnim, {
+      toValue: 0.8,
+      duration: 250,
+      useNativeDriver: true,
+    }).start();
+  };
 
   let folders: FolderModel[] = [];
   let files: FileModel[] = [];
@@ -47,6 +66,7 @@ export default function LibraryScreen() {
       }
 
       setItems([...folders, ...files]);
+      setItemsSelected([]);
     };
 
     loadContent();
@@ -59,6 +79,7 @@ export default function LibraryScreen() {
 
   const handleElementPress = (item: FileModel | FolderModel) => {
     if (item instanceof FolderModel) {
+      setItemsSelected([]);
       navigateTo(item.id, item.name);
     } else {
       /*Alert.alert(
@@ -285,25 +306,23 @@ export default function LibraryScreen() {
         <MultiActionButton
           icon={"settings"}
           size={38}
-          onPress={() => console.log(currentFolderId)}
+          onPress={() => console.log(itemsSelected)}
         />
       </View>
 
       <View style={styles.breadcrumb}>
         <Breadcrumb />
         <View style={styles.buttonsGroup}>
-          <OptionDropDown onSelect={handleOnSelectOption}/>
           <ViewDropDown onChange={handleOnPress} defaultValue='list'/>
+          <OptionDropDown onSelect={handleOnSelectOption}/>
         </View>
       </View>
       
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => setCreatorVisible(true)}
-        activeOpacity={0.8}
-      >
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
+      <Animated.View style={[styles.fab, { opacity: fadeAnim }]}>
+        <TouchableOpacity onPress={() => setCreatorVisible(true)}>
+          <Ionicons name="add" size={28} color="#fff" />
+        </TouchableOpacity>
+      </Animated.View>
 
       <ItemCreator
         visible={creatorVisible}
@@ -316,6 +335,9 @@ export default function LibraryScreen() {
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
+        onScrollBeginDrag={handleScrollBegin} 
+        onScrollEndDrag={handleScrollEnd}      
+        onMomentumScrollEnd={handleScrollEnd} 
         key={selectedView === 'grid' ? 'grid' : 'list'}
         numColumns={selectedView === 'grid' ? 2 : 1}
         renderItem={({ item }) => (

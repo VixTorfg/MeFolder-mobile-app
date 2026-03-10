@@ -19,7 +19,6 @@ export const useItemCreatorStyles = () => {
       backgroundColor: theme.colors.background,
       borderTopLeftRadius: theme.effects.radius.lg + 8,
       borderTopRightRadius: theme.effects.radius.lg + 8,
-      paddingBottom: theme.spacing.xxl,
       paddingHorizontal: theme.spacing.lg,
     },
     handleZone: {

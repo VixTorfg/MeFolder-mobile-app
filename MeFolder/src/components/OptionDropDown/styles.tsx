@@ -77,5 +77,8 @@ export const useOptionDropDownStyles = (responsive: {
     checkmark: {
       color: theme.colors.primary,
     },
+    primary: {
+      color: theme.colors.primary,
+    },
   }));
 };

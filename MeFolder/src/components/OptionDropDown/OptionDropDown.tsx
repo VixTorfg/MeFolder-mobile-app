@@ -5,6 +5,7 @@ import { MultiActionButton } from '../MultiActionButton';
 import { useRef, useState } from 'react';
 import { useOptionDropDownStyles } from './styles';
 import {  OptionDropDownProps, OptionsType } from '@/types/ui/components';
+import { useTheme } from '@/providers';
 
 const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);
@@ -60,7 +61,7 @@ export default function OptionDropDown({
         icon={'ellipsis-vertical'} 
         size={size}
         backgroundColor={'transparent'}
-        iconColor='red'
+        iconColor={styles.primary.color}
         onPress={toggleDropdown}
         disabled={disabled}
         />
