@@ -78,7 +78,7 @@ export const useOptionDropDownStyles = (responsive: {
       color: theme.colors.primary,
     },
     primary: {
-      color: theme.colors.primary,
-    },
+      color: theme.colors.textPrimary,
+    }
   }));
 };

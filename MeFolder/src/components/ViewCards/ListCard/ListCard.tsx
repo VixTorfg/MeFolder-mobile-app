@@ -1,5 +1,5 @@
 import { View, TouchableOpacity, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons  } from '@expo/vector-icons';
 import { useListCardStyles } from './styles';
 import { CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
@@ -13,7 +13,7 @@ export default function ListCard({
   showCard = true,
   selected = false
 }: CommunCardProps) {
-  
+  const isFile = data instanceof FileModel;
   const styles = useListCardStyles();
  
   /**
@@ -42,19 +42,19 @@ export default function ListCard({
       onLongPress={handleLongPress}
     >
       <View style={styles.iconNameContainer}>
-        {data instanceof FileModel ? (
+        {isFile ? (
           <View style={styles.fileThumbnail}>
             <Ionicons 
               name={getIconByCategory(data.category)} 
-              size={30} 
+              size={32} 
               color={data.color?.hex || styles.iconColor.color}
             />
           </View>
         ) : (
           <View style={styles.folderContainer}>
-            <Ionicons 
-                name={data.icon as keyof typeof Ionicons.glyphMap} 
-                size={30} 
+            <MaterialCommunityIcons 
+                name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap} 
+                size={32} 
                 color={data.color?.hex || styles.iconColor.color}
               />
           </View>

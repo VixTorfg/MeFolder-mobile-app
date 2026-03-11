@@ -1,5 +1,5 @@
 import { View, TouchableOpacity, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useContentCardStyles } from './styles';
 import { CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
@@ -53,11 +53,11 @@ export default function ContentCard({
             </View>
           ) : (
             <View style={styles.folderContainer}>
-              <Ionicons 
-                  name={data.icon as keyof typeof Ionicons.glyphMap} 
-                  size={30} 
+              <MaterialCommunityIcons 
+                  name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap} 
+                  size={32} 
                   color={data.color?.hex || styles.iconColor.color}
-                />
+              />
             </View>
           )}
 

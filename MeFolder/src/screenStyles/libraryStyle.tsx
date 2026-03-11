@@ -10,12 +10,9 @@ export const useLibraryStyles = () => {
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'flex-end',
-        gap: 20,
-        padding: 16,
-        backgroundColor: theme.colors.card,
-        borderBottomWidth: theme.effects.borderWidth.md,
-        borderBottomColor: theme.colors.borderSoft,
+        justifyContent: 'space-between',
+        paddingHorizontal: 8,
+        paddingVertical: 24,
     },
     breadcrumb: {
         flexDirection: 'row',
@@ -25,10 +22,6 @@ export const useLibraryStyles = () => {
         backgroundColor: theme.colors.card,
         borderBottomWidth: theme.effects.borderWidth.md,
         borderBottomColor: theme.colors.borderSoft,
-    },
-    buttonsGroup: {
-        flexDirection:'row', 
-        justifyContent: 'space-between'
     },
     section: {
         padding: 16,
@@ -88,5 +81,29 @@ export const useLibraryStyles = () => {
         shadowRadius: 8,
         elevation: theme.effects.elevation.lg,
     },
+    buttonsGroup: {
+        flexDirection:'row',
+        justifyContent: 'space-between', 
+        gap: 8      
+    },
+    iconColor: {
+        color: theme.colors.textPrimary,
+        primaryColor: theme.colors.primary,
+    },
+    volverButton: {
+        ...cardShadow(theme),
+      backgroundColor: theme.colors.primary,
+      borderRadius: 16,
+      alignSelf: 'center',
+      justifyContent: 'flex-end',
+      paddingVertical: theme.spacing.md,
+      marginBottom: 126,
+      width: '80%',
+    },
+    volverText: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textPrimary,
+      textAlign: 'center',
+    }
   }));
 };

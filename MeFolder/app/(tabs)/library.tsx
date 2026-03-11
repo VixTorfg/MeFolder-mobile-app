@@ -1,17 +1,18 @@
 import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, Breadcrumb, OptionDropDown } from '@/components';
 import React, { useEffect, useRef, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Alert, Animated } from 'react-native';
+import { View, FlatList, TouchableOpacity, Alert, Animated, Text } from 'react-native';
 import { useNavigationStore } from '@/stores';
 import { Ionicons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
 import type { CreateFileInput, FileCategory, FileMetadata, FSFileInfo, OptionsType } from '@/types';
 import { modeView, OptionsIds } from '@/types';
-import { useDatabase, useServices  } from '@/providers';
+import { useAlert, useDatabase, useServices  } from '@/providers';
 import { useFileSystem, useMedia } from '@/hooks';
 import type { NewFile } from '@/components/ItemCreator/FileCreator';
 import type { NewFolder } from '@/components/ItemCreator/FolderCreator';
 import mime from 'mime';
 import { useLibraryStyles } from '@/screenStyles/libraryStyle';
+import EmptyFolder from '@/components/svgIcons/emptyFolder';
 
 export default function LibraryScreen() {
   const { isReady } = useDatabase();
@@ -22,13 +23,15 @@ export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
   const [, setIsAddVisible] = useState(true);
   const selectionMode = itemsSelected.length > 0;
+  const isEmpty = items.length === 0;
 
   const styles = useLibraryStyles();
   const fs = useFileSystem();
   const media = useMedia();
 
-  const fadeAnim = useRef(new Animated.Value(0.8)).current;
+  const fadeAnim = useRef(new Animated.Value(1)).current;
   const { currentFolderId, navigateTo } = useNavigationStore();
+  const { showAlert } = useAlert();
 
   const handleScrollBegin = () => {
     Animated.timing(fadeAnim, {
@@ -41,7 +44,7 @@ export default function LibraryScreen() {
   const handleScrollEnd = () => {
     setIsAddVisible(true);
     Animated.timing(fadeAnim, {
-      toValue: 0.8,
+      toValue: 1,
       duration: 250,
       useNativeDriver: true,
     }).start();
@@ -121,34 +124,32 @@ export default function LibraryScreen() {
   };
 
   const handleDeleteElements = () => {
-    
-    /*
-    Alert.alert(
-      'Confirmar eliminación',
-      `¿Estás seguro de que deseas eliminar ${itemsSelected.length} elemento(s)?`,
-      [
-        { text: 'Cancelar', style: 'cancel', onPress: () => {deleteFile = false}},
-        { text: 'Eliminar', style: 'destructive', onPress: () => {deleteFile = true}}, 
+    showAlert({
+      title: 'Confirmar eliminación',
+      message: `¿Estás seguro de que deseas eliminar ${itemsSelected.length} elemento(s)?`,
+      buttons: [
+        { text: 'Cancelar', style: 'cancel'},
+        { text: 'Eliminar', style: 'destructive', onPress: () => {
+            const folderService = services?.folderService;
+            const fileService = services?.fileService;
+
+            const folderIdsToDelete = itemsSelected.filter(i => i instanceof FolderModel).map(f => f.id);
+            const fileIdsToDelete = itemsSelected.filter(i => i instanceof FileModel).map(f => f.id);
+
+            const successFolders = folderIdsToDelete.map(folderId => folderService.deleteFolder(folderId, true));
+            const successFiles = fileIdsToDelete.map(fileId => fileService.deleteFile(fileId));
+
+            console.log('Resultados eliminación carpetas:', successFolders);
+            console.log('Resultados eliminación archivos:', successFiles);
+              if(successFolders.every(s => s) && successFiles.every(s => s)){
+                setItems(prev => prev.filter(i => !itemsSelected.some(s => s.id === i.id)));
+                setItemsSelected([]);
+              } else {
+                showAlert({ title: 'Error', message: 'No se pudieron eliminar todos los elementos seleccionados' });
+              }
+        }}, 
       ]
-    );*/
-
-    const folderService = services?.folderService;
-    const fileService = services?.fileService;
-
-    const folderIdsToDelete = itemsSelected.filter(i => i instanceof FolderModel).map(f => f.id);
-    const fileIdsToDelete = itemsSelected.filter(i => i instanceof FileModel).map(f => f.id);
-
-    const successFolders = folderIdsToDelete.map(folderId => folderService.deleteFolder(folderId, true));
-    const successFiles = fileIdsToDelete.map(fileId => fileService.deleteFile(fileId));
-
-    console.log('Resultados eliminación carpetas:', successFolders);
-    console.log('Resultados eliminación archivos:', successFiles);
-      if(successFolders.every(s => s) && successFiles.every(s => s)){
-        setItems(prev => prev.filter(i => !itemsSelected.some(s => s.id === i.id)));
-        setItemsSelected([]);
-      } else {
-        Alert.alert('Error', 'No se pudieron eliminar todos los elementos seleccionados');
-      }
+    });
   };
 
   const buildFileMetadata = async (category: FileCategory, uri: string, fsInfo: FSFileInfo | null, fileMimeType?: string): Promise<FileMetadata> => {
@@ -291,33 +292,29 @@ export default function LibraryScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <SearchBox
-          onSearch={async (query) => { /* futuro */ return []; }}
-          onClear={() => { /* futuro */ }}
-        />
-        {selectionMode && (
+        {isEmpty && (
           <MultiActionButton
-            icon={"trash-outline"}
-            backgroundColor="#E53935"
-            size={38}
+            icon={"chevron-back"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
             onPress={() => {handleDeleteElements()}}
           />
         )}
-        <MultiActionButton
-          icon={"settings"}
-          size={38}
-          onPress={() => console.log(itemsSelected)}
-        />
-      </View>
-
-      <View style={styles.breadcrumb}>
-        <Breadcrumb />
         <View style={styles.buttonsGroup}>
-          <ViewDropDown onChange={handleOnPress} defaultValue='list'/>
-          <OptionDropDown onSelect={handleOnSelectOption}/>
+          <MultiActionButton
+            icon={"search-outline"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => console.log(itemsSelected)}
+          />
+
+          <ViewDropDown size={42} onChange={handleOnPress} defaultValue='list'/>
+          <OptionDropDown size={42} onSelect={handleOnSelectOption}/>
         </View>
       </View>
-      
+
       <Animated.View style={[styles.fab, { opacity: fadeAnim }]}>
         <TouchableOpacity onPress={() => setCreatorVisible(true)}>
           <Ionicons name="add" size={28} color="#fff" />
@@ -331,27 +328,36 @@ export default function LibraryScreen() {
         onSaveFile={(data) => {handleSaveFile(data)}}
         onSaveFolder={(data) => {handleSaveFolder(data)}}
       />
+      {isEmpty ? (
+        <View>
+          <EmptyFolder strokeWidth={0.35} width={120} height={120} folderColor={styles.iconColor.color} crossColor={styles.iconColor.primaryColor} />
+          <TouchableOpacity style={styles.volverButton}>
+              <Text style={styles.volverText}>Volver</Text>
+            </TouchableOpacity>
+        </View>
+      ) : (
+        <FlatList
+          data={items}
+          keyExtractor={(item) => item.id}
+          onScrollBeginDrag={handleScrollBegin} 
+          onScrollEndDrag={handleScrollEnd}      
+          onMomentumScrollEnd={handleScrollEnd} 
+          key={selectedView === 'grid' ? 'grid' : 'list'}
+          numColumns={selectedView === 'grid' ? 2 : 1}
+          renderItem={({ item }) => (
+            <ViewCards
+              data={item}
+              viewConfig={selectedView}
+              selected={itemsSelected.some(i => i.id === item.id)}
+              onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
+              onLongPress={() => toggleSelection(item)}
+            />
+          )}
+          columnWrapperStyle={selectedView === 'grid' ? styles.gridRow : undefined}
+          contentContainerStyle={{ paddingBottom: 120, gap: 10, padding: 16 }}
+        />
+      )}
 
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        onScrollBeginDrag={handleScrollBegin} 
-        onScrollEndDrag={handleScrollEnd}      
-        onMomentumScrollEnd={handleScrollEnd} 
-        key={selectedView === 'grid' ? 'grid' : 'list'}
-        numColumns={selectedView === 'grid' ? 2 : 1}
-        renderItem={({ item }) => (
-          <ViewCards
-            data={item}
-            viewConfig={selectedView}
-            selected={itemsSelected.some(i => i.id === item.id)}
-            onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
-            onLongPress={() => toggleSelection(item)}
-          />
-        )}
-        columnWrapperStyle={selectedView === 'grid' ? styles.gridRow : undefined}
-        contentContainerStyle={{ paddingBottom: 120, gap: 10, padding: 16 }}
-      />
     </View>
   );
 }

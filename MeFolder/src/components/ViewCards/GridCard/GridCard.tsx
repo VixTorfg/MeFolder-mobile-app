@@ -1,5 +1,5 @@
 import { View, TouchableOpacity, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useGridCardStyles } from './styles';
 import { EXTENSION_LABELS, CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
@@ -19,7 +19,7 @@ export default function GridCard({
 
   const styles = useGridCardStyles();
   const isFile = data instanceof FileModel;
- 
+  
   const handlePress = async (): Promise<void> => {
     if (onPress && !disabled) {
       await onPress();
@@ -56,11 +56,11 @@ export default function GridCard({
         </View>
       ) : (
         <View style={styles.folderContainer}>
-          <Ionicons 
-              name={data.icon as keyof typeof Ionicons.glyphMap} 
-              size={30} 
-              color={data.color?.hex || styles.iconColor.color}
-            />
+          <MaterialCommunityIcons 
+                name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap} 
+                size={32} 
+                color={data.color?.hex || styles.iconColor.color}
+              />
         </View>
       )}
 

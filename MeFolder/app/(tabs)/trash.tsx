@@ -2,7 +2,7 @@ import { ViewDropDown, ViewCards, SearchBox, MultiActionButton, OptionDropDown }
 import { FileModel, FolderModel } from '@/models';
 import { useServices, useDatabase } from '@/providers';
 import { useAlert } from '@/hooks';
-import { useLibraryStyles } from '@/src/screenStyles/libraryStyle';
+import { useLibraryStyles } from '@/screenStyles/libraryStyle';
 import React, { useCallback, useState } from 'react';
 import { useFocusEffect } from 'expo-router';
 import { View, FlatList } from 'react-native';

@@ -30,6 +30,8 @@ export interface Colors {
 
   divider: string,
   focusRing: string,
+
+  folderColor: string
 }
 
 export interface Spacing {

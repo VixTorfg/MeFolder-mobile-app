@@ -33,6 +33,8 @@ export const lightColors: Colors = {
 
   divider: '#E8E9E1',
   focusRing: '#F2C94C',
+
+  folderColor: '#FFB300'
 };
 
 export const darkColors: Colors = {
@@ -67,6 +69,8 @@ export const darkColors: Colors = {
 
   divider: '#2E2E27',
   focusRing: '#F2C94C',
+
+  folderColor: '#FFB300'
 };
 
 export const defaultColor: ColorInfo = {

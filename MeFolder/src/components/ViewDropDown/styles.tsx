@@ -48,6 +48,7 @@ export const useViewDropDownStyles = (responsive: {
     },
     selectedItem: {
       backgroundColor: theme.colors.primarySoft,
+      borderRadius: 8,
     },
     selectedIconColor: {
       color: theme.colors.primary,
@@ -69,7 +70,7 @@ export const useViewDropDownStyles = (responsive: {
       color: theme.colors.primary,
     },
     primary: {
-      color: theme.colors.primary,
+      color: theme.colors.textPrimary,
     },
   }));
 };

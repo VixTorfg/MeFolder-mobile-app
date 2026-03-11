@@ -4,6 +4,7 @@ import { useFonts } from "expo-font";
 import { fontAssets } from "@/constants/fonts";
 import { ActivityIndicator, View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 /** Pantalla de carga durante el arranque */
 function LoadingScreen() {
@@ -29,7 +30,12 @@ function ErrorScreen({ error, onRetry }: { error: Error; onRetry: () => void }) 
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts(fontAssets);
+  const [fontsLoaded] = useFonts({
+      ...MaterialCommunityIcons.font,
+      ...Ionicons.font,
+      ...fontAssets
+    }
+  );
 
   if (!fontsLoaded) {
     return <LoadingScreen />;
