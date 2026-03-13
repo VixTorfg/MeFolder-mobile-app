@@ -3,12 +3,10 @@ import { useStyles } from '@/hooks';
 export const useBreadcrumbStyles = () => {
   return useStyles(theme => ({
     container: {
-      flex: 1,
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: theme.spacing.md,
       paddingVertical: theme.spacing.sm,
-      backgroundColor: theme.colors.card,
     },
     segment: {
       flexDirection: 'row',
@@ -24,7 +22,7 @@ export const useBreadcrumbStyles = () => {
       color: theme.colors.primary,
     },
     segmentActive: {
-      color: theme.colors.textPrimary,
+      color: theme.colors.textSecondary,
       fontFamily: theme.typography.fontFamily.primary.semiBold,
     },
     ellipsis: {

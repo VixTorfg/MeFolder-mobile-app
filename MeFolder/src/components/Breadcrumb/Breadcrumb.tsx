@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useNavigationStore } from '@/stores';
 import { useBreadcrumbStyles } from './styles';
 
-const MAX_VISIBLE_SEGMENTS = 4;
+const MAX_VISIBLE_SEGMENTS = 3;
 
 export const Breadcrumb = () => {
   const { segments, navigateToIndex } = useNavigationStore();
@@ -22,7 +22,7 @@ export const Breadcrumb = () => {
           <TouchableOpacity onPress={() => navigateToIndex(0)}>
             <Text style={styles.ellipsis}>…</Text>
           </TouchableOpacity>
-          <Text style={styles.separator}>/</Text>
+          <Text style={styles.separator}> &gt; </Text>
         </View>
       )}
       {visibleSegments.map((segment, i) => {
@@ -30,7 +30,7 @@ export const Breadcrumb = () => {
         const isLast = realIndex === segments.length - 1;
 
         return (
-          <View key={segment.id ?? 'root'} style={styles.segment}>
+          <View key={segment.id ?? 'sys_root'} style={styles.segment}>
             <TouchableOpacity
               onPress={() => navigateToIndex(realIndex)}
               disabled={isLast}
@@ -43,7 +43,7 @@ export const Breadcrumb = () => {
                 {segment.name}
               </Text>
             </TouchableOpacity>
-            {!isLast && <Text style={styles.separator}>/</Text>}
+            {!isLast && <Text style={styles.separator}> &gt; </Text>}
           </View>
         );
       })}

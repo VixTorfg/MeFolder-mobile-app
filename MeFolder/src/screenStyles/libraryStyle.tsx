@@ -14,14 +14,19 @@ export const useLibraryStyles = () => {
         paddingHorizontal: 8,
         paddingVertical: 24,
     },
-    breadcrumb: {
+    headerLeft: {
         flexDirection: 'row',
         alignItems: 'center',
-  
-        padding: theme.spacing.xs,
-        backgroundColor: theme.colors.card,
-        borderBottomWidth: theme.effects.borderWidth.md,
-        borderBottomColor: theme.colors.borderSoft,
+        flex: 1,
+    },
+    headerBreadcrumb: {
+        alignItems: 'center',
+        marginVertical: theme.spacing.sm,
+    },
+    headerBreadcrumbText: {
+        fontSize: 32,
+        fontFamily: theme.typography.fontFamily.title.semiBold,
+        color: theme.colors.textPrimary,
     },
     section: {
         padding: 16,
@@ -66,7 +71,7 @@ export const useLibraryStyles = () => {
     },
     fab: {
         position: 'absolute',
-        bottom: 120,
+        bottom: 200,
         right: 20,
         width: 56,
         height: 56,
@@ -104,6 +109,22 @@ export const useLibraryStyles = () => {
       fontFamily: theme.typography.fontFamily.primary.semiBold,
       color: theme.colors.textPrimary,
       textAlign: 'center',
-    }
+    },
+        emptyFolderIconContainer: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        emptyFolderText: {
+            fontFamily: theme.typography.fontFamily.primary.semiBold,
+            color: theme.colors.textSecondary,
+            textAlign: 'center',
+            marginTop: 16,
+        },
+        footerEmptyContainer: {
+            flex: 1,
+            justifyContent: 'center',
+            alignItems: 'center',
+        },
   }));
 };

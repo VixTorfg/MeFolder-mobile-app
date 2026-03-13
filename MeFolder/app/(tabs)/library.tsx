@@ -30,7 +30,7 @@ export default function LibraryScreen() {
   const media = useMedia();
 
   const fadeAnim = useRef(new Animated.Value(1)).current;
-  const { currentFolderId, navigateTo } = useNavigationStore();
+  const { currentFolderId, navigateTo, currentFolderName, navigateBack } = useNavigationStore();
   const { showAlert } = useAlert();
 
   const handleScrollBegin = () => {
@@ -292,15 +292,18 @@ export default function LibraryScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        {isEmpty && (
-          <MultiActionButton
-            icon={"chevron-back"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => {handleDeleteElements()}}
-          />
-        )}
+        <View style={styles.headerLeft}>
+          {currentFolderId !== 'sys_root' && (
+            <MultiActionButton
+              icon={"chevron-back"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={42}
+              onPress={() => navigateBack()}
+            />
+          )}
+        </View>
+        
         <View style={styles.buttonsGroup}>
           <MultiActionButton
             icon={"search-outline"}
@@ -309,10 +312,16 @@ export default function LibraryScreen() {
             size={42}
             onPress={() => console.log(itemsSelected)}
           />
-
           <ViewDropDown size={42} onChange={handleOnPress} defaultValue='list'/>
           <OptionDropDown size={42} onSelect={handleOnSelectOption}/>
         </View>
+      </View>
+
+      <View style={styles.headerBreadcrumb}>
+        <Text style={styles.headerBreadcrumbText}>
+          {currentFolderName}
+        </Text>
+        <Breadcrumb/>
       </View>
 
       <Animated.View style={[styles.fab, { opacity: fadeAnim }]}>
@@ -329,11 +338,15 @@ export default function LibraryScreen() {
         onSaveFolder={(data) => {handleSaveFolder(data)}}
       />
       {isEmpty ? (
-        <View>
-          <EmptyFolder strokeWidth={0.35} width={120} height={120} folderColor={styles.iconColor.color} crossColor={styles.iconColor.primaryColor} />
-          <TouchableOpacity style={styles.volverButton}>
+        <View style={styles.footerEmptyContainer}>
+          <View style={styles.emptyFolderIconContainer}>
+            <EmptyFolder strokeWidth={0.35} width={120} height={120} folderColor={styles.iconColor.color} crossColor={styles.iconColor.primaryColor} />
+            <Text style={styles.emptyFolderText}>La carpeta está vacía</Text>
+          </View>
+          
+          <TouchableOpacity style={styles.volverButton} onPress={() => navigateBack()}>
               <Text style={styles.volverText}>Volver</Text>
-            </TouchableOpacity>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList

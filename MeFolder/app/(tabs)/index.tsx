@@ -21,7 +21,7 @@ import { FileModel } from '../../src/models/file';
 import { FolderModel } from '../../src/models/folder';
 import { UUID } from '../../src/types/common/base';
 import { useStyles, useTheme } from '../../src/hooks';
-import { MultiActionButton } from '@/src/components';
+import { MultiActionButton } from '@/components';
 import { ROOT_FOLDER_ID } from '../../src/database/seeds/systemFolders';
 
 // Iconos simples usando emojis

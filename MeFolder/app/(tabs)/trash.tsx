@@ -211,7 +211,7 @@ export default function TrashScreen() {
         />
       </View>
 
-      <View style={styles.breadcrumb}>
+      <View style={styles.headerBreadcrumb}>
         <View style={styles.buttonsGroup}>
           <OptionDropDown onSelect={handleOnSelectOption}/>
           <ViewDropDown onChange={handleOnPress} defaultValue='list'/>
