@@ -1,6 +1,6 @@
 import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, Breadcrumb, OptionDropDown } from '@/components';
-import React, { useEffect, useRef, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Alert, Animated, Text } from 'react-native';
+import React, { useCallback, useEffect, useState } from 'react';
+import { View, FlatList, TouchableOpacity, Alert,  Text, useWindowDimensions } from 'react-native';
 import { useNavigationStore } from '@/stores';
 import { Ionicons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
@@ -13,6 +13,8 @@ import type { NewFolder } from '@/components/ItemCreator/FolderCreator';
 import mime from 'mime';
 import { useLibraryStyles } from '@/screenStyles/libraryStyle';
 import EmptyFolder from '@/components/svgIcons/emptyFolder';
+import { getGridConfig, ViewMode } from '@/utils/ui/responsive';
+import { useFocusEffect } from 'expo-router';
 
 export default function LibraryScreen() {
   const { isReady } = useDatabase();
@@ -21,7 +23,6 @@ export default function LibraryScreen() {
   const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
   const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
   const [creatorVisible, setCreatorVisible] = useState(false);
-  const [, setIsAddVisible] = useState(true);
   const selectionMode = itemsSelected.length > 0;
   const isEmpty = items.length === 0;
 
@@ -29,51 +30,38 @@ export default function LibraryScreen() {
   const fs = useFileSystem();
   const media = useMedia();
 
-  const fadeAnim = useRef(new Animated.Value(1)).current;
   const { currentFolderId, navigateTo, currentFolderName, navigateBack } = useNavigationStore();
   const { showAlert } = useAlert();
+  const { width } = useWindowDimensions();
+  const gridConfig = getGridConfig(selectedView as ViewMode, width);
 
-  const handleScrollBegin = () => {
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 150,
-      useNativeDriver: true,
-    }).start(() => setIsAddVisible(false));
-  };
-
-  const handleScrollEnd = () => {
-    setIsAddVisible(true);
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
-  };
 
   let folders: FolderModel[] = [];
   let files: FileModel[] = [];
 
-   useEffect(() => {
-    if (!isReady) return;
+   useFocusEffect(
+       useCallback(() => {
+        if (!isReady) return;
 
-    const loadContent = async () => {
-      const folderService = services?.folderService;
-      const fileService = services?.fileService;
+        const loadContent = async () => {
+          const folderService = services?.folderService;
+          const fileService = services?.fileService;
 
-      if(currentFolderId) {
-        folders = await folderService.getSubfolders(currentFolderId);
-        files = await fileService.getFilesInFolder(currentFolderId);
-      }else{
-        folders = await folderService.getSubfolders();
-        files = await fileService.getFilesInFolder();
-      }
+          if(currentFolderId) {
+            folders = await folderService.getSubfolders(currentFolderId);
+            files = await fileService.getFilesInFolder(currentFolderId);
+          }else{
+            folders = await folderService.getSubfolders();
+            files = await fileService.getFilesInFolder();
+          }
 
-      setItems([...folders, ...files]);
-      setItemsSelected([]);
-    };
+          setItems([...folders, ...files]);
+          setItemsSelected([]);
+        };
 
-    loadContent();
-  }, [isReady, currentFolderId]);
+        loadContent();
+  }, [isReady, currentFolderId])
+);
 
   const handleOnPress = (selectedMode: any) => {
     setSelectedView(selectedMode.id);
@@ -289,6 +277,51 @@ export default function LibraryScreen() {
     setItems(prev => [...prev, folderResult]);
   }
 
+  const renderGroupButtons = () => {
+    if (selectionMode) {
+      return (
+        <>
+          <MultiActionButton
+                icon={"search-outline"}
+                backgroundColor="transparent"
+                iconColor={styles.iconColor.color}
+                size={42}
+                onPress={() => console.log(itemsSelected)}
+            />
+          <MultiActionButton
+              icon={"trash-outline"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={42}
+              onPress={() => handleDeleteElements()}
+            />
+            <OptionDropDown size={42} onSelect={handleOnSelectOption}/>
+        </>
+      );
+    }else{
+      return(
+        <>
+            <MultiActionButton
+              icon={"search-outline"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={42}
+              onPress={() => console.log(itemsSelected)}
+            />
+            <MultiActionButton
+              icon={"add"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={42}
+              onPress={() => setCreatorVisible(true)}
+            />
+            <ViewDropDown size={42} onChange={handleOnPress} defaultValue='list'/>
+            <OptionDropDown size={42} onSelect={handleOnSelectOption}/>
+        </>
+      )
+    }
+  }
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -303,17 +336,9 @@ export default function LibraryScreen() {
             />
           )}
         </View>
-        
+
         <View style={styles.buttonsGroup}>
-          <MultiActionButton
-            icon={"search-outline"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => console.log(itemsSelected)}
-          />
-          <ViewDropDown size={42} onChange={handleOnPress} defaultValue='list'/>
-          <OptionDropDown size={42} onSelect={handleOnSelectOption}/>
+          {renderGroupButtons()}
         </View>
       </View>
 
@@ -323,12 +348,6 @@ export default function LibraryScreen() {
         </Text>
         <Breadcrumb/>
       </View>
-
-      <Animated.View style={[styles.fab, { opacity: fadeAnim }]}>
-        <TouchableOpacity onPress={() => setCreatorVisible(true)}>
-          <Ionicons name="add" size={28} color="#fff" />
-        </TouchableOpacity>
-      </Animated.View>
 
       <ItemCreator
         visible={creatorVisible}
@@ -352,11 +371,8 @@ export default function LibraryScreen() {
         <FlatList
           data={items}
           keyExtractor={(item) => item.id}
-          onScrollBeginDrag={handleScrollBegin} 
-          onScrollEndDrag={handleScrollEnd}      
-          onMomentumScrollEnd={handleScrollEnd} 
-          key={selectedView === 'grid' ? 'grid' : 'list'}
-          numColumns={selectedView === 'grid' ? 2 : 1}
+          key={`${selectedView}-${gridConfig.columns}`}
+          numColumns={gridConfig.columns}
           renderItem={({ item }) => (
             <ViewCards
               data={item}
@@ -366,7 +382,7 @@ export default function LibraryScreen() {
               onLongPress={() => toggleSelection(item)}
             />
           )}
-          columnWrapperStyle={selectedView === 'grid' ? styles.gridRow : undefined}
+          columnWrapperStyle={gridConfig.columns > 1 ? styles.gridRow : undefined}
           contentContainerStyle={{ paddingBottom: 120, gap: 10, padding: 16 }}
         />
       )}

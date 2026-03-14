@@ -24,20 +24,16 @@ export const useLibraryStyles = () => {
         marginVertical: theme.spacing.sm,
     },
     headerBreadcrumbText: {
-        fontSize: 32,
+        fontSize: 34,
         fontFamily: theme.typography.fontFamily.title.semiBold,
         color: theme.colors.textPrimary,
     },
     section: {
         padding: 16,
     },
-    cardsGrid: {
-        flexDirection: 'column',
-        flexWrap: 'wrap',
-        gap: 10,
-    },
     gridRow: {
-        gap: 10,
+        justifyContent: 'space-evenly',
+        gap: 10
     },
     sectionTitle: {
         fontSize: 18,
@@ -68,23 +64,6 @@ export const useLibraryStyles = () => {
     cardSubtitle: {
         fontSize: 14,
         color: '#6c757d',
-    },
-    fab: {
-        position: 'absolute',
-        bottom: 200,
-        right: 20,
-        width: 56,
-        height: 56,
-        borderRadius: 28,
-        backgroundColor: theme.colors.primary,
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 100,
-        shadowColor: '#0000005d',
-        shadowOffset: theme.effects.shadowsOffset.slightDown,
-        shadowOpacity: theme.effects.shadowsOpacity.lg,
-        shadowRadius: 8,
-        elevation: theme.effects.elevation.lg,
     },
     buttonsGroup: {
         flexDirection:'row',

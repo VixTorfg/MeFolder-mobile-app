@@ -1,0 +1,68 @@
+import { FileModel } from "@/models";
+import { CommunCardProps } from "@/types/ui/components";
+import { useSizeIconCardStyles } from "./styles";
+import { TouchableOpacity, View, Text } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { getIconByCategory } from '@/utils/ui/icons';
+
+interface SizeIconCardProps extends CommunCardProps {
+    size: number; 
+}
+
+export const SizeIconCard = ({
+    onPress,
+    onLongPress,
+    disabled = false,
+    data,
+    showCard = true,
+    selected = false,
+    size
+}: SizeIconCardProps) => {
+    const styles = useSizeIconCardStyles(size);
+    const isFile = data instanceof FileModel;
+
+    const handlePress = async (): Promise<void> => {
+        if (onPress && !disabled) {
+        await onPress();
+        }
+    };
+
+    const handleLongPress = async (): Promise<void> => {
+        if (onLongPress && !disabled) {
+        await onLongPress();
+        }
+    };
+    
+    if (!showCard) return null;
+
+    return (
+        <TouchableOpacity 
+            style={selected ? styles.cardContainerSelected : styles.cardContainer} 
+            onPress={handlePress} 
+            disabled={disabled}
+            activeOpacity={0.8}
+            onLongPress={handleLongPress}
+        >
+            <View style={styles.iconContainer}>
+                {isFile ? (
+                    <Ionicons 
+                        name={getIconByCategory(data.category)} 
+                        size={size} 
+                        color={data.color?.hex || styles.iconColor.color}
+                    />
+                ) : (
+                    <MaterialCommunityIcons 
+                        name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap} 
+                        size={size} 
+                        color={data.color?.hex || styles.iconColor.color}
+                    />
+                )}
+
+                <Text style={styles.fileNameText} numberOfLines={1} ellipsizeMode='tail'>
+                    {data.name}
+                </Text>
+
+            </View>
+        </TouchableOpacity>
+    );
+}
