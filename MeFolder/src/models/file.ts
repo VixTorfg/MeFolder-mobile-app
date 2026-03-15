@@ -60,6 +60,10 @@ export class FileModel extends BaseModel<File> {
     return [...this.data.tagIds];
   }
 
+  get storageUrl(): string | undefined {
+    return this.data.storageUrl;
+}
+
   get color(): ColorInfo | undefined {
     return this.data.color;
   }

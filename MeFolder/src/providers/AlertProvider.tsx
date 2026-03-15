@@ -4,7 +4,7 @@ import { CustomAlertOptions, CustomAlertButton, AlertContextType } from '@/types
 
 const AlertContext = createContext<AlertContextType | null>(null);
 
-const DEFAULT_BUTTON: CustomAlertButton = { text: 'OK' };
+const DEFAULT_BUTTON: CustomAlertButton = { text: 'Ok' };
 
 export const AlertProvider = ({ children }: { children: ReactNode }) => {
   const [visible, setVisible] = useState(false);
@@ -30,7 +30,7 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
       {children}
       <CustomAlert
         title={alertOptions.title}
-        message={alertOptions.message}
+        message={alertOptions.message ?? ""}
         buttons={alertOptions.buttons ?? [DEFAULT_BUTTON]}
         isVisible={visible}
         onDismiss={handleDismiss}

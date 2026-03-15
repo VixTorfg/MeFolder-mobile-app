@@ -1,8 +1,8 @@
-import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, Breadcrumb, OptionDropDown } from '@/components';
-import React, { useCallback, useEffect, useState } from 'react';
+import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, ContextMenu, Breadcrumb, OptionDropDown } from '@/components';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, FlatList, TouchableOpacity, Alert,  Text, useWindowDimensions } from 'react-native';
 import { useNavigationStore } from '@/stores';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
 import type { CreateFileInput, FileCategory, FileMetadata, FSFileInfo, OptionsType } from '@/types';
 import { modeView, OptionsIds } from '@/types';
@@ -15,6 +15,7 @@ import { useLibraryStyles } from '@/screenStyles/libraryStyle';
 import EmptyFolder from '@/components/svgIcons/emptyFolder';
 import { getGridConfig, ViewMode } from '@/utils/ui/responsive';
 import { useFocusEffect } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 
 export default function LibraryScreen() {
   const { isReady } = useDatabase();
@@ -23,6 +24,22 @@ export default function LibraryScreen() {
   const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
   const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
   const [creatorVisible, setCreatorVisible] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [contextMenuItem, setContextMenuItem] = useState<FileModel | FolderModel | null>(null);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const buttonRef = useRef<View>(null);
+
+  const menuOptions = [
+    { hierarchy: '1', label: 'Abrir', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="open-in-app" size={20} color="black" /> },
+    { hierarchy: '2', label: 'Abrir con', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="folder" size={20} color="black" /> },
+    { hierarchy: '3', label: 'Compartir con', onPress: () => {contextMenuItem && handleShare(contextMenuItem)}, disabled: false, icon: <MaterialCommunityIcons name="share" size={20} color="black" /> },
+    { hierarchy: '4', label: 'Agregar a favoritos', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="star" size={20} color="black" /> },
+    { hierarchy: '5', label: 'Renombrar', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="pencil" size={20} color="black" /> },
+    { hierarchy: '6', label: 'Copiar', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="content-copy" size={20} color="black" /> },
+    { hierarchy: '7', label: 'Cortar', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="content-cut" size={20} color="black" /> },
+    { hierarchy: '8', label: 'Eliminar', onPress: () => {contextMenuItem && handleDeleteElements([contextMenuItem])}, disabled: false, icon: <MaterialCommunityIcons name="delete" size={20} color="black" /> },
+    { hierarchy: '9', label: 'Propiedades', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="information" size={20} color="black" /> },
+  ];
   const selectionMode = itemsSelected.length > 0;
   const isEmpty = items.length === 0;
 
@@ -73,10 +90,11 @@ export default function LibraryScreen() {
       setItemsSelected([]);
       navigateTo(item.id, item.name);
     } else {
-      /*Alert.alert(
-        `📄 ${item.name}`,
-        JSON.stringify(item.toJSON(), null, 2),
-      );*/
+      setContextMenuItem(item);
+      buttonRef.current?.measureInWindow((x, y, width, height) => {
+        setMenuPosition({ x, y, width, height });
+        setShowMenu(true)
+      });
     }
   };
 
@@ -87,6 +105,28 @@ export default function LibraryScreen() {
         : [...prev, item]
     );
   };
+
+  const handleShare = (item: FileModel | FolderModel) => {
+    if(!Sharing.isAvailableAsync()) {
+      showAlert({ title: 'Compartir no disponible', message: 'La función de compartir no está disponible en este dispositivo.' });
+      return;
+    }
+    
+    if(item instanceof FileModel) {
+      const fileUri = item.storageUrl;
+
+      if (!fileUri){
+        showAlert({ title: 'Ruta no disponible', message: 'La ubicación del archivo no está disponible.' });
+        return
+      } 
+
+      Sharing.shareAsync(fileUri)
+        .then(() => showAlert({ title: 'Compartir', message: 'Archivo compartido exitosamente.' }))
+        .catch(error => showAlert({ title: 'Error al compartir', message: `No se pudo compartir el archivo: ${error.message}` }));
+    } else {
+      showAlert({ title: 'Compartir carpeta', message: 'La función de compartir carpetas no está implementada aún.' });
+    }
+  }
 
   const handleOnSelectOption = (option: OptionsType) => {
     switch (option.id) {
@@ -111,27 +151,27 @@ export default function LibraryScreen() {
     }
   };
 
-  const handleDeleteElements = () => {
+  const handleDeleteElements = (items?: (FileModel | FolderModel)[]) => {
+    const targetItems = items ?? itemsSelected;
+    
     showAlert({
       title: 'Confirmar eliminación',
-      message: `¿Estás seguro de que deseas eliminar ${itemsSelected.length} elemento(s)?`,
+      message: `¿Estás seguro de que deseas eliminar ${targetItems.length} elemento(s)?`,
       buttons: [
         { text: 'Cancelar', style: 'cancel'},
         { text: 'Eliminar', style: 'destructive', onPress: () => {
             const folderService = services?.folderService;
             const fileService = services?.fileService;
 
-            const folderIdsToDelete = itemsSelected.filter(i => i instanceof FolderModel).map(f => f.id);
-            const fileIdsToDelete = itemsSelected.filter(i => i instanceof FileModel).map(f => f.id);
+            const folderIdsToDelete = targetItems.filter(i => i instanceof FolderModel).map(f => f.id);
+            const fileIdsToDelete = targetItems.filter(i => i instanceof FileModel).map(f => f.id);
 
             const successFolders = folderIdsToDelete.map(folderId => folderService.deleteFolder(folderId, true));
             const successFiles = fileIdsToDelete.map(fileId => fileService.deleteFile(fileId));
 
-            console.log('Resultados eliminación carpetas:', successFolders);
-            console.log('Resultados eliminación archivos:', successFiles);
               if(successFolders.every(s => s) && successFiles.every(s => s)){
-                setItems(prev => prev.filter(i => !itemsSelected.some(s => s.id === i.id)));
-                setItemsSelected([]);
+                setItems(prev => prev.filter(i => !targetItems.some(s => s.id === i.id)));
+                if (!items) setItemsSelected([]);
               } else {
                 showAlert({ title: 'Error', message: 'No se pudieron eliminar todos los elementos seleccionados' });
               }
@@ -373,20 +413,29 @@ export default function LibraryScreen() {
           keyExtractor={(item) => item.id}
           key={`${selectedView}-${gridConfig.columns}`}
           numColumns={gridConfig.columns}
+          onScroll={() => setShowMenu(false)}
           renderItem={({ item }) => (
-            <ViewCards
-              data={item}
-              viewConfig={selectedView}
-              selected={itemsSelected.some(i => i.id === item.id)}
-              onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
-              onLongPress={() => toggleSelection(item)}
-            />
+            <View ref={buttonRef}>
+              <ViewCards
+                data={item}
+                viewConfig={selectedView}
+                selected={itemsSelected.some(i => i.id === item.id)}
+                onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
+                onLongPress={() => toggleSelection(item)}
+              />
+            </View>
           )}
           columnWrapperStyle={gridConfig.columns > 1 ? styles.gridRow : undefined}
           contentContainerStyle={{ paddingBottom: 120, gap: 10, padding: 16 }}
         />
       )}
 
+      <ContextMenu
+        options={menuOptions}
+        visible={showMenu}
+        onDismiss={() => setShowMenu(false)}
+        position={menuPosition}
+      />
     </View>
   );
 }
