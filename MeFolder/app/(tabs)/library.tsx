@@ -421,6 +421,7 @@ export default function LibraryScreen() {
                 viewConfig={selectedView}
                 selected={itemsSelected.some(i => i.id === item.id)}
                 onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
+                onDoublePress={() => console.log("Doble press")}
                 onLongPress={() => toggleSelection(item)}
               />
             </View>

@@ -4,10 +4,12 @@ import { useContentCardStyles } from './styles';
 import { CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
 import { formatDate, formatFileSize, getIconByCategory } from '@/utils';
+import { useRef } from 'react';
 
 
 export default function ContentCard({
   onPress,
+  onDoublePress,
   onLongPress,
   disabled = false,
   data,
@@ -16,13 +18,31 @@ export default function ContentCard({
 }: CommunCardProps) {
   
   const styles = useContentCardStyles();
+  const isFile = data instanceof FileModel;
+  const lastTap = useRef(0);
+  const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
  
   /**
    * Maneja el evento de presión del botón
    */
-  const handlePress = async (): Promise<void> => {
-    if (onPress && !disabled) {
-      await onPress();
+  const handlePress = async (): Promise<void> => { 
+    if (disabled) return;
+    
+    const now = Date.now();
+    const isDoubleTap = now - lastTap.current < 200;
+    lastTap.current = now;
+
+    if (isDoubleTap) {
+      if (tapTimeout.current) {
+        clearTimeout(tapTimeout.current);
+        tapTimeout.current = null;
+      }
+      await onDoublePress?.();
+    } else {
+      tapTimeout.current = setTimeout(async () => {
+        tapTimeout.current = null;
+        await onPress?.();
+      }, 200);
     }
   };
 
@@ -43,7 +63,7 @@ export default function ContentCard({
       onLongPress={handleLongPress}
     >
       <View style={styles.iconNameContainer}>
-          {data instanceof FileModel ? (
+          {isFile ? (
             <View style={styles.fileThumbnail}>
               <Ionicons 
                 name={getIconByCategory(data.category)} 
@@ -68,11 +88,11 @@ export default function ContentCard({
 
       <View style={styles.fileDetails}>
         <Text style={styles.fileDetailsText}>
-          {data instanceof FileModel ? formatDate(data.updatedAt) : null}
+          {isFile ? formatDate(data.updatedAt) : null}
         </Text>
 
         <Text style={styles.fileDetailsText}>
-          {data instanceof FileModel ? formatFileSize(data.size) : null}
+          {isFile ? formatFileSize(data.size) : null}
         </Text>
       </View>
         

@@ -102,6 +102,7 @@ export interface SearchBoxProps {
 
 export interface CommunCardProps {
   onPress: () => Promise<void> | void;
+  onDoublePress?: () => Promise<void> | void;
   onLongPress?: () => Promise<void> | void;
   disabled?: boolean;
   data: FileModel | FolderModel;

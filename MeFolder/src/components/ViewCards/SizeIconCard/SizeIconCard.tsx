@@ -4,6 +4,7 @@ import { useSizeIconCardStyles } from "./styles";
 import { TouchableOpacity, View, Text } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getIconByCategory } from '@/utils/ui/icons';
+import { useRef } from "react";
 
 interface SizeIconCardProps extends CommunCardProps {
     size: number; 
@@ -11,6 +12,7 @@ interface SizeIconCardProps extends CommunCardProps {
 
 export const SizeIconCard = ({
     onPress,
+    onDoublePress,
     onLongPress,
     disabled = false,
     data,
@@ -20,10 +22,27 @@ export const SizeIconCard = ({
 }: SizeIconCardProps) => {
     const styles = useSizeIconCardStyles(size);
     const isFile = data instanceof FileModel;
+    const lastTap = useRef(0);
+    const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const handlePress = async (): Promise<void> => {
-        if (onPress && !disabled) {
-        await onPress();
+    const handlePress = async (): Promise<void> => { 
+        if (disabled) return;
+        
+        const now = Date.now();
+        const isDoubleTap = now - lastTap.current < 200;
+        lastTap.current = now;
+
+        if (isDoubleTap) {
+        if (tapTimeout.current) {
+            clearTimeout(tapTimeout.current);
+            tapTimeout.current = null;
+        }
+        await onDoublePress?.();
+        } else {
+        tapTimeout.current = setTimeout(async () => {
+            tapTimeout.current = null;
+            await onPress?.();
+        }, 200);
         }
     };
 
