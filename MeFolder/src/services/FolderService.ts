@@ -299,6 +299,88 @@ export class FolderService extends BaseService {
     }
   }
 
+  async copyFolder(folderId: UUID, destinationParentId: UUID, isRootCall: boolean = true): Promise<FolderModel> {
+    const createdFolders: UUID[] = [];
+    const createdFiles: UUID[] = [];
+    let parentFolderUri = '';
+
+    try {     
+      this.ensureDbInitialized();
+
+      const folder = await this.folderRepo.findById(folderId);
+      if (!folder) throw new Error('Carpeta no encontrada');
+
+      await this.validateParentFolder(destinationParentId);
+
+      if(isRootCall) 
+        await this.validateUniqueFolderName(folder.name, destinationParentId);
+
+      const subfolders = await this.folderRepo.findChildren(folderId);
+      const subfiles = await this.fileRepo.findChildren(folderId);
+
+      const newFolder = await this.folderRepo.create({
+        name: folder.name,
+        parentId: destinationParentId,
+        type: folder.type,
+        visibility: folder.visibility,
+        tagIds: folder.tagIds,
+        viewSettings: folder.viewSettings,
+        ...(folder.icon && {icon: folder.icon}),
+        ...(folder.color && {color: folder.color}),
+        ...(folder.description && {description: folder.description})
+      });
+      createdFolders.push(newFolder.id);
+      
+      if(isRootCall){
+        this.fs.copyDirectory({from: folder.path, to: newFolder.path});
+        parentFolderUri = newFolder.path;
+      }
+       
+
+      const copySubfolderPromises = subfolders.map(async subfolder => {
+        const newSubfolder = await this.copyFolder(subfolder.id, newFolder.id, false);
+        return newSubfolder;
+      });
+      await Promise.all(copySubfolderPromises);
+
+      const copyFilePromises = subfiles.map(async file => {
+        const newFile = await this.fileRepo.create({
+          name: file.name,
+          originalName: file.originalName,
+          extension: file.extension,
+          folderId: newFolder.id,
+          metadata: file.metadata,
+          ...(file.visibility && { visibility: file.visibility }),
+          ...(file.color && { color: file.color }),
+          ...(file.description && { description: file.description }),
+          ...(file.tagIds && { tagIds: file.tagIds }),
+          ...(file.storageUrl && { storageUrl: file.storageUrl }),
+          ...(file.thumbnailUrl && { thumbnailUrl: file.thumbnailUrl }),
+        });
+        createdFiles.push(newFile.id);
+        return newFile;
+      });
+
+      await Promise.all(copyFilePromises);   
+
+      return FolderFactory.fromJSON(newFolder);
+    } catch (error) {
+      
+      if(isRootCall && createdFolders.length > 0)
+        this.fs.deleteDirectory(parentFolderUri);
+      
+      for (const fileId of createdFiles.reverse()) {
+        await this.fileRepo.permanentDelete(fileId);
+      }
+
+      for (const folderId of createdFolders.reverse()) {
+          await this.folderRepo.permanentDelete(folderId);
+      }
+
+      return this.handleError(error, 'copiar carpeta');
+    }
+  }
+
   /**
    * Renombrar carpeta
    */

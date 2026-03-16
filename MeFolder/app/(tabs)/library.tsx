@@ -1,7 +1,7 @@
 import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, ContextMenu, Breadcrumb, OptionDropDown } from '@/components';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, FlatList, TouchableOpacity, Alert,  Text, useWindowDimensions } from 'react-native';
-import { useNavigationStore } from '@/stores';
+import { useNavigationStore, useClipboardStore } from '@/stores';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
 import type { CreateFileInput, FileCategory, FileMetadata, FSFileInfo, OptionsType } from '@/types';
@@ -35,10 +35,11 @@ export default function LibraryScreen() {
     { hierarchy: '3', label: 'Compartir con', onPress: () => {contextMenuItem && handleShare(contextMenuItem)}, disabled: false, icon: <MaterialCommunityIcons name="share" size={20} color="black" /> },
     { hierarchy: '4', label: 'Agregar a favoritos', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="star" size={20} color="black" /> },
     { hierarchy: '5', label: 'Renombrar', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="pencil" size={20} color="black" /> },
-    { hierarchy: '6', label: 'Copiar', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="content-copy" size={20} color="black" /> },
-    { hierarchy: '7', label: 'Cortar', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="content-cut" size={20} color="black" /> },
-    { hierarchy: '8', label: 'Eliminar', onPress: () => {contextMenuItem && handleDeleteElements([contextMenuItem])}, disabled: false, icon: <MaterialCommunityIcons name="delete" size={20} color="black" /> },
-    { hierarchy: '9', label: 'Propiedades', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="information" size={20} color="black" /> },
+    { hierarchy: '6', label: 'Copiar', onPress: () => {contextMenuItem && handleCopy([contextMenuItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-copy" size={20} color="black" /> },
+    { hierarchy: '7', label: 'Cortar', onPress: () => {contextMenuItem && handleCut([contextMenuItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-cut" size={20} color="black" /> },
+    { hierarchy: '8', label: 'Pegar', onPress: () => {contextMenuItem && handlePaste()}, disabled: false, icon: <MaterialCommunityIcons name="content-paste" size={20} color="black" /> },
+    { hierarchy: '9', label: 'Eliminar', onPress: () => {contextMenuItem && handleDeleteElements([contextMenuItem])}, disabled: false, icon: <MaterialCommunityIcons name="delete" size={20} color="black" /> },
+    { hierarchy: '10', label: 'Propiedades', onPress: () => {console.log(JSON.stringify(contextMenuItem, null, 2))}, disabled: false, icon: <MaterialCommunityIcons name="information" size={20} color="black" /> },
   ];
   const selectionMode = itemsSelected.length > 0;
   const isEmpty = items.length === 0;
@@ -47,6 +48,7 @@ export default function LibraryScreen() {
   const fs = useFileSystem();
   const media = useMedia();
 
+  const { copy, cut, paste, clear, hasItems, isCopy, isCut, clipboardItems } = useClipboardStore();
   const { currentFolderId, navigateTo, currentFolderName, navigateBack } = useNavigationStore();
   const { showAlert } = useAlert();
   const { width } = useWindowDimensions();
@@ -78,7 +80,7 @@ export default function LibraryScreen() {
 
         loadContent();
   }, [isReady, currentFolderId])
-);
+  );
 
   const handleOnPress = (selectedMode: any) => {
     setSelectedView(selectedMode.id);
@@ -317,6 +319,29 @@ export default function LibraryScreen() {
     setItems(prev => [...prev, folderResult]);
   }
 
+  const handleRename = (item: FileModel | FolderModel, newName: string) => {
+  
+  }
+
+  const handleCopy = (items: (FileModel | FolderModel)[]) => {
+    copy(items);
+    console.log('Elementos copiados al portapapeles:', clipboardItems);
+  }
+
+  const handleCut = (items: (FileModel | FolderModel)[]) => {
+    cut(items);
+  }
+
+  const handlePaste = async () => {
+    if (!hasItems()) {
+      showAlert({ title: 'Portapapeles vacío', message: 'No hay elementos para pegar.' });
+      return;
+    }
+    const { createdFolders, createdFiles } = await paste(currentFolderId);
+
+    setItems(prev => [prev.filter(i => i instanceof FolderModel), ...createdFolders, prev.filter(i => i instanceof FileModel), ...createdFiles].flat());
+  }
+
   const renderGroupButtons = () => {
     if (selectionMode) {
       return (
@@ -346,7 +371,7 @@ export default function LibraryScreen() {
               backgroundColor="transparent"
               iconColor={styles.iconColor.color}
               size={42}
-              onPress={() => console.log(itemsSelected)}
+              onPress={() => handlePaste()}
             />
             <MultiActionButton
               icon={"add"}
@@ -421,7 +446,7 @@ export default function LibraryScreen() {
                 viewConfig={selectedView}
                 selected={itemsSelected.some(i => i.id === item.id)}
                 onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
-                onDoublePress={() => console.log("Doble press")}
+                onDoublePress={() => console.log(JSON.stringify(item, null, 2))}
                 onLongPress={() => toggleSelection(item)}
               />
             </View>

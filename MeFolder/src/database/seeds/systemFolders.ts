@@ -2,7 +2,7 @@ import { Database } from '../sqlite/Database';
 import { SYSTEM_COLORS } from '@/constants/themes/colors';
 
 /** ID fijo de la carpeta raíz del sistema */
-export const ROOT_FOLDER_ID = 'sys_root' as const;
+export const ROOT_FOLDER_ID = 'file:///data/user/0/host.exp.exponent/files/sys_root' as const;
 
 /**
  * Carpetas del sistema predeterminadas (hijas de root).

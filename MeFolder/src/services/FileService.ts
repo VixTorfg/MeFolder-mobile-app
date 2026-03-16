@@ -180,6 +180,45 @@ export class FileService extends BaseService {
   }
 
   /**
+   * Copiar archivo a otra carpeta
+   */
+  async copyFile(fileId: UUID, targetFolderId: UUID): Promise<FileModel> {
+    try {
+      this.ensureDbInitialized();
+
+      const [file, targetFolder] = await Promise.all([
+        this.fileRepo.findById(fileId),
+        this.folderRepo.findById(targetFolderId)
+      ]);
+
+      if (!file) throw new Error('Archivo no encontrado');
+      if (!targetFolder) throw new Error('Carpeta destino no encontrada');
+
+      await this.validateUniqueFileName(file.name, targetFolderId);
+      this.fs.copyFile({ from: file.path, to: targetFolder.path });
+
+      const newFile = await this.fileRepo.create({
+        name: file.name,
+        originalName: file.originalName,
+        extension: file.extension,
+        folderId: targetFolderId,
+        visibility: file.visibility,
+        metadata: file.metadata,
+        storageUrl: targetFolder.path + '/' + file.name, 
+
+        ...(file.color && {color: file.color}),
+        ...(file.description && {description: file.description}),
+        ...(file.tagIds.length > 0 && {tagIds: file.tagIds}),
+        ...(file.thumbnailUrl && {thumbnailUrl: file.thumbnailUrl}) // hay resorver esto, ya que ahora coge el thumbnail del archivo antiguo.
+      }, targetFolder.path);
+
+      return FileFactory.fromJSON(newFile);
+    } catch (error){
+      return this.handleError(error, 'copiar archivo');
+    }
+  }
+
+  /**
    * Remover tags de un archivo
    */
   async removeTagsFromFile(fileId: UUID, tagIds: UUID[]): Promise<FileModel> {

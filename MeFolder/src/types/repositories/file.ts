@@ -5,6 +5,7 @@ import { BaseRepository } from './base';
 export interface FileRepository extends BaseRepository<File, CreateFileInput, UpdateFileInput> {
   findByFolderId(folderId: UUID): Promise<File[]>;
   findByExtension(extension: FileExtension): Promise<File[]>;
+  findChildren(folderId: UUID): Promise<File[]>;
   findByTagIds(tagIds: UUID[]): Promise<File[]>;
   findByCategory(category: string): Promise<File[]>;
   findDeletedFiles(): Promise<File[]>;

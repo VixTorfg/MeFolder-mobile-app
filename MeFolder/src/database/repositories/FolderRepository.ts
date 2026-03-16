@@ -60,6 +60,22 @@ export class FolderRepositoryImplementation implements FolderRepository {
   }
 
   /**
+   * Devuelve las carpetas hijas de una carpeta padre dada.
+   */
+  async findChildren(folderId: UUID): Promise<Folder[]> {
+     try {
+      const rows = await this.findAll({
+        parentId: folderId,
+        status: 'active'
+      }, false);
+    
+      return rows.map(this.mapRowToFolder);
+    } catch (error) {
+      throw new Error(`Error al buscar carpetas: ${error}`);
+    }
+  }
+
+  /**
    * Obtener todas las carpetas con filtros opcionales
    */
   async findAll(filters?: any, includeDeleted = false): Promise<Folder[]> {

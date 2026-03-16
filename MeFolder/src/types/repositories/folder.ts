@@ -4,6 +4,7 @@ import { BaseRepository } from './base';
 
 export interface FolderRepository extends BaseRepository<Folder, CreateFolderInput, UpdateFolderInput> {
   findByFolderId(folderId: UUID): Promise<Folder[]>;
+  findChildren(folderId: UUID): Promise<Folder[]>;
   findByTagIds(tagIds: UUID[]): Promise<Folder[]>;
   findByVisibility(visibility: string): Promise<Folder[]>;
   findByStatus(status: string): Promise<Folder[]>;

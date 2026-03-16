@@ -58,6 +58,21 @@ export class FileRepositoryImplementation implements FileRepository {
       }
     }
 
+  /**
+     * Devuelve las carpetas hijas de una carpeta padre dada.
+     */
+    async findChildren(folderId: UUID): Promise<File[]> {
+       try {
+        const rows = await this.findAll({
+          folderId: folderId,
+          status: 'active'
+        }, false);
+      
+        return rows.map(this.mapRowToFile);
+      } catch (error) {
+        throw new Error(`Error al buscar archivos: ${error}`);
+      }
+    }
 
   /**
    * Obtener todos los archivos con filtros opcionales
