@@ -18,7 +18,6 @@ export const createFilesTable = async (): Promise<void> => {
       extension TEXT NOT NULL,
       category TEXT NOT NULL
       CHECK (category in ('document', 'image', 'video', 'audio', 'code', 'archive', 'spreadsheet', 'other')),
-      description TEXT,
       
       folder_id TEXT REFERENCES folders(id) ON DELETE CASCADE,
       path TEXT NOT NULL UNIQUE,

@@ -26,3 +26,21 @@ export const formatVideoDuration = (durationInSeconds: number | null | undefined
   const seconds = Math.floor(durationInSeconds % 60);
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
+
+/**
+ * Devuelve una fecha y hora formateada como una cadena de texto "dia de la semana, dd de mes de yyyy, hh:mm:ss".
+ * @param date Fecha a formatear en tipo `Date`
+ * @returns Fecha y hora formateada como una cadena de texto
+ */
+
+export const formatFullDateTime = (date: Date): string => {
+  return date.toLocaleString('es-ES', {
+    weekday: 'long',
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}

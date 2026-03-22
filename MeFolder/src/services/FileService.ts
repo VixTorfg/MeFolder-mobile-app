@@ -207,7 +207,6 @@ export class FileService extends BaseService {
         storageUrl: targetFolder.path + '/' + file.name, 
 
         ...(file.color && {color: file.color}),
-        ...(file.description && {description: file.description}),
         ...(file.tagIds.length > 0 && {tagIds: file.tagIds}),
         ...(file.thumbnailUrl && {thumbnailUrl: file.thumbnailUrl}) // hay resorver esto, ya que ahora coge el thumbnail del archivo antiguo.
       }, targetFolder.path);

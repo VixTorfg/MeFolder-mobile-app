@@ -1,4 +1,4 @@
-import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, ContextMenu, Breadcrumb, OptionDropDown } from '@/components';
+import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, ContextMenu, Breadcrumb, OptionDropDown, PropertyMenu } from '@/components';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, FlatList, TouchableOpacity, Alert,  Text, useWindowDimensions } from 'react-native';
 import { useNavigationStore, useClipboardStore } from '@/stores';
@@ -25,21 +25,26 @@ export default function LibraryScreen() {
   const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
   const [creatorVisible, setCreatorVisible] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [contextMenuItem, setContextMenuItem] = useState<FileModel | FolderModel | null>(null);
+  const [clickedItem, setClickedItem] = useState<FileModel | FolderModel | null>(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [showPropertyMenu, setShowPropertyMenu] = useState(false);
   const buttonRef = useRef<View>(null);
 
   const menuOptions = [
     { hierarchy: '1', label: 'Abrir', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="open-in-app" size={20} color="black" /> },
     { hierarchy: '2', label: 'Abrir con', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="folder" size={20} color="black" /> },
-    { hierarchy: '3', label: 'Compartir con', onPress: () => {contextMenuItem && handleShare(contextMenuItem)}, disabled: false, icon: <MaterialCommunityIcons name="share" size={20} color="black" /> },
+    { hierarchy: '3', label: 'Compartir con', onPress: () => {clickedItem && handleShare(clickedItem)}, disabled: false, icon: <MaterialCommunityIcons name="share" size={20} color="black" /> },
     { hierarchy: '4', label: 'Agregar a favoritos', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="star" size={20} color="black" /> },
     { hierarchy: '5', label: 'Renombrar', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="pencil" size={20} color="black" /> },
-    { hierarchy: '6', label: 'Copiar', onPress: () => {contextMenuItem && handleCopy([contextMenuItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-copy" size={20} color="black" /> },
-    { hierarchy: '7', label: 'Cortar', onPress: () => {contextMenuItem && handleCut([contextMenuItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-cut" size={20} color="black" /> },
-    { hierarchy: '8', label: 'Pegar', onPress: () => {contextMenuItem && handlePaste()}, disabled: false, icon: <MaterialCommunityIcons name="content-paste" size={20} color="black" /> },
-    { hierarchy: '9', label: 'Eliminar', onPress: () => {contextMenuItem && handleDeleteElements([contextMenuItem])}, disabled: false, icon: <MaterialCommunityIcons name="delete" size={20} color="black" /> },
-    { hierarchy: '10', label: 'Propiedades', onPress: () => {console.log(JSON.stringify(contextMenuItem, null, 2))}, disabled: false, icon: <MaterialCommunityIcons name="information" size={20} color="black" /> },
+    { hierarchy: '6', label: 'Copiar', onPress: () => {clickedItem && handleCopy([clickedItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-copy" size={20} color="black" /> },
+    { hierarchy: '7', label: 'Cortar', onPress: () => {clickedItem && handleCut([clickedItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-cut" size={20} color="black" /> },
+    { hierarchy: '8', label: 'Pegar', onPress: () => {clickedItem && handlePaste()}, disabled: false, icon: <MaterialCommunityIcons name="content-paste" size={20} color="black" /> },
+    { hierarchy: '9', label: 'Eliminar', onPress: () => {clickedItem && handleDeleteElements([clickedItem])}, disabled: false, icon: <MaterialCommunityIcons name="delete" size={20} color="black" /> },
+    { hierarchy: '10', label: 'Propiedades', onPress: () => {
+      setShowPropertyMenu(true);
+      setShowMenu(false);
+      console.log('Propiedades de:', JSON.stringify(clickedItem, null, 2));
+    }, disabled: false, icon: <MaterialCommunityIcons name="information" size={20} color="black" /> },
   ];
   const selectionMode = itemsSelected.length > 0;
   const isEmpty = items.length === 0;
@@ -92,7 +97,7 @@ export default function LibraryScreen() {
       setItemsSelected([]);
       navigateTo(item.id, item.name);
     } else {
-      setContextMenuItem(item);
+      setClickedItem(item);
       buttonRef.current?.measureInWindow((x, y, width, height) => {
         setMenuPosition({ x, y, width, height });
         setShowMenu(true)
@@ -250,20 +255,19 @@ export default function LibraryScreen() {
         }
 
         copiedUri = copyResult.toUri;
-
-        const metadata = fs.getFileInfo(copiedUri);
+        const metadata = fs.getFileInfo(file.uri);
 
         if (!metadata) {
           throw new Error('No se pudo obtener información del archivo');
         }
 
-        const fileMetadata = await buildFileMetadata(file.type, copiedUri, metadata, file.mimeType);
+        const fileMetadata = await buildFileMetadata(file.type, file.uri, metadata, file.mimeType);
 
         const fileResult = await fileService?.createFile({
           name: file.name,
           originalName: file.originalName,
           extension: (resolvedExt || metadata.extension || '') as CreateFileInput['extension'],
-          folderId: resolvedFolderId ?? undefined,
+          folderId: resolvedFolderId,
           visibility: 'private',
           metadata: fileMetadata,
           tagIds: tags,
@@ -271,9 +275,10 @@ export default function LibraryScreen() {
         } as CreateFileInput);
       
       setItems(prev => [...prev, fileResult]);
-      } catch (error) {
+      } catch (error) {      
+        console.warn(`Error al guardar el archivo ${file.name}:`, error);
         if (copiedUri) {
-          try {
+          try {           
             fs.deleteFile(copiedUri);
             console.warn(`Archivo temporal eliminado: ${copiedUri}`);
           } catch (cleanupError) {
@@ -286,7 +291,10 @@ export default function LibraryScreen() {
 
     if (failed.length > 0) {
       console.warn('Archivos que no se pudieron guardar:', failed);
-      // TODO: Mostrar notificación al usuario con los archivos fallidos
+      showAlert({
+        title: 'Error al guardar archivos',
+        message: `No se pudieron guardar los siguientes archivos:\n${failed.map(f => `${f.name}: ${f.error}`).join('\n')}`,
+      });
     }
   };
 
@@ -446,7 +454,10 @@ export default function LibraryScreen() {
                 viewConfig={selectedView}
                 selected={itemsSelected.some(i => i.id === item.id)}
                 onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
-                onDoublePress={() => console.log(JSON.stringify(item, null, 2))}
+                onDoublePress={() => {
+                  console.log(JSON.stringify(item, null, 2));
+                  setClickedItem(item);                 
+                }}
                 onLongPress={() => toggleSelection(item)}
               />
             </View>
@@ -462,6 +473,14 @@ export default function LibraryScreen() {
         onDismiss={() => setShowMenu(false)}
         position={menuPosition}
       />
+
+      {clickedItem && (
+        <PropertyMenu 
+          item={clickedItem}
+          visible={showPropertyMenu} 
+          onClose={() => setShowPropertyMenu(false)}
+        />
+      )}
     </View>
   );
 }

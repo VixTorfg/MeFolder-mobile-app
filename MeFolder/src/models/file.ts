@@ -68,6 +68,26 @@ export class FileModel extends BaseModel<File> {
     return this.data.color;
   }
 
+  get description(): string | undefined {
+    return this.data.description;
+  }
+
+  get createdAt(): Date {
+    return this.data.createdAt;
+  }
+
+  get updatedAt(): Date {
+    return this.data.updatedAt;
+  }
+
+  get accessedAt(): Date | undefined {
+    return this.data.lastAccessedAt;
+  }
+
+  get archivedAt(): Date | undefined {
+    return this.data.archivedAt;
+  }
+
   /** Establece nuevo nombre de archivo */
   setName(name: string): void {
     const cleanName = name.trim();

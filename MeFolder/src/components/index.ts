@@ -8,3 +8,4 @@ export { ItemCreator, FileCreator, FolderCreator } from './ItemCreator';
 export { OptionDropDown } from './OptionDropDown';
 export { CustomAlert } from './CustomAlert';
 export { ContextMenu } from './ContextMenu';
+export { PropertyMenu } from './PropertyMenu';

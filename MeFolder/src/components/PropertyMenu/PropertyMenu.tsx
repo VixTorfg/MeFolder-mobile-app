@@ -12,12 +12,12 @@ import { scheduleOnRN } from 'react-native-worklets';
 import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/providers';
-import { useItemCreatorStyles } from './styles';
-import FileCreator from './FileCreator';
-import FolderCreator from './FolderCreator';
-import { ROOT_FOLDER_ID } from '@/database/seeds/systemFolders';
+import { usePropertyMenuStyles } from './styles';
+import { PropertyMenuProps } from '@/types/ui/components';
+import { FileModel, FolderModel } from '@/models';
+import { FilePropertyMenu } from './FilePropertyMenu';
 
-type CreatorType = 'file' | 'folder';
+type SectionType = 'details' | 'customize';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const CLOSE_THRESHOLD = 120;
@@ -35,25 +35,17 @@ const SNAP_BACK_CONFIG = {
   easing: Easing.out(Easing.cubic),
 };
 
-interface ItemCreatorProps {
-  visible: boolean;
-  onClose: () => void;
-  onSaveFile?: (data: any) => Promise<void> | void;
-  onSaveFolder?: (data: any) => Promise<void> | void;
-  currentFolderId?: string;
-}
-
-export default function ItemCreator({
+export const PropertyMenu = ({
+  item,
   visible,
   onClose,
-  onSaveFile,
-  onSaveFolder,
-  currentFolderId = ROOT_FOLDER_ID,
-}: ItemCreatorProps) {
-  const { theme } = useTheme();
-  const styles = useItemCreatorStyles();
-  const [selectedType, setSelectedType] = useState<CreatorType>('file');
+}: PropertyMenuProps) => {
 
+  const { theme } = useTheme();
+  const styles = usePropertyMenuStyles();
+  const [selectedSection, setSelectedSection] = useState<SectionType>('details');
+
+  const isFile = item instanceof FileModel;
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const overlayProgress = useSharedValue(0);
 
@@ -63,7 +55,7 @@ export default function ItemCreator({
   }, []);
 
   const closeModal = useCallback(() => {
-    setSelectedType('file');
+    setSelectedSection('details');
     onClose();
   }, [onClose]);
 
@@ -77,20 +69,6 @@ export default function ItemCreator({
   const handleClose = useCallback(() => {
     animateClose();
   }, [animateClose]);
-
-  const handleSaveFile = async (data: any): Promise<void> => {
-    if (onSaveFile) {
-      await onSaveFile(data);
-    }
-    handleClose();
-  };
-
-  const handleSaveFolder = async (data: any): Promise<void> => {
-    if (onSaveFolder) {
-      await onSaveFolder(data);
-    }
-    handleClose();
-  };
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
@@ -147,7 +125,9 @@ export default function ItemCreator({
             </GestureDetector>
 
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Nuevo elemento</Text>
+              <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode='tail'>
+                Propiedades de {item.name}
+              </Text>
               <TouchableOpacity
                 style={styles.closeButton}
                 onPress={handleClose}
@@ -161,20 +141,20 @@ export default function ItemCreator({
               </TouchableOpacity>
             </View>
 
-            <View style={styles.typeSelector}>
+            <View style={styles.sectionSelector}>
               <TouchableOpacity
                 style={[
                   styles.typeOption,
-                  selectedType === 'file' && styles.typeOptionActive,
+                  selectedSection === 'details' && styles.typeOptionActive,
                 ]}
-                onPress={() => setSelectedType('file')}
+                onPress={() => setSelectedSection('details')}
                 activeOpacity={0.7}
               >
                 <Ionicons
-                  name="document-outline"
+                  name="reader-outline"
                   size={22}
                   color={
-                    selectedType === 'file'
+                    selectedSection === 'details'
                       ? theme.colors.primary
                       : theme.colors.textSecondary
                   }
@@ -182,26 +162,26 @@ export default function ItemCreator({
                 <Text
                   style={[
                     styles.typeOptionText,
-                    selectedType === 'file' && styles.typeOptionTextActive,
+                    selectedSection === 'details' && styles.typeOptionTextActive,
                   ]}
                 >
-                  Archivo
+                  Detalles
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={[
                   styles.typeOption,
-                  selectedType === 'folder' && styles.typeOptionActive,
+                  selectedSection === 'customize' && styles.typeOptionActive,
                 ]}
-                onPress={() => setSelectedType('folder')}
+                onPress={() => setSelectedSection('customize')}
                 activeOpacity={0.7}
               >
                 <Ionicons
-                  name="folder-outline"
+                  name="sparkles-outline"
                   size={22}
                   color={
-                    selectedType === 'folder'
+                    selectedSection === 'customize'
                       ? theme.colors.primary
                       : theme.colors.textSecondary
                   }
@@ -209,33 +189,31 @@ export default function ItemCreator({
                 <Text
                   style={[
                     styles.typeOptionText,
-                    selectedType === 'folder' && styles.typeOptionTextActive,
+                    selectedSection === 'customize' && styles.typeOptionTextActive,
                   ]}
                 >
-                  Carpeta
+                  Estilo
                 </Text>
               </TouchableOpacity>
             </View>
 
-            {/* Contenido dinámico */}
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ 
-                paddingBottom: 4 * theme.spacing.xxl, 
-              }}
-             >
-              {selectedType === 'file' ? (
-                <FileCreator
-                  onSave={handleSaveFile}
-                  currentFolderId={currentFolderId}
-                />
-              ) : (
-                <FolderCreator
-                  onSave={handleSaveFolder}
-                  currentFolderId={currentFolderId}
-                />
-              )}
-            </ScrollView>
+            {isFile ? (
+              <ScrollView 
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ 
+                  paddingBottom: 4 * theme.spacing.xxl, 
+                }}>
+                  <FilePropertyMenu item={item} section={selectedSection} />
+              </ScrollView>
+            ) : (
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ 
+                  paddingBottom: 4 * theme.spacing.xxl, 
+                }}>
+                 
+              </ScrollView>
+            )}
           </View>
         </Animated.View>
       </GestureHandlerRootView>

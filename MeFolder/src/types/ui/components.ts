@@ -110,6 +110,12 @@ export interface CommunCardProps {
   selected?: boolean;
 }
 
+export interface PropertyMenuProps {
+  item: FileModel | FolderModel;
+  visible: boolean;
+  onClose: () => void;
+}
+
 export interface ViewCardsProps extends CommunCardProps {
   viewConfig?: modeView; //Futuro ViewConfig;
 }

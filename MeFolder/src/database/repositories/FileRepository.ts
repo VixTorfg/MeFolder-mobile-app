@@ -145,7 +145,7 @@ export class FileRepositoryImplementation implements FileRepository {
         {
           sql: `INSERT INTO files (
             id, created_at, updated_at,
-            name, original_name, extension, category, description,
+            name, original_name, extension, category,
             folder_id, path, status, visibility,
             metadata_size, metadata_mime_type, metadata_checksum,
             metadata_image_width, metadata_image_height, metadata_image_orientation,
@@ -153,10 +153,10 @@ export class FileRepositoryImplementation implements FileRepository {
             metadata_audio_duration, metadata_audio_bitrate, metadata_audio_sample_rate,
             color_hex, color_rgb_r, color_rgb_g, color_rgb_b,
             last_accessed_at, archived_at, storage_url, thumbnail_url
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
             file.id, file.createdAt.getTime(), file.updatedAt.getTime(),
-            file.name, file.originalName, file.extension, file.category, file.description,
+            file.name, file.originalName, file.extension, file.category,
             file.folderId, file.path, file.status, file.visibility,
             file.metadata.size, file.metadata.mimeType, file.metadata.checksum,
             file.metadata.imageMetadata?.width, file.metadata.imageMetadata?.height, file.metadata.imageMetadata?.orientation,
@@ -208,7 +208,6 @@ export class FileRepositoryImplementation implements FileRepository {
           path = ?, 
           status = ?, 
           visibility = ?,
-          description = ?,
           color_hex = ?, 
           color_rgb_r = ?, 
           color_rgb_g = ?, 
@@ -218,7 +217,7 @@ export class FileRepositoryImplementation implements FileRepository {
         WHERE id = ?
       `, [
         file.updatedAt.getTime(),
-        file.name, file.folderId, file.path, file.status, file.visibility, file.description,
+        file.name, file.folderId, file.path, file.status, file.visibility,
         file.color?.hex, file.color?.rgb.r, file.color?.rgb.g, file.color?.rgb.b,
         file.lastAccessedAt, file.archivedAt,
         id

@@ -46,7 +46,6 @@ export interface File extends BaseEntity {
   metadata: FileMetadata;
   
   color?: ColorInfo;        
-  description?: string;  
   
   tagIds: UUID[];
   
@@ -65,7 +64,6 @@ export interface CreateFileInput {
   visibility?: FileVisibility;
   metadata: FileMetadata;
   color?: ColorInfo;
-  description?: string;
   tagIds?: UUID[];
   storageUrl?: string;
   thumbnailUrl?: string;
@@ -77,7 +75,6 @@ export interface UpdateFileInput {
   status?: FileStatus;
   visibility?: FileVisibility;
   color?: ColorInfo;
-  description?: string;
   tagIds?: UUID[];
 }
 
