@@ -245,6 +245,21 @@ export class FileRepositoryImplementation implements FileRepository {
       }
   }
 
+  /** 
+  * Actualizar nombre del archivo 
+  */
+  async renameFile(fileId: UUID, newName: string, newPath: string): Promise<void> {
+      try {
+        await this.db.execute(
+          'UPDATE files SET name = ?, path = ?, updated_at = ? WHERE id = ?',
+          [newName, newPath, new Date().getTime(), fileId]
+        );
+      } catch (error) {
+        console.error('Error updating file name:', error);
+        throw new Error(`Error al actualizar nombre del archivo: ${error}`);
+      }
+  }
+
   /**
    * Eliminación lógica (cambiar status a 'deleted')
    */

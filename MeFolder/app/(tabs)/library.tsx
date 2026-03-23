@@ -16,18 +16,19 @@ import EmptyFolder from '@/components/svgIcons/emptyFolder';
 import { getGridConfig, ViewMode } from '@/utils/ui/responsive';
 import { useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 
 export default function LibraryScreen() {
   const { isReady } = useDatabase();
   const { services } = useServices();
   const [selectedView, setSelectedView] = useState<modeView>('list');
-  const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
   const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
   const [creatorVisible, setCreatorVisible] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [clickedItem, setClickedItem] = useState<FileModel | FolderModel | null>(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const [showPropertyMenu, setShowPropertyMenu] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
   const buttonRef = useRef<View>(null);
 
   const menuOptions = [
@@ -35,7 +36,7 @@ export default function LibraryScreen() {
     { hierarchy: '2', label: 'Abrir con', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="folder" size={20} color="black" /> },
     { hierarchy: '3', label: 'Compartir con', onPress: () => {clickedItem && handleShare(clickedItem)}, disabled: false, icon: <MaterialCommunityIcons name="share" size={20} color="black" /> },
     { hierarchy: '4', label: 'Agregar a favoritos', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="star" size={20} color="black" /> },
-    { hierarchy: '5', label: 'Renombrar', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="pencil" size={20} color="black" /> },
+    { hierarchy: '5', label: 'Renombrar', onPress: () => {setIsRenaming(true)}, disabled: false, icon: <MaterialCommunityIcons name="pencil" size={20} color="black" /> },
     { hierarchy: '6', label: 'Copiar', onPress: () => {clickedItem && handleCopy([clickedItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-copy" size={20} color="black" /> },
     { hierarchy: '7', label: 'Cortar', onPress: () => {clickedItem && handleCut([clickedItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-cut" size={20} color="black" /> },
     { hierarchy: '8', label: 'Pegar', onPress: () => {clickedItem && handlePaste()}, disabled: false, icon: <MaterialCommunityIcons name="content-paste" size={20} color="black" /> },
@@ -46,6 +47,9 @@ export default function LibraryScreen() {
       console.log('Propiedades de:', JSON.stringify(clickedItem, null, 2));
     }, disabled: false, icon: <MaterialCommunityIcons name="information" size={20} color="black" /> },
   ];
+
+  const items = useLibraryStore(state => state.items);
+  const { setItems, addItem, updateItem } = useLibraryStore();
   const selectionMode = itemsSelected.length > 0;
   const isEmpty = items.length === 0;
 
@@ -158,8 +162,8 @@ export default function LibraryScreen() {
     }
   };
 
-  const handleDeleteElements = (items?: (FileModel | FolderModel)[]) => {
-    const targetItems = items ?? itemsSelected;
+  const handleDeleteElements = (itemsToDelete?: (FileModel | FolderModel)[]) => {
+    const targetItems = itemsToDelete ?? itemsSelected;
     
     showAlert({
       title: 'Confirmar eliminación',
@@ -177,8 +181,9 @@ export default function LibraryScreen() {
             const successFiles = fileIdsToDelete.map(fileId => fileService.deleteFile(fileId));
 
               if(successFolders.every(s => s) && successFiles.every(s => s)){
-                setItems(prev => prev.filter(i => !targetItems.some(s => s.id === i.id)));
-                if (!items) setItemsSelected([]);
+                const newItems = items.filter(i => !targetItems.some(s => s.id === i.id));
+                setItems(newItems);
+                setItemsSelected([]);
               } else {
                 showAlert({ title: 'Error', message: 'No se pudieron eliminar todos los elementos seleccionados' });
               }
@@ -186,6 +191,39 @@ export default function LibraryScreen() {
       ]
     });
   };
+
+  const handleRenameElement = async (newName: string): Promise<void> => {
+    showAlert({
+      title: 'Renombrar elemento',
+      message: `¿Estás seguro de que quieres renombrar el elemento a "${newName}"?`,
+      buttons: [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Renombrar', onPress: async () => {
+          if(!newName.trim()){
+            showAlert({ title: 'Error', message: 'El nombre del elemento no puede estar vacío' });
+            return;
+          }
+      
+          if (!clickedItem) return;
+
+          if(clickedItem instanceof FolderModel){
+            const folderService = services?.folderService;
+            const result = await folderService.renameFolder(clickedItem.id, newName);
+            updateItem(result);
+            return;
+          } else {
+            const fileService = services?.fileService;
+            if (!fileService) return;
+
+            const result = await fileService.renameFile(clickedItem.id, newName);
+            updateItem(result);
+          }   
+          
+          setIsRenaming(false);
+        },
+      }] 
+    });
+  }
 
   const buildFileMetadata = async (category: FileCategory, uri: string, fsInfo: FSFileInfo | null, fileMimeType?: string): Promise<FileMetadata> => {
     const mimeType = fileMimeType || fsInfo?.mimeType || '';
@@ -274,7 +312,7 @@ export default function LibraryScreen() {
           storageUrl: copiedUri,
         } as CreateFileInput);
       
-      setItems(prev => [...prev, fileResult]);
+      addItem(fileResult);
       } catch (error) {      
         console.warn(`Error al guardar el archivo ${file.name}:`, error);
         if (copiedUri) {
@@ -324,11 +362,39 @@ export default function LibraryScreen() {
       Alert.alert('Error', 'No se pudo crear la carpeta en el sistema de archivos');
       return;
     }
-    setItems(prev => [...prev, folderResult]);
+    addItem(folderResult);
   }
 
-  const handleRename = (item: FileModel | FolderModel, newName: string) => {
-  
+  const handleRename = (newName: string) => {
+    showAlert({
+      title: 'Renombrar archivo',
+      message: `¿Estás seguro de que quieres renombrar el archivo a "${newName}"?`,
+      buttons: [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Renombrar', onPress: async () => {
+          if(!newName.trim()){
+            showAlert({ title: 'Error', message: 'El nombre del archivo no puede estar vacío' });
+            return;
+          }
+
+          if(!clickedItem) return;
+
+          if(clickedItem instanceof FolderModel){
+            const folderService = services?.folderService;
+            if (!folderService) return;
+
+            const result = await folderService.renameFolder(clickedItem.id, newName);
+            updateItem(result);
+          } else {
+            const fileService = services.fileService;
+            if (!fileService) return;
+
+            const result = await fileService.renameFile(clickedItem?.id, newName);
+            updateItem(result);
+          }       
+        },
+      }] 
+    });
   }
 
   const handleCopy = (items: (FileModel | FolderModel)[]) => {
@@ -347,7 +413,13 @@ export default function LibraryScreen() {
     }
     const { createdFolders, createdFiles } = await paste(currentFolderId);
 
-    setItems(prev => [prev.filter(i => i instanceof FolderModel), ...createdFolders, prev.filter(i => i instanceof FileModel), ...createdFiles].flat());
+    const newItems = [
+      ...items.filter(i => i instanceof FolderModel),
+      ...createdFolders,
+      ...items.filter(i => i instanceof FileModel),
+      ...createdFiles
+    ];
+    setItems(newItems);
   }
 
   const renderGroupButtons = () => {
@@ -453,6 +525,9 @@ export default function LibraryScreen() {
                 data={item}
                 viewConfig={selectedView}
                 selected={itemsSelected.some(i => i.id === item.id)}
+                isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+                onRename={handleRename}
+                onRenameCancel={() => setIsRenaming(false)}
                 onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
                 onDoublePress={() => {
                   console.log(JSON.stringify(item, null, 2));

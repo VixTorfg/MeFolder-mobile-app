@@ -272,7 +272,7 @@ export class FileService extends BaseService {
     }
   }
 
-/**
+    /**
      * Devuelve la lista de archivos dentro de una carpeta eliminadas dado un parentId.
      */
   async getDeletedInFolder(parentId: UUID): Promise<FileModel[]> {
@@ -291,6 +291,35 @@ export class FileService extends BaseService {
         
     } catch (error) {
       return this.handleError(error, 'obtener archivos eliminados');
+    }
+  }
+
+  /**
+   * Actualiza el nombre de un archivo.
+   * @param fileId 
+   * @param newName 
+   * @returns El archivo actualizado con el nuevo nombre
+   */
+  async renameFile(fileId: UUID, newName: string): Promise<FileModel> {
+    try {
+      this.ensureDbInitialized();
+
+      const file = await this.fileRepo.findById(fileId);
+
+      if (!file) throw new Error('Archivo no encontrado');
+
+      const folderId = file.folderId || ROOT_FOLDER_ID; 
+
+      await this.validateUniqueFileName(newName, folderId, fileId);
+
+      const newPath = `${this.removeLastPathSegment(file.path)}/${newName}`;
+      
+      await this.fileRepo.renameFile(fileId, newName, newPath);
+      
+      return await this.getFile(fileId);
+
+    } catch (error) {
+      return this.handleError(error, 'renombrar archivo');
     }
   }
 
@@ -387,5 +416,13 @@ export class FileService extends BaseService {
         throw new Error(`Tag con ID ${tagId} no encontrado`);
       }
     }
+  }
+
+  /** Elimina el último nivel en el path */
+  private removeLastPathSegment(path: string): string {
+    const normalizedPath = path.endsWith('/') ? path.slice(0, -1) : path;
+    const segments = normalizedPath.split('/');
+    segments.pop();
+    return segments.join('/');
   }
 }

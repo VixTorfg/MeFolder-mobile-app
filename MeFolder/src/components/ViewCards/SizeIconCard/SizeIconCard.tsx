@@ -1,10 +1,10 @@
 import { FileModel } from "@/models";
 import { CommunCardProps } from "@/types/ui/components";
 import { useSizeIconCardStyles } from "./styles";
-import { TouchableOpacity, View, Text } from "react-native";
+import { TouchableOpacity, View, Text, TextInput } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getIconByCategory } from '@/utils/ui/icons';
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface SizeIconCardProps extends CommunCardProps {
     size: number; 
@@ -14,6 +14,9 @@ export const SizeIconCard = ({
     onPress,
     onDoublePress,
     onLongPress,
+    onRenameCancel,
+    isRenaming = false,
+    onRename,
     disabled = false,
     data,
     showCard = true,
@@ -24,6 +27,14 @@ export const SizeIconCard = ({
     const isFile = data instanceof FileModel;
     const lastTap = useRef(0);
     const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [renameValue, setRenameValue] = useState(data.name);
+
+  useEffect(() => {
+    if (isRenaming) {
+      setRenameValue(data.name);
+    }
+  }, [isRenaming, data.name]);
 
     const handlePress = async (): Promise<void> => { 
         if (disabled) return;
@@ -77,9 +88,31 @@ export const SizeIconCard = ({
                     />
                 )}
 
-                <Text style={styles.fileNameText} numberOfLines={1} ellipsizeMode='tail'>
-                    {data.name}
-                </Text>
+        {isRenaming ? (
+          <TextInput
+                  style={styles.fileNameInput}
+                  value={renameValue}
+                  onChangeText={setRenameValue}
+                  placeholder="Nombre del archivo"
+                  placeholderTextColor={styles.colors.color}
+                  selectTextOnFocus
+                  numberOfLines={1}
+                  scrollEnabled
+                  textAlignVertical="center"
+                  autoFocus
+                  onSubmitEditing={() => {
+                    if (renameValue.trim() && renameValue !== data.name) {
+                      onRename && onRename(renameValue.trim());
+                    }
+                  }}
+                  onBlur={() => {onRenameCancel?.()}}
+                  returnKeyType="done"
+                />
+        ) : (
+           <Text style={styles.fileNameText} numberOfLines={1} ellipsizeMode='tail'>
+            {data.name}
+          </Text>   
+        )}
 
             </View>
         </TouchableOpacity>

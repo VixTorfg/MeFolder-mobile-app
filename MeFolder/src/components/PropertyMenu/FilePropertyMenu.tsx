@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, ScrollView } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAlert, useTheme } from '@/providers';
+import { useAlert, useServices, useTheme } from '@/providers';
 import { useFilePropertyMenuStyles } from './styles';
 import { formatFileSize } from '@/utils/format/bytes';
 import { FileCategory, MIME_PREFIX_CATEGORIES, MIME_TO_CATEGORY_MAP } from '@/types/common/file-extensions';
 import { FileModel } from '@/models/file';
 import { formatFullDateTime } from '@/utils';
+import { useLibraryStore } from '@/stores/useLibraryStore';
 
 interface MockTag {
   id: string;
@@ -30,9 +31,14 @@ export const FilePropertyMenu = ({
   section: 'details' | 'customize';
 }) => {
   const { theme } = useTheme();
+  const { services } = useServices();
+  const { showAlert } = useAlert();
+  const { updateItem } = useLibraryStore();
   const styles = useFilePropertyMenuStyles();
 
   const [fileName, setFileName] = useState(item.name);
+  const [file, setFile] = useState(item);
+  const isRenaming = fileName !== file.name;
 
   const getFileCategoryFromMime = (mimeType?: string): FileCategory => {
     if (!mimeType) return 'other';
@@ -50,6 +56,30 @@ export const FilePropertyMenu = ({
   const handleFileNameChange = (newName: string): void => {
     setFileName(newName);
   };
+
+  const handleRenameFile = async (): Promise<void> => {
+    showAlert({
+      title: 'Renombrar archivo',
+      message: `¿Estás seguro de que quieres renombrar el archivo a "${fileName}"?`,
+      buttons: [
+        { text: 'Cancelar', style: 'cancel' },
+        { text: 'Renombrar', onPress: async () => {
+          if(!fileName.trim()){
+            showAlert({ title: 'Error', message: 'El nombre del archivo no puede estar vacío' });
+            return;
+          }
+          const fileService = services.fileService;
+          
+          if (!fileService) return;
+
+          const result = await fileService.renameFile(file.id, fileName);
+          setFile(result);
+
+          updateItem(result);
+        },
+      }] 
+    });
+  }
 
   const getFileIcon = (type: FileModel['category']): keyof typeof Ionicons.glyphMap => {
     switch (type) {
@@ -88,22 +118,34 @@ export const FilePropertyMenu = ({
         <View style={styles.section}>
           <View style={styles.nameRow}>
               <Ionicons
-                name={getFileIcon(getFileCategoryFromMime(item.metadata.mimeType))}
+                name={getFileIcon(getFileCategoryFromMime(file.metadata.mimeType))}
                 size={44}
               />
-              <View style={styles.fileInfo}>
-                    <TextInput
-                        style={styles.fileNameInput} 
-                        value={fileName}
-                        onChangeText={handleFileNameChange}
-                        placeholder="Nombre del archivo"
-                        placeholderTextColor={theme.colors.textMuted}     
-                        selectTextOnFocus 
-                        numberOfLines={1}
-                        scrollEnabled
-                        textAlignVertical="center"             
-                    />         
+              
+              <View style={{flex: 1}}>
+                  <TextInput
+                      style={styles.fileNameInput} 
+                      value={fileName}
+                      onChangeText={handleFileNameChange}
+                      placeholder="Nombre del archivo"
+                      placeholderTextColor={theme.colors.textMuted}     
+                      selectTextOnFocus 
+                      numberOfLines={1}
+                      scrollEnabled
+                      textAlignVertical="center"             
+                  />                              
               </View>
+              
+              {isRenaming && (
+                  <TouchableOpacity
+                    onPress={() => {handleRenameFile()}}
+                    activeOpacity={0.7} 
+                  >
+                    <Ionicons
+                      name="create-outline"
+                      size={28}
+                    />
+                  </TouchableOpacity> )}  
           </View>
 
           <View style={styles.column}>
@@ -129,26 +171,26 @@ export const FilePropertyMenu = ({
                   <Text style={styles.label}>Ubicación:</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <Text style={styles.value} numberOfLines={1}>
-                      {item.path ? item.path : '-'}
+                      {file.path ? file.path : '-'}
                     </Text>
                   </ScrollView>
                 </View>
                 <View style={styles.row}>
                   <Text style={styles.label}>Tamaño:</Text>
                   <Text style={styles.value} numberOfLines={1}>
-                    {item.size ? formatFileSize(item.size) : '-'}
+                    {file.size ? formatFileSize(file.size) : '-'}
                   </Text>
                 </View>
                 <View style={styles.row}>
                   <Text style={styles.label}>Visibilidad:</Text>
                   <Text style={styles.value} numberOfLines={1}>
-                    {item.visibility ? formatVisibility(item.visibility) : '-'}
+                    {file.visibility ? formatVisibility(file.visibility) : '-'}
                   </Text>
                 </View>
                 <View style={styles.row}>
                   <Text style={styles.label}>Estado:</Text>
                   <Text style={styles.value} numberOfLines={1}>
-                    {item.status ? formatStatus(item.status) : '-'}
+                    {file.status ? formatStatus(file.status) : '-'}
                   </Text>
                 </View>
               </View>
@@ -170,7 +212,7 @@ export const FilePropertyMenu = ({
               <Text style={styles.label}>Creación:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Text style={styles.value} numberOfLines={1}>
-                  {item.createdAt ? formatFullDateTime(item.createdAt) : '-'}
+                  {file.createdAt ? formatFullDateTime(file.createdAt) : '-'}
                 </Text>
               </ScrollView>
             </View>
@@ -178,7 +220,7 @@ export const FilePropertyMenu = ({
               <Text style={styles.label}>Último acceso:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Text style={styles.value} numberOfLines={1}>
-                  {item.accessedAt ? formatFullDateTime(item.accessedAt) : '-'}
+                  {file.accessedAt ? formatFullDateTime(file.accessedAt) : '-'}
                 </Text>
               </ScrollView>
             </View>
@@ -186,7 +228,7 @@ export const FilePropertyMenu = ({
               <Text style={styles.label}>Modificación:</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <Text style={styles.value} numberOfLines={1}>
-                  {item.updatedAt ? formatFullDateTime(item.updatedAt) : '-'}
+                  {file.updatedAt ? formatFullDateTime(file.updatedAt) : '-'}
                 </Text>
               </ScrollView>
             </View>

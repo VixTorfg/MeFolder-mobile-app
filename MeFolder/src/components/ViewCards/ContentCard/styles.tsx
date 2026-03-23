@@ -64,5 +64,19 @@ export const useContentCardStyles = () => {
         iconColor: {
             color: theme.colors.textSecondary,
         },
+        fileNameInput: {
+            fontSize: theme.typography.fontSize.md,
+            fontFamily: theme.typography.fontFamily.title.semiBold,
+            color: theme.colors.textPrimary,
+            paddingVertical: theme.spacing.xs,
+            paddingHorizontal: theme.spacing.sm,
+            borderRadius: theme.effects.radius.xxs,
+            borderWidth: theme.effects.borderWidth.md,
+            borderColor: theme.colors.primary,
+            backgroundColor: theme.colors.surface,
+        },
+        colors: {
+            color: theme.colors.textMuted,
+        }
     }));
 };

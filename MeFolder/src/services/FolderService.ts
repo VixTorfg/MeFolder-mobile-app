@@ -352,7 +352,6 @@ export class FolderService extends BaseService {
           metadata: file.metadata,
           ...(file.visibility && { visibility: file.visibility }),
           ...(file.color && { color: file.color }),
-          ...(file.description && { description: file.description }),
           ...(file.tagIds && { tagIds: file.tagIds }),
           ...(file.storageUrl && { storageUrl: file.storageUrl }),
           ...(file.thumbnailUrl && { thumbnailUrl: file.thumbnailUrl }),

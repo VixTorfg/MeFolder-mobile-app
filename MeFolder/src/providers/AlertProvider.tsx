@@ -4,7 +4,7 @@ import { CustomAlertOptions, CustomAlertButton, AlertContextType } from '@/types
 
 const AlertContext = createContext<AlertContextType | null>(null);
 
-const DEFAULT_BUTTON: CustomAlertButton = { text: 'Ok' };
+const DEFAULT_BUTTON: CustomAlertButton = { text: 'Vale' };
 
 export const AlertProvider = ({ children }: { children: ReactNode }) => {
   const [visible, setVisible] = useState(false);

@@ -104,6 +104,9 @@ export interface CommunCardProps {
   onPress: () => Promise<void> | void;
   onDoublePress?: () => Promise<void> | void;
   onLongPress?: () => Promise<void> | void;
+  onRename?: (newName: string) => void;
+  onRenameCancel?: () => void;
+  isRenaming?: boolean;
   disabled?: boolean;
   data: FileModel | FolderModel;
   showCard?: boolean;

@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { useStyles } from '@/hooks';
 import { basicCard } from '@/constants/styles/cards';
+import { rename } from 'node:fs';
 
 export const usePropertyMenuStyles = () => {
   return useStyles(theme => ({
@@ -111,6 +112,8 @@ export const useFilePropertyMenuStyles = () => {
     },
     fileInfo: {
       flex: 1,
+      flexDirection: 'row',
+      gap: theme.spacing.sm,
     },
     fileNameInput: {
       fontSize: theme.typography.fontSize.md,
@@ -119,8 +122,8 @@ export const useFilePropertyMenuStyles = () => {
       paddingVertical: theme.spacing.xs,
       paddingHorizontal: theme.spacing.sm,
       borderRadius: theme.effects.radius.xxs,
-      borderWidth: theme.effects.borderWidth.xs,
-      borderColor: theme.colors.borderSoft,
+      borderWidth: theme.effects.borderWidth.md,
+      borderColor: theme.colors.primary,
       backgroundColor: theme.colors.surface,
     },
     row: {
@@ -201,6 +204,11 @@ export const useFilePropertyMenuStyles = () => {
     },
     tagsButtonText: {
       fontSize: theme.typography.fontSize.md,
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      color: theme.colors.textSecondary,
+    },
+    renameButtonText: {
+      fontSize: theme.typography.fontSize.xs,
       fontFamily: theme.typography.fontFamily.primary.medium,
       color: theme.colors.textSecondary,
     },

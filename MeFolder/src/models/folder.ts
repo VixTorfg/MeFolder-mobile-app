@@ -9,7 +9,7 @@ import {
 import { UUID } from '../types/common/base';
 import { ColorInfo } from '../types/common/colors';
 import { BaseModel, ValidationResult, ValidationUtils } from './base';
-import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
+import { ROOT_FOLDER_ID, ROOT_FOLDER_PATH } from '../database/seeds/systemFolders';
 
 export class FolderModel extends BaseModel<Folder> {
   constructor(data: Folder) {
@@ -327,7 +327,7 @@ export class FolderFactory {
     const folder: Folder = {
       id: ROOT_FOLDER_ID,
       name: 'Inicio',
-      path: ROOT_FOLDER_ID,
+      path: ROOT_FOLDER_PATH,
       level: 0,
       status: 'active',
       type: 'system',

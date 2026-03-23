@@ -17,6 +17,7 @@ export interface FileRepository extends BaseRepository<File, CreateFileInput, Up
   update(id: UUID, input: UpdateFileInput): Promise<File>;
   updateTags(fileId: UUID, tagIds: UUID[]): Promise<void>;
   updateStatus(fileId: UUID, status: string): Promise<void>;
+  renameFile(id: UUID, newName: string, newPath: string): Promise<void>;
   delete(id: UUID): Promise<boolean>;
   permanentDelete(id: UUID): Promise<boolean>;
   count(filters?: any): Promise<number>;

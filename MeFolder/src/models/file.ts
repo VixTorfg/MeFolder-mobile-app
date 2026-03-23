@@ -68,10 +68,6 @@ export class FileModel extends BaseModel<File> {
     return this.data.color;
   }
 
-  get description(): string | undefined {
-    return this.data.description;
-  }
-
   get createdAt(): Date {
     return this.data.createdAt;
   }
@@ -129,17 +125,6 @@ export class FileModel extends BaseModel<File> {
       this.data.color = color;
     } else {
       delete this.data.color;
-    }
-    this.data.updatedAt = new Date();
-  }
-
-  /** Establece descripción del archivo */
-  setDescription(description: string | undefined): void {
-    const trimmed = description?.trim();
-    if (trimmed) {
-      this.data.description = trimmed;
-    } else {
-      delete this.data.description;
     }
     this.data.updatedAt = new Date();
   }
@@ -276,7 +261,6 @@ export class FileFactory {
 
       ...(input.folderId && { folderId: input.folderId }),
       ...(input.color && { color: input.color }),
-      ...(input.description?.trim() && { description: input.description.trim() }),
       ...(input.storageUrl && { storageUrl: input.storageUrl }),
       ...(input.thumbnailUrl && { thumbnailUrl: input.thumbnailUrl }),
     };
