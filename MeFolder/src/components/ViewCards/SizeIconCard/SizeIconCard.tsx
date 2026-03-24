@@ -5,12 +5,14 @@ import { TouchableOpacity, View, Text, TextInput } from "react-native";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getIconByCategory } from '@/utils/ui/icons';
 import { useEffect, useRef, useState } from "react";
+import { removeExtension } from "@/utils/format/name";
 
 interface SizeIconCardProps extends CommunCardProps {
     size: number; 
 }
 
 export const SizeIconCard = ({
+    viewOptions,
     onPress,
     onDoublePress,
     onLongPress,
@@ -29,6 +31,9 @@ export const SizeIconCard = ({
     const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [renameValue, setRenameValue] = useState(data.name);
+
+  const showExtension = viewOptions?.showExtension;
+  const showHiddenFiles = true //viewOptions?.showHiddenFiles;
 
   useEffect(() => {
     if (isRenaming) {
@@ -64,6 +69,7 @@ export const SizeIconCard = ({
     };
     
     if (!showCard) return null;
+    if (!showHiddenFiles && data.visibility === 'private') return null;
 
     return (
         <TouchableOpacity 
@@ -110,7 +116,11 @@ export const SizeIconCard = ({
                 />
         ) : (
            <Text style={styles.fileNameText} numberOfLines={1} ellipsizeMode='tail'>
-            {data.name}
+                {isFile 
+                    ? (showExtension 
+                        ? data.name 
+                        : removeExtension(data.name, data.extension)) 
+                    : data.name}
           </Text>   
         )}
 

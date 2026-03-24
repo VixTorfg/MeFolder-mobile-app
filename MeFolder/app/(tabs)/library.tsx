@@ -1,11 +1,11 @@
 import { ViewDropDown, ViewCards, ItemCreator, SearchBox, MultiActionButton, ContextMenu, Breadcrumb, OptionDropDown, PropertyMenu } from '@/components';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, FlatList, TouchableOpacity, Alert,  Text, useWindowDimensions } from 'react-native';
 import { useNavigationStore, useClipboardStore } from '@/stores';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
-import type { CreateFileInput, FileCategory, FileMetadata, FSFileInfo, OptionsType } from '@/types';
-import { modeView, OptionsIds } from '@/types';
+import type { CreateFileInput, FileCategory, FileMetadata, FolderSortBy, FolderSortOrder, FSFileInfo, OptionsType } from '@/types';
+import { ModeView, OptionsIds } from '@/types';
 import { useAlert, useDatabase, useServices  } from '@/providers';
 import { useFileSystem, useMedia } from '@/hooks';
 import type { NewFile } from '@/components/ItemCreator/FileCreator';
@@ -17,17 +17,21 @@ import { getGridConfig, ViewMode } from '@/utils/ui/responsive';
 import { useFocusEffect } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useLibraryStore } from '@/stores/useLibraryStore';
+import { SortDropDown } from '@/components/SortDropDown';
+import { sortItems } from '@/utils';
 
 export default function LibraryScreen() {
   const { isReady } = useDatabase();
   const { services } = useServices();
-  const [selectedView, setSelectedView] = useState<modeView>('list');
+  const [selectedView, setSelectedView] = useState<ModeView>('list');
   const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
   const [creatorVisible, setCreatorVisible] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
   const [clickedItem, setClickedItem] = useState<FileModel | FolderModel | null>(null);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0, width: 0, height: 0 });
-  const [showPropertyMenu, setShowPropertyMenu] = useState(false);
+  const [showPropertyMenu, setShowPropertyMenu] = useState(false)
+  const [orderBy, setOrderBy] = useState<FolderSortBy>('name');
+  const [sortValue, setSortValue] = useState<FolderSortOrder>('asc');
   const [isRenaming, setIsRenaming] = useState(false);
   const buttonRef = useRef<View>(null);
 
@@ -36,7 +40,10 @@ export default function LibraryScreen() {
     { hierarchy: '2', label: 'Abrir con', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="folder" size={20} color="black" /> },
     { hierarchy: '3', label: 'Compartir con', onPress: () => {clickedItem && handleShare(clickedItem)}, disabled: false, icon: <MaterialCommunityIcons name="share" size={20} color="black" /> },
     { hierarchy: '4', label: 'Agregar a favoritos', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="star" size={20} color="black" /> },
-    { hierarchy: '5', label: 'Renombrar', onPress: () => {setIsRenaming(true)}, disabled: false, icon: <MaterialCommunityIcons name="pencil" size={20} color="black" /> },
+    { hierarchy: '5', label: 'Renombrar', onPress: () => {
+      setShowMenu(false);
+      setIsRenaming(true)  
+    }, disabled: false, icon: <MaterialCommunityIcons name="pencil" size={20} color="black" /> },
     { hierarchy: '6', label: 'Copiar', onPress: () => {clickedItem && handleCopy([clickedItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-copy" size={20} color="black" /> },
     { hierarchy: '7', label: 'Cortar', onPress: () => {clickedItem && handleCut([clickedItem])}, disabled: false, icon: <MaterialCommunityIcons name="content-cut" size={20} color="black" /> },
     { hierarchy: '8', label: 'Pegar', onPress: () => {clickedItem && handlePaste()}, disabled: false, icon: <MaterialCommunityIcons name="content-paste" size={20} color="black" /> },
@@ -82,7 +89,7 @@ export default function LibraryScreen() {
             folders = await folderService.getSubfolders();
             files = await fileService.getFilesInFolder();
           }
-
+        
           setItems([...folders, ...files]);
           setItemsSelected([]);
         };
@@ -90,6 +97,16 @@ export default function LibraryScreen() {
         loadContent();
   }, [isReady, currentFolderId])
   );
+
+    const sortedItems = useMemo(
+    () => sortItems(items, orderBy, sortValue),
+    [items, sortValue, orderBy]
+  );
+
+    const handleSortItems = (order: FolderSortOrder, by: FolderSortBy) => {
+    setSortValue(order);
+    setOrderBy(by);
+  };
 
   const handleOnPress = (selectedMode: any) => {
     setSelectedView(selectedMode.id);
@@ -142,7 +159,7 @@ export default function LibraryScreen() {
   const handleOnSelectOption = (option: OptionsType) => {
     switch (option.id) {
       case OptionsIds.SELECT_ALL:
-        setItemsSelected([...items]);
+        setItemsSelected(items.filter(i => i.visibility === 'public'));
         break;
       case OptionsIds.NO_SELECT:
         setItemsSelected([]);
@@ -150,7 +167,7 @@ export default function LibraryScreen() {
       case OptionsIds.INVERT_SELECT:
         setItemsSelected(prev => {
           const selectedIds = new Set(prev.map(item => item.id));
-          return items.filter(item => !selectedIds.has(item.id));
+          return items.filter(item => !selectedIds.has(item.id) && item.visibility === 'public'); //fix: ahora solo alterna entre la visibilidad, no tiene en cuenta si estan ocultos por la configuracion de vista
         });
         break;
       case OptionsIds.PROPERTIES:
@@ -191,39 +208,6 @@ export default function LibraryScreen() {
       ]
     });
   };
-
-  const handleRenameElement = async (newName: string): Promise<void> => {
-    showAlert({
-      title: 'Renombrar elemento',
-      message: `¿Estás seguro de que quieres renombrar el elemento a "${newName}"?`,
-      buttons: [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Renombrar', onPress: async () => {
-          if(!newName.trim()){
-            showAlert({ title: 'Error', message: 'El nombre del elemento no puede estar vacío' });
-            return;
-          }
-      
-          if (!clickedItem) return;
-
-          if(clickedItem instanceof FolderModel){
-            const folderService = services?.folderService;
-            const result = await folderService.renameFolder(clickedItem.id, newName);
-            updateItem(result);
-            return;
-          } else {
-            const fileService = services?.fileService;
-            if (!fileService) return;
-
-            const result = await fileService.renameFile(clickedItem.id, newName);
-            updateItem(result);
-          }   
-          
-          setIsRenaming(false);
-        },
-      }] 
-    });
-  }
 
   const buildFileMetadata = async (category: FileCategory, uri: string, fsInfo: FSFileInfo | null, fileMimeType?: string): Promise<FileMetadata> => {
     const mimeType = fileMimeType || fsInfo?.mimeType || '';
@@ -306,7 +290,7 @@ export default function LibraryScreen() {
           originalName: file.originalName,
           extension: (resolvedExt || metadata.extension || '') as CreateFileInput['extension'],
           folderId: resolvedFolderId,
-          visibility: 'private',
+          visibility: 'public',
           metadata: fileMetadata,
           tagIds: tags,
           storageUrl: copiedUri,
@@ -347,6 +331,7 @@ export default function LibraryScreen() {
       ...(description && { description }),
       ...(color && { color }),
       ...(icon && { icon }),
+      visibility: 'public',
       tagIds: tags,
       ...(resolvedParentId && { parentId: resolvedParentId }),
     });
@@ -372,6 +357,7 @@ export default function LibraryScreen() {
       buttons: [
         { text: 'Cancelar', style: 'cancel' },
         { text: 'Renombrar', onPress: async () => {
+          
           if(!newName.trim()){
             showAlert({ title: 'Error', message: 'El nombre del archivo no puede estar vacío' });
             return;
@@ -391,7 +377,9 @@ export default function LibraryScreen() {
 
             const result = await fileService.renameFile(clickedItem?.id, newName);
             updateItem(result);
-          }       
+          }    
+          
+          setIsRenaming(false);
         },
       }] 
     });
@@ -460,6 +448,13 @@ export default function LibraryScreen() {
               size={42}
               onPress={() => setCreatorVisible(true)}
             />
+            <SortDropDown 
+                size={42} 
+                onChangeOrderBy={(orderBy) => handleSortItems(sortValue, orderBy)} 
+                onChangeSortValue={(sortValue) => handleSortItems(sortValue, orderBy)} 
+                defaultOrderByValue='name' 
+                defaultSortValue='asc'
+            />
             <ViewDropDown size={42} onChange={handleOnPress} defaultValue='list'/>
             <OptionDropDown size={42} onSelect={handleOnSelectOption}/>
         </>
@@ -514,7 +509,7 @@ export default function LibraryScreen() {
         </View>
       ) : (
         <FlatList
-          data={items}
+          data={sortedItems}
           keyExtractor={(item) => item.id}
           key={`${selectedView}-${gridConfig.columns}`}
           numColumns={gridConfig.columns}

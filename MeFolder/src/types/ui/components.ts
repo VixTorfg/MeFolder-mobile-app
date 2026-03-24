@@ -3,6 +3,7 @@ import { UUID } from '../common/base';
 import { ColorInfo } from '../common/colors';
 import { FileModel } from '@/models/file';
 import { FolderModel } from '@/models/folder';
+import { FolderSortBy, FolderSortOrder } from '../entities';
 
 export interface LoadingState {
   isLoading: boolean;
@@ -106,6 +107,7 @@ export interface CommunCardProps {
   onLongPress?: () => Promise<void> | void;
   onRename?: (newName: string) => void;
   onRenameCancel?: () => void;
+  viewOptions?: ViewOptions;
   isRenaming?: boolean;
   disabled?: boolean;
   data: FileModel | FolderModel;
@@ -113,14 +115,29 @@ export interface CommunCardProps {
   selected?: boolean;
 }
 
+export interface SortDropDownProps {
+  disabled?: boolean;
+  size?: number;
+  onChangeOrderBy: (orderBy: FolderSortBy) => void;
+  onChangeSortValue: (sortValue: FolderSortOrder) => void;
+  defaultSortValue?: FolderSortOrder;
+  defaultOrderByValue?: FolderSortBy;
+}
+
+
 export interface PropertyMenuProps {
   item: FileModel | FolderModel;
   visible: boolean;
   onClose: () => void;
 }
 
+export interface ViewOptions {
+  showExtension?: boolean;
+  showHiddenFiles?: boolean;
+}
+
 export interface ViewCardsProps extends CommunCardProps {
-  viewConfig?: modeView; //Futuro ViewConfig;
+  viewConfig?: ModeView; 
 }
 
 export interface ErrorState {
@@ -130,16 +147,7 @@ export interface ErrorState {
   details?: any;
 }
 
-export type modeView = 'list' | 'grid' | 'big_icon' | 'medium_icon' | 'small_icon' | 'content';
-
-export interface ViewConfig {
-  mode: modeView;
-  itemsPerRow?: number;    
-  showThumbnails: boolean;
-  showFileSize: boolean;
-  showLastModified: boolean;
-  showTags: boolean;
-}
+export type ModeView = 'list' | 'grid' | 'big_icon' | 'medium_icon' | 'small_icon' | 'content';
 
 export interface SelectionConfig {
   enabled: boolean;

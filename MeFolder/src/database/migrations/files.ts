@@ -24,7 +24,7 @@ export const createFilesTable = async (): Promise<void> => {
       
       status TEXT NOT NULL DEFAULT 'active' 
         CHECK (status IN ('active', 'archived', 'deleted')),
-      visibility TEXT NOT NULL DEFAULT 'private' 
+      visibility TEXT NOT NULL DEFAULT 'public' 
         CHECK (visibility IN ('private', 'shared', 'public')),
 
       metadata_size INTEGER NOT NULL,

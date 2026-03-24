@@ -3,14 +3,18 @@ import { ColorInfo } from '../common/colors';
 
 export type FolderStatus = 'active' | 'archived' | 'deleted';
 
-export type FolderType = 'regular' | 'system' | 'shared' | 'favorite';
+export type FolderType = 'regular' | 'system' | 'shared';
 
 export type FolderVisibility = 'private' | 'shared' | 'public';
 
+export type FolderSortBy = 'name' | 'date' | 'size' | 'type';
+export type FolderSortOrder = 'asc' | 'desc';
+export type FolderViewMode = 'list' | 'grid' | 'big_icon' | 'medium_icon' | 'small_icon' | 'content';
+
 export interface FolderViewSettings {
-  sortBy: 'name' | 'date' | 'size' | 'type';
-  sortOrder: 'asc' | 'desc';
-  viewMode: 'grid' | 'list' | 'details';
+  sortBy: FolderSortBy;
+  sortOrder: FolderSortOrder;
+  viewMode: FolderViewMode;
   showHiddenFiles: boolean;
 }
 

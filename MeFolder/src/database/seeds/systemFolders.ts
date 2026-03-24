@@ -59,7 +59,7 @@ export const seedSystemFolders = async (): Promise<void> => {
     params: [
       folder.id, now, now,
       folder.name, null, ROOT_FOLDER_ID, `${ROOT_FOLDER_PATH}/${folder.id}`, 1,
-      'active', 'system', 'private',
+      'active', 'system', 'public',
       color.hex, color.rgb.r, color.rgb.g, color.rgb.b,
       folder.icon, false, true, true,
       'name', 'asc', 'list', false,

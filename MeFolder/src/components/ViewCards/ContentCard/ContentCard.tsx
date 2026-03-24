@@ -3,11 +3,12 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useContentCardStyles } from './styles';
 import { CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
-import { formatDate, formatFileSize, getIconByCategory } from '@/utils';
+import { formatDate, formatFileSize, getIconByCategory, removeExtension } from '@/utils';
 import { useEffect, useRef, useState } from 'react';
 
 
 export default function ContentCard({
+  viewOptions,
   onPress,
   onDoublePress,
   onLongPress,
@@ -26,6 +27,9 @@ export default function ContentCard({
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [renameValue, setRenameValue] = useState(data.name);
+
+  const showExtension = viewOptions?.showExtension;
+  const showHiddenFiles = true //viewOptions?.showHiddenFiles;
 
   useEffect(() => {
     if (isRenaming) {
@@ -64,6 +68,7 @@ export default function ContentCard({
   };
   
   if (!showCard) return null;
+  if (!showHiddenFiles && data.visibility === 'private') return null;
 
   return (
     <TouchableOpacity 
@@ -114,7 +119,11 @@ export default function ContentCard({
                 />
         ) : (
            <Text style={styles.fileNameText} numberOfLines={2} ellipsizeMode='tail'>
-            {data.name}
+              {isFile 
+                ? (showExtension 
+                    ? data.name 
+                    : removeExtension(data.name, data.extension)) 
+                : data.name}
           </Text>   
         )}
       </View>

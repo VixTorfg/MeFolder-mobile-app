@@ -3,36 +3,44 @@ import { Ionicons } from '@expo/vector-icons';
 import { getResponsiveSize } from '@/utils/ui/responsive';
 import { MultiActionButton } from '../MultiActionButton';
 import { useRef, useState } from 'react';
-import { useViewDropDownStyles } from './styles';
-import { ModeView, ViewDropDownProps } from '@/types/ui/components';
+import { useSortDropDownStyles } from './styles';
+import { SortDropDownProps } from '@/types/ui/components';
 
 const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);
 
-export default function ViewDropDown({
+export default function SortDropDown({
   disabled = false,
   size = 38,
-  onChange,
-  defaultValue = 'list',
-}: ViewDropDownProps = {}) {
+  onChangeOrderBy,
+  onChangeSortValue,
+  defaultSortValue = 'asc',
+  defaultOrderByValue = 'name',
+}: SortDropDownProps) {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [selectedViewMode, setSelectedViewMode] = useState(defaultValue);
+  const [selectedSortValue, setSelectedSortValue] = useState(defaultSortValue);
+  const [selectedOrderOption, setSelectedOrderOption] = useState(defaultOrderByValue);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
-  const viewModes: {
-    id: ModeView;
+  const orderOptions: {
+    id: string;
     name: string;
-    icon: keyof typeof Ionicons.glyphMap;
   }[] = [
-    { id: 'list', name: 'Lista', icon: 'menu-outline' },
-    { id: 'big_icon', name: 'Iconos grandes', icon: 'square-outline'},
-    { id: 'medium_icon', name: 'Iconos medianos', icon: 'stop-outline' },
-    { id: 'small_icon', name: 'Iconos pequeños', icon: 'stop-outline'},
-    { id: 'content', name: 'Contenido', icon: 'list-outline' },
-    { id: 'grid', name: 'Mosaico', icon: 'grid-outline'},
+    { id: 'name', name: 'Nombre'},
+    { id: 'date', name: 'Fecha'},
+    { id: 'size', name: 'Tamaño'},
+    { id: 'type', name: 'Tipo'},
   ];
 
-  const styles = useViewDropDownStyles(responsive);
+  const sortOptions: {
+    id: string;
+    name: string;
+  }[] = [
+    { id: 'asc', name: 'Ascendente'},
+    { id: 'desc', name: 'Descendente'},
+  ];
+
+  const styles = useSortDropDownStyles(responsive);
  
   /**
    * Maneja el evento de presión del botón
@@ -56,16 +64,22 @@ export default function ViewDropDown({
       }
     };
  
-  const selectViewMode = (mode: any) => {
-    setSelectedViewMode(mode.id);
-    onChange?.(mode);
+  const handleSelectOrderOption = (option: any) => {
+    setSelectedOrderOption(option.id);
+    onChangeOrderBy?.(option.id);
     toggleDropdown();
   };
+
+  const handleSelectSortOption = (option: any) => {
+    setSelectedSortValue(option.id);
+    onChangeSortValue?.(option.id);
+    toggleDropdown();
+  }
 
   return (
     <>
     <MultiActionButton 
-        icon={'eye-outline'} 
+        icon={'swap-vertical'} 
         size={size} 
         backgroundColor='transparent'
         iconColor={styles.primary.color}
@@ -99,32 +113,45 @@ export default function ViewDropDown({
                   ]}
                 >
                   <View style={styles.dropdownHeader}>
-                    <Text style={styles.dropdownTitle}>Ver</Text>
+                    <Text style={styles.dropdownTitle}>Ordenar</Text>
                   </View>
-                  {viewModes.map((mode) => (
+                  {orderOptions.map((option) => (
                     <TouchableOpacity
-                      key={mode.id}
+                      key={option.id}
                       style={[
                         styles.dropdownItem,
-                        selectedViewMode === mode.id && styles.selectedItem
+                        selectedOrderOption === option.id && styles.selectedItem
                       ]}
-                      onPress={() => selectViewMode(mode)}
-                    >
-                      <Ionicons 
-                            name={mode.icon} 
-                            size={responsive.iconSize * 0.55} 
-                            style={[
-                                styles.IconColor,
-                                selectedViewMode === mode.id && styles.selectedIconColor
-                            ]} 
-                        />
+                      onPress={() => handleSelectOrderOption(option)}
+                    >                    
                       <Text style={[
                         styles.itemText,
-                        selectedViewMode === mode.id && styles.selectedItemText
+                        selectedOrderOption === option.id && styles.selectedItemText
                       ]}>
-                        {mode.name}
+                        {option.name}
                       </Text>
-                      {selectedViewMode === mode.id && (
+                      {selectedOrderOption === option.id && (
+                        <Ionicons name={"ellipse"} size={responsive.iconSize * 0.25} style={styles.checkmark} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                    <View style={styles.divider} />
+                  {sortOptions.map((option) => (
+                    <TouchableOpacity
+                      key={option.id}
+                      style={[
+                        styles.dropdownItem,
+                        selectedSortValue === option.id && styles.selectedItem
+                      ]}
+                      onPress={() => handleSelectSortOption(option)}
+                    >                    
+                      <Text style={[
+                        styles.itemText,
+                        selectedSortValue === option.id && styles.selectedItemText
+                      ]}>
+                        {option.name}
+                      </Text>
+                      {selectedSortValue === option.id && (
                         <Ionicons name={"ellipse"} size={responsive.iconSize * 0.25} style={styles.checkmark} />
                       )}
                     </TouchableOpacity>

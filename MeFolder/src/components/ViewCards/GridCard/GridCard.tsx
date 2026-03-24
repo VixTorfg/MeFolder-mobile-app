@@ -3,13 +3,14 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useGridCardStyles } from './styles';
 import { EXTENSION_LABELS, CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
-import { formatFileSize, formatVideoDuration, getIconByCategory } from '@/utils';
+import { formatFileSize, formatVideoDuration, getIconByCategory, removeExtension } from '@/utils';
 import type { FileExtensionWithoutVideo } from '@/types/common/file-extensions';
 import { useEffect, useRef, useState } from 'react';
 
 
 
 export default function GridCard({
+  viewOptions,
   onPress,
   onDoublePress,
   onLongPress,
@@ -28,6 +29,9 @@ export default function GridCard({
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [renameValue, setRenameValue] = useState(data.name);
+
+  const showExtension = viewOptions?.showExtension;
+  const showHiddenFiles = true //viewOptions?.showHiddenFiles;
   
   useEffect(() => {
       if (isRenaming) {
@@ -66,7 +70,8 @@ export default function GridCard({
   };
   
   if (!showCard) return null;
-
+  if (!showHiddenFiles && data.visibility === 'private') return null;
+  
   const renderExtensionLabel = (extension: FileExtensionWithoutVideo): string => {
     return EXTENSION_LABELS[extension] ?? 'Archivo';
   };
@@ -119,7 +124,11 @@ export default function GridCard({
                 returnKeyType="done"
           />) : (
         <Text style={styles.fileNameText} numberOfLines={isFile ? 2 : 1} ellipsizeMode='tail'>
-          {data.name}
+          {isFile 
+            ? (showExtension 
+                ? data.name 
+                : removeExtension(data.name, data.extension)) 
+            : data.name}
         </Text>
       )}
 

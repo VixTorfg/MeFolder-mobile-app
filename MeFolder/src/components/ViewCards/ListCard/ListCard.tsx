@@ -3,12 +3,13 @@ import { Ionicons, MaterialCommunityIcons  } from '@expo/vector-icons';
 import { useListCardStyles } from './styles';
 import { CommunCardProps } from '@/types';
 import { FileModel } from '@/models/file';
-import { getIconByCategory } from '@/utils';
+import { getIconByCategory, removeExtension } from '@/utils';
 import { useRef, useState, useEffect } from 'react';
 
 
 
 export default function ListCard({
+  viewOptions,
   onPress,
   onDoublePress,
   onLongPress,
@@ -25,6 +26,10 @@ export default function ListCard({
   const lastTap = useRef(0);    
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [renameValue, setRenameValue] = useState(data.name);
+
+  const showExtension = viewOptions?.showExtension;
+  const showHiddenFiles = true //viewOptions?.showHiddenFiles;
+
 
   useEffect(() => {
     if (isRenaming) {
@@ -63,6 +68,7 @@ export default function ListCard({
   };
 
   if (!showCard) return null;
+  if (!showHiddenFiles && data.visibility === 'private') return null;
 
   return (
     <TouchableOpacity 
@@ -113,7 +119,11 @@ export default function ListCard({
                 />
         ) : (
            <Text style={styles.fileNameText} numberOfLines={1} ellipsizeMode='tail'>
-            {data.name}
+            {isFile 
+              ? (showExtension 
+                  ? data.name 
+                  : removeExtension(data.name, data.extension)) 
+              : data.name}
           </Text>   
         )}
       </View>

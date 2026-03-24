@@ -23,8 +23,8 @@ export const createFoldersTable = async (): Promise<void> => {
       status TEXT NOT NULL DEFAULT 'active' 
         CHECK (status IN ('active', 'archived', 'deleted')),
       type TEXT NOT NULL DEFAULT 'regular' 
-        CHECK (type IN ('regular', 'system', 'shared', 'favorite')),
-      visibility TEXT NOT NULL DEFAULT 'private' 
+        CHECK (type IN ('regular', 'system', 'shared')),
+      visibility TEXT NOT NULL DEFAULT 'public' 
         CHECK (visibility IN ('private', 'shared', 'public')),
       
       color_hex TEXT,
@@ -38,7 +38,7 @@ export const createFoldersTable = async (): Promise<void> => {
       view_settings_sort_order TEXT NOT NULL DEFAULT 'asc'
         CHECK (view_settings_sort_order IN ('asc', 'desc')),
       view_settings_view_mode TEXT NOT NULL DEFAULT 'list'
-        CHECK (view_settings_view_mode IN ('grid', 'list', 'details')),
+        CHECK (view_settings_view_mode IN ('grid', 'list', 'details', 'big_icon', 'medium_icon', 'small_icon', 'content')),
       view_settings_show_hidden_files BOOLEAN NOT NULL DEFAULT FALSE,
       
       last_accessed_at DATETIME,
