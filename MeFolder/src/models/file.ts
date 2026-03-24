@@ -9,7 +9,7 @@ import { FileExtension, FileCategory, FILE_CATEGORY_MAP } from '../types/common/
 import { UUID } from '../types/common/base';
 import { ColorInfo } from '../types/common/colors';
 import { BaseModel, ValidationResult, ValidationUtils } from './base';
-import { formatFileSize } from '../utils';
+import { formatFileSize } from '../utils/format/bytes';
 
 export class FileModel extends BaseModel<File> {
   constructor(data: File) {

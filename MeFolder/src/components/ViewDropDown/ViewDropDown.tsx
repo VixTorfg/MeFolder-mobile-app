@@ -2,9 +2,16 @@ import { View, TouchableOpacity, Dimensions, Text, Modal, Animated } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { getResponsiveSize } from '@/utils/ui/responsive';
 import { MultiActionButton } from '../MultiActionButton';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useViewDropDownStyles } from './styles';
-import { ModeView, ViewDropDownProps } from '@/types/ui/components';
+import { FolderViewMode } from '@/types/entities/folder';
+
+interface ViewDropDownProps {
+  disabled?: boolean;
+  size?: number;
+  onChange?: (selectedMode: { id: FolderViewMode; name: string; icon: keyof typeof Ionicons.glyphMap }) => void;
+  defaultValue?: FolderViewMode;
+}
 
 const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);
@@ -19,8 +26,12 @@ export default function ViewDropDown({
   const [selectedViewMode, setSelectedViewMode] = useState(defaultValue);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
+  useEffect(() => {
+    setSelectedViewMode(defaultValue);
+  }, [defaultValue]);
+
   const viewModes: {
-    id: ModeView;
+    id: FolderViewMode;
     name: string;
     icon: keyof typeof Ionicons.glyphMap;
   }[] = [

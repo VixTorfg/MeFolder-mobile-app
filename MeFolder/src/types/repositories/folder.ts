@@ -11,10 +11,12 @@ export interface FolderRepository extends BaseRepository<Folder, CreateFolderInp
   findByLevel(level: number): Promise<Folder[]>;
   findDeletedFolders(): Promise<Folder[]>;
   findAll(filters?: any, includeDeleted?: boolean): Promise<Folder[]>;
+  getFolderViewConfig(folderId: UUID): Promise<Folder['viewSettings'] | null>;
   search(query: string, filters?: any): Promise<Folder[]>;  
   
   updateTags(folderId: UUID, tagIds: UUID[]): Promise<void>;
   updateStatus(folderId: UUID, status: string): Promise<void>;
+  updateViewConfig(folderId: UUID, viewSettings: Partial<Folder['viewSettings']>): Promise<void>;
   delete(id: UUID): Promise<boolean>;
   permanentDelete(id: UUID): Promise<boolean>;
   count(filters?: any): Promise<number>;

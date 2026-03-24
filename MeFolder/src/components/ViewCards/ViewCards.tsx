@@ -1,15 +1,19 @@
 import React from 'react';
-import { ViewCardsProps } from '@/types';
+import { CommunCardProps, FolderViewMode } from '@/types';
 import { View } from 'react-native';
 import { ContentCard } from './ContentCard';
 import { GridCard } from './GridCard';
 import { ListCard } from './ListCard';
 import { SizeIconCard } from './SizeIconCard';
 
+export interface ViewCardsProps extends CommunCardProps {
+  viewConfig?: FolderViewMode; 
+}
+
 export default function ViewCards({ viewConfig, ...cardProps }: ViewCardsProps) {
 
     const renderCard = () => {
-        switch (viewConfig) { //futuro viewConfig?.mode
+        switch (viewConfig) { 
             case 'list':
                 return <ListCard {...cardProps} />;
             case 'grid':

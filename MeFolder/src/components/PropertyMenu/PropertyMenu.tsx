@@ -13,11 +13,17 @@ import { Gesture, GestureDetector, GestureHandlerRootView } from 'react-native-g
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/providers';
 import { usePropertyMenuStyles } from './styles';
-import { PropertyMenuProps } from '@/types/ui/components';
 import { FileModel, FolderModel } from '@/models';
 import { FilePropertyMenu } from './FilePropertyMenu';
 
 type SectionType = 'details' | 'customize';
+
+interface PropertyMenuProps {
+  item: FileModel | FolderModel;
+  visible: boolean;
+  onClose: () => void;
+}
+
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const CLOSE_THRESHOLD = 120;

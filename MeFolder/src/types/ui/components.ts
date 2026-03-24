@@ -3,7 +3,7 @@ import { UUID } from '../common/base';
 import { ColorInfo } from '../common/colors';
 import { FileModel } from '@/models/file';
 import { FolderModel } from '@/models/folder';
-import { FolderSortBy, FolderSortOrder } from '../entities';
+import { ViewOptions } from '../entities/folder';
 
 export interface LoadingState {
   isLoading: boolean;
@@ -11,54 +11,10 @@ export interface LoadingState {
   progress?: number;      
 }
 
-export interface FloatingTabBarProps {
-  backgroundColor?: string;
-  activeColor?: string;
-  inactiveColor?: string;
-  borderRadius?: number;
-  borderColor?: string;
-}
-
-export interface MultiActionButtonProps {
-  onPress: () => Promise<void> | void;
-  icon?: keyof typeof Ionicons.glyphMap; 
-  backgroundColor?: ColorInfo | string;            
-  label?: string;          
-  disabled?: boolean;  
-  borderRadius?: number;
-  size?: number;
-  iconColor?: string;       
-}
-
-export interface ViewDropDownProps {
-  disabled?: boolean;
-  size?: number;
-  onChange?: (selectedMode: { id: string; name: string; icon: keyof typeof Ionicons.glyphMap }) => void;
-  defaultValue?: string;
-}
-
 export interface CustomAlertButton {
   text: string;
   onPress?: () => void;
   style?: 'default' | 'cancel' | 'destructive';
-}
-
-export interface CustomAlertOptions {
-  title: string;
-  message?: string;
-  buttons?: CustomAlertButton[];
-}
-
-export interface CustomAlertProps {
-  title: string;
-  message?: string;
-  buttons: CustomAlertButton[];
-  isVisible: boolean;
-  onDismiss: () => void;
-}
-
-export interface AlertContextType {
-  showAlert: (options: CustomAlertOptions) => void;
 }
 
 export const OptionsIds = {
@@ -77,30 +33,6 @@ export interface OptionsType {
   icon: keyof typeof Ionicons.glyphMap;
 }
 
-export interface OptionDropDownProps {
-  disabled?: boolean;
-  size?: number;
-  onSelect?: (options: OptionsType) => void;
-}
-
-export interface SearchResultItem {
-  id: string;
-  name: string;
-  type: 'file' | 'folder';
-}
-
-export type SearchHandler = (query: string) => Promise<SearchResultItem[]>;
-
-export interface SearchBoxProps {
-  placeholder?: string;
-  onSearch?: SearchHandler;
-  onClear?: () => void;
-  onChangeText?: (text: string) => void;
-  disabled?: boolean;
-  iconSize?: number;
-}
-
-
 export interface CommunCardProps {
   onPress: () => Promise<void> | void;
   onDoublePress?: () => Promise<void> | void;
@@ -115,30 +47,7 @@ export interface CommunCardProps {
   selected?: boolean;
 }
 
-export interface SortDropDownProps {
-  disabled?: boolean;
-  size?: number;
-  onChangeOrderBy: (orderBy: FolderSortBy) => void;
-  onChangeSortValue: (sortValue: FolderSortOrder) => void;
-  defaultSortValue?: FolderSortOrder;
-  defaultOrderByValue?: FolderSortBy;
-}
 
-
-export interface PropertyMenuProps {
-  item: FileModel | FolderModel;
-  visible: boolean;
-  onClose: () => void;
-}
-
-export interface ViewOptions {
-  showExtension?: boolean;
-  showHiddenFiles?: boolean;
-}
-
-export interface ViewCardsProps extends CommunCardProps {
-  viewConfig?: ModeView; 
-}
 
 export interface ErrorState {
   hasError: boolean;
@@ -146,8 +55,6 @@ export interface ErrorState {
   code?: string;
   details?: any;
 }
-
-export type ModeView = 'list' | 'grid' | 'big_icon' | 'medium_icon' | 'small_icon' | 'content';
 
 export interface SelectionConfig {
   enabled: boolean;

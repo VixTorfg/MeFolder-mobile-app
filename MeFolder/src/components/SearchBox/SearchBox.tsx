@@ -2,7 +2,25 @@ import React, { useState, useCallback, useRef } from 'react';
 import { View, TextInput, TouchableOpacity, NativeSyntheticEvent, TextInputSubmitEditingEventData } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSearchBoxStyles } from './styles';
-import { SearchBoxProps } from '@/types/ui/components';
+
+export interface SearchResultItem {
+  id: string;
+  name: string;
+  type: 'file' | 'folder';
+}
+
+export type SearchHandler = (query: string) => Promise<SearchResultItem[]>;
+
+
+interface SearchBoxProps {
+  placeholder?: string;
+  onSearch?: SearchHandler;
+  onClear?: () => void;
+  onChangeText?: (text: string) => void;
+  disabled?: boolean;
+  iconSize?: number;
+}
+
 
 export default function SearchBox({
   placeholder = 'Buscar archivos y carpetas...',

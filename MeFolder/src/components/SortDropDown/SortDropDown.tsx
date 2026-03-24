@@ -2,9 +2,19 @@ import { View, TouchableOpacity, Dimensions, Text, Modal, Animated } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { getResponsiveSize } from '@/utils/ui/responsive';
 import { MultiActionButton } from '../MultiActionButton';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSortDropDownStyles } from './styles';
-import { SortDropDownProps } from '@/types/ui/components';
+import { FolderSortBy, FolderSortOrder } from '@/types/entities/folder';
+
+export interface SortDropDownProps {
+  disabled?: boolean;
+  size?: number;
+  onChangeOrderBy: (orderBy: FolderSortBy) => void;
+  onChangeSortValue: (sortValue: FolderSortOrder) => void;
+  defaultSortValue?: FolderSortOrder;
+  defaultOrderByValue?: FolderSortBy;
+}
+
 
 const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);
@@ -22,6 +32,14 @@ export default function SortDropDown({
   const [selectedOrderOption, setSelectedOrderOption] = useState(defaultOrderByValue);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   
+  useEffect(() => {
+    setSelectedSortValue(defaultSortValue);
+  }, [defaultSortValue]);
+
+  useEffect(() => {
+    setSelectedOrderOption(defaultOrderByValue);
+  }, [defaultOrderByValue]);
+
   const orderOptions: {
     id: string;
     name: string;

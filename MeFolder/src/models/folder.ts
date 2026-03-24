@@ -303,7 +303,10 @@ export class FolderFactory {
         sortBy: 'name',
         sortOrder: 'asc',
         viewMode: 'list',
-        showHiddenFiles: false,
+        options: {
+          showHiddenFiles: false,
+          showExtension: true
+        },
         ...input.viewSettings
       },
       isFavorite: false,
@@ -333,7 +336,15 @@ export class FolderFactory {
       type: 'system',
       visibility: 'private',
       tagIds: [],
-      viewSettings: { sortBy: 'name', sortOrder: 'asc', viewMode: 'list', showHiddenFiles: false },
+      viewSettings: { 
+        sortBy: 'name', 
+        sortOrder: 'asc', 
+        viewMode: 'list', 
+        options: {
+          showHiddenFiles: false,
+          showExtension: true
+        }
+      },
       isFavorite: false,
       isProtected: true,
       isSystemFolder: true,

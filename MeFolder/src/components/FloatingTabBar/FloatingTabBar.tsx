@@ -3,12 +3,20 @@ import { View, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { lightTheme } from '@/themes/themes';
-import type { RouteName, FloatingTabBarProps } from '@/types';
+import type { RouteName} from '@/types';
 import { getResponsiveSize } from '@/utils/ui/responsive';
 import { useFloatingTabBarStyles } from './styles';
 
 const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);
+
+interface FloatingTabBarProps {
+  backgroundColor?: string;
+  activeColor?: string;
+  inactiveColor?: string;
+  borderRadius?: number;
+  borderColor?: string;
+}
 
 const ICONS = {
   home: 'home-outline' as keyof typeof Ionicons.glyphMap,

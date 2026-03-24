@@ -1,12 +1,24 @@
 import { View, TouchableOpacity, Dimensions, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import type { MultiActionButtonProps } from '@/types';
 import { getResponsiveSize, getMultiActionButtonDimensions } from '@/utils/ui/responsive';
 import { useMultiActionButtonStyles } from '../MultiActionButton/styles';
 import { defaultColor } from '@/themes/colors';
+import { ColorInfo } from '@/types/common/colors';
 
 const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);
+
+interface MultiActionButtonProps {
+  onPress: () => Promise<void> | void;
+  icon?: keyof typeof Ionicons.glyphMap; 
+  backgroundColor?: ColorInfo | string;            
+  label?: string;          
+  disabled?: boolean;  
+  borderRadius?: number;
+  size?: number;
+  iconColor?: string;       
+}
+
 
 export default function MultiActionButton({
   backgroundColor = defaultColor,

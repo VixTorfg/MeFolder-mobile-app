@@ -51,6 +51,31 @@ export class FolderService extends BaseService {
   }
 
   /**
+   *  Actualizar configuración de vista de carpeta
+   */
+  async updateFolderViewConfig(folderId: UUID, viewSettings: Partial<Folder['viewSettings']>): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+
+      await this.folderRepo.updateViewConfig(folderId, viewSettings);
+
+    }catch (error) {
+      return this.handleError(error, 'actualizar configuración de vista de carpeta');
+    }
+  }
+
+  /** Obtiene la configuración de vista de una carpeta específica */
+  async getFolderViewConfig(folderId: UUID): Promise<Folder['viewSettings'] | null> {
+    try {
+      this.ensureDbInitialized();
+
+      return await this.folderRepo.getFolderViewConfig(folderId);
+    } catch (error) {
+      return this.handleError(error, 'obtener configuración de vista de carpeta');
+    }
+  }
+
+  /**
    * Obtener carpeta por ID
    */
   async getFolder(folderId: UUID): Promise<FolderModel> {

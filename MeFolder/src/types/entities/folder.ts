@@ -11,11 +11,16 @@ export type FolderSortBy = 'name' | 'date' | 'size' | 'type';
 export type FolderSortOrder = 'asc' | 'desc';
 export type FolderViewMode = 'list' | 'grid' | 'big_icon' | 'medium_icon' | 'small_icon' | 'content';
 
+export interface ViewOptions {
+  showExtension: boolean;
+  showHiddenFiles: boolean;
+}
+
 export interface FolderViewSettings {
   sortBy: FolderSortBy;
   sortOrder: FolderSortOrder;
   viewMode: FolderViewMode;
-  showHiddenFiles: boolean;
+  options: ViewOptions;
 }
 
 export interface FolderStats {

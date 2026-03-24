@@ -40,6 +40,7 @@ export const createFoldersTable = async (): Promise<void> => {
       view_settings_view_mode TEXT NOT NULL DEFAULT 'list'
         CHECK (view_settings_view_mode IN ('grid', 'list', 'details', 'big_icon', 'medium_icon', 'small_icon', 'content')),
       view_settings_show_hidden_files BOOLEAN NOT NULL DEFAULT FALSE,
+      view_settings_show_extension BOOLEAN NOT NULL DEFAULT TRUE,
       
       last_accessed_at DATETIME,
       archived_at DATETIME,

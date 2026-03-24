@@ -1,7 +1,17 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Modal, Pressable } from 'react-native';
 import { useCustomAlertStyles } from './styles';
-import { CustomAlertProps } from '@/types/ui/components';
+import { CustomAlertButton } from '@/types/ui/components';
+
+
+
+interface CustomAlertProps {
+  title: string;
+  message?: string;
+  buttons: CustomAlertButton[];
+  isVisible: boolean;
+  onDismiss: () => void;
+}
 
 export const CustomAlert = ({
   title,

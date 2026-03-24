@@ -105,5 +105,10 @@ export const useLibraryStyles = () => {
             justifyContent: 'center',
             alignItems: 'center',
         },
+        flatListContent: {
+            paddingBottom: 120,
+            gap: 10,
+            padding: 16,
+        },
   }));
 };

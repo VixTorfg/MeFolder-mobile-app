@@ -4,7 +4,13 @@ import { getResponsiveSize } from '@/utils/ui/responsive';
 import { MultiActionButton } from '../MultiActionButton';
 import { useRef, useState } from 'react';
 import { useOptionDropDownStyles } from './styles';
-import {  OptionDropDownProps, OptionsType } from '@/types/ui/components';
+import { OptionsType } from '@/types/ui/components';
+
+export interface OptionDropDownProps {
+  disabled?: boolean;
+  size?: number;
+  onSelect?: (options: OptionsType) => void;
+}
 
 const { width: screenWidth } = Dimensions.get('window'); 
 const responsive = getResponsiveSize(screenWidth);

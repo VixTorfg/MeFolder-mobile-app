@@ -197,8 +197,8 @@ export class FolderRepositoryImplementation implements FolderRepository {
             icon, is_favorite, is_protected, is_system_folder,
             view_settings_sort_by, view_settings_sort_order, 
             view_settings_view_mode, view_settings_show_hidden_files,
-            last_accessed_at, archived_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            view_settings_show_extension, last_accessed_at, archived_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
             folder.id, folder.createdAt, folder.updatedAt,
             folder.name, folder.description, folder.parentId, folder.path, folder.level,
@@ -206,8 +206,8 @@ export class FolderRepositoryImplementation implements FolderRepository {
             folder.color?.hex, folder.color?.rgb.r, folder.color?.rgb.g, folder.color?.rgb.b,
             folder.icon, folder.isFavorite, folder.isProtected, folder.isSystemFolder,
             folder.viewSettings.sortBy, folder.viewSettings.sortOrder,
-            folder.viewSettings.viewMode, folder.viewSettings.showHiddenFiles,
-            folder.lastAccessedAt, folder.archivedAt
+            folder.viewSettings.viewMode, folder.viewSettings.options?.showHiddenFiles,
+            folder.viewSettings.options?.showExtension, folder.lastAccessedAt, folder.archivedAt
           ]
         },
         // Insertar tags si existen
@@ -221,6 +221,31 @@ export class FolderRepositoryImplementation implements FolderRepository {
     } catch (error) {
       console.error('Error creating folder:', error);
       throw new Error(`Error al crear carpeta: ${error}`);
+    }
+  }
+
+  /**
+   * Obtiene la configuración de vista de una carpeta específica
+   */
+  async getFolderViewConfig(folderId: UUID): Promise<Folder['viewSettings'] | null> {
+    try{
+      const [row] = await this.db.query<any>(
+        'SELECT view_settings_sort_by, view_settings_sort_order, view_settings_view_mode, view_settings_show_hidden_files, view_settings_show_extension FROM folders WHERE id = ?',
+        [folderId]
+      );
+
+      return(row ? {
+        sortBy: row.view_settings_sort_by || 'name',
+        sortOrder: row.view_settings_sort_order || 'asc',
+        viewMode: row.view_settings_view_mode || 'list',
+        options: {
+          showHiddenFiles: Boolean(row.view_settings_show_hidden_files),
+          showExtension: Boolean(row.view_settings_show_extension),
+        }
+      } as FolderViewSettings : null); 
+    }catch(error){
+      console.error('Error getting folder view config:', error);
+      throw new Error(`Error al obtener configuración de vista de la carpeta: ${error}`);
     }
   }
 
@@ -295,6 +320,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
           view_settings_sort_order = ?,
           view_settings_view_mode = ?,
           view_settings_show_hidden_files = ?,
+          view_settings_show_extension = ?,
           last_accessed_at = ?,
           archived_at = ?
         WHERE id = ?
@@ -305,8 +331,8 @@ export class FolderRepositoryImplementation implements FolderRepository {
         folder.color?.hex, folder.color?.rgb.r, folder.color?.rgb.g, folder.color?.rgb.b,
         folder.icon, folder.isFavorite, folder.isProtected,
         folder.viewSettings.sortBy, folder.viewSettings.sortOrder,
-        folder.viewSettings.viewMode, folder.viewSettings.showHiddenFiles,
-        folder.lastAccessedAt, folder.archivedAt,
+        folder.viewSettings.viewMode, folder.viewSettings.options?.showHiddenFiles,
+        folder.viewSettings.options?.showExtension, folder.lastAccessedAt, folder.archivedAt,
         id
       ]);
 
@@ -449,6 +475,45 @@ export class FolderRepositoryImplementation implements FolderRepository {
   }
 
   /**
+   * Actualizar configuración de vista de una carpeta
+   */
+  async updateViewConfig(folderId: UUID, viewSettings: Partial<Folder['viewSettings']>): Promise<void> {
+    try{
+      const existingFolder = await this.findById(folderId);
+
+      if (!existingFolder) {
+        throw new Error('Carpeta no encontrada');
+      }
+      const updatedViewSettings = {
+        ...existingFolder.viewSettings,
+        ...viewSettings,
+      };
+
+      await this.db.execute(`
+        UPDATE folders SET 
+          view_settings_sort_by = ?,
+          view_settings_sort_order = ?,
+          view_settings_view_mode = ?,
+          view_settings_show_hidden_files = ?,
+          view_settings_show_extension = ?,
+          updated_at = ?
+        WHERE id = ?
+      `, [
+        updatedViewSettings.sortBy, 
+        updatedViewSettings.sortOrder,
+        updatedViewSettings.viewMode,
+        updatedViewSettings.options?.showHiddenFiles,
+        updatedViewSettings.options?.showExtension,
+        new Date().getTime(),
+        folderId
+      ]);
+    } catch (error) {
+      console.error('Error updating folder view settings:', error);
+      throw new Error(`Error al actualizar configuración de vista de la carpeta: ${error}`);
+    }
+  }
+
+  /**
    * Actualizar tags de una carpeta
    */
   async updateTags(folderId: UUID, tagIds: UUID[]): Promise<void> {
@@ -527,7 +592,10 @@ export class FolderRepositoryImplementation implements FolderRepository {
         sortBy: row.view_settings_sort_by || 'name',
         sortOrder: row.view_settings_sort_order || 'asc',
         viewMode: row.view_settings_view_mode || 'list',
-        showHiddenFiles: row.view_settings_show_hidden_files || false,
+        options: {
+          showExtension: Boolean(row.view_settings_show_extension),
+          showHiddenFiles: Boolean(row.view_settings_show_hidden_files),
+        }
       } as FolderViewSettings,
       isFavorite: Boolean(row.is_favorite),
       isProtected: Boolean(row.is_protected),

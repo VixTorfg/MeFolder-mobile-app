@@ -1,6 +1,16 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { CustomAlert } from '@/components/CustomAlert/CustomAlert';
-import { CustomAlertOptions, CustomAlertButton, AlertContextType } from '@/types/ui/components';
+import { CustomAlertButton } from '@/types/ui/components';
+
+interface CustomAlertOptions {
+  title: string;
+  message?: string;
+  buttons?: CustomAlertButton[];
+}
+
+interface AlertContextType {
+  showAlert: (options: CustomAlertOptions) => void;
+}
 
 const AlertContext = createContext<AlertContextType | null>(null);
 
