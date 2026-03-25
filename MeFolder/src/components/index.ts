@@ -1,4 +1,5 @@
 export { Breadcrumb } from './Breadcrumb';
+export { ColorPicker } from './ColorPicker';
 export { FloatingTabBar } from './FloatingTabBar';
 export { MultiActionButton } from './MultiActionButton';
 export { SearchBox } from './SearchBox';

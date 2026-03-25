@@ -5,6 +5,7 @@ import { useTheme } from '@/providers';
 import { useFolderCreatorStyles } from './styles';
 import { ColorInfo, SystemColorName } from '@/types/common/colors';
 import { SYSTEM_COLORS } from '@/constants/themes/colors';
+import { ColorPicker } from '@/components/ColorPicker';
 
 interface MockTag {
   id: string;
@@ -61,6 +62,8 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [nameFocused, setNameFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
+  const [customColor, setCustomColor] = useState<ColorInfo | null>(null);
 
   const toggleTag = (tagId: string): void => {
     setSelectedTags(prev => {
@@ -78,7 +81,9 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
 
   const handleSave = async (): Promise<void> => {
     if (!canSave) return;
-    const color: ColorInfo = SYSTEM_COLORS[selectedColor];
+    const color: ColorInfo = (selectedColor === ('custom' as SystemColorName) && customColor)
+      ? customColor
+      : SYSTEM_COLORS[selectedColor];
     const icon = FOLDER_ICONS.find(i => i.id === selectedIcon);
 
     await onSave({
@@ -153,7 +158,31 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
               />
             </TouchableOpacity>
           ))}
-          {/* TODO: Custom color picker button */}
+          {/* Custom color picker button */}
+          <TouchableOpacity
+            style={[
+              styles.colorOption,
+              customColor && selectedColor === ('custom' as SystemColorName) && styles.colorOptionSelected,
+            ]}
+            onPress={() => setShowColorPicker(true)}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.colorOptionInner,
+                {
+                  backgroundColor: customColor?.hex ?? theme.colors.surface,
+                  borderWidth: 1.5,
+                  borderColor: theme.colors.borderSoft,
+                  borderStyle: 'dashed',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <Ionicons name="add" size={18} color={theme.colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
         </View>
       </View>
 
@@ -223,6 +252,17 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       >
         <Text style={styles.saveButtonText}>Crear carpeta</Text>
       </TouchableOpacity>
+
+      <ColorPicker
+        visible={showColorPicker}
+        onClose={() => setShowColorPicker(false)}
+        onSave={(data) => {
+          setCustomColor(data.color);
+          setSelectedColor('custom' as SystemColorName);
+          setShowColorPicker(false);
+        }}
+        initialColor={customColor ?? undefined}
+      />
     </View>
   );
 }

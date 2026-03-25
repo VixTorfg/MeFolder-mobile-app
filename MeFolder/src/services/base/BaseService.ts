@@ -3,7 +3,8 @@ import {
   FileRepository,
   FolderRepository, 
   TagRepository,
-  TagAssignmentRepository
+  TagAssignmentRepository,
+  UserColorRepository
 } from '@/database/repositories';
 
 /**
@@ -14,6 +15,7 @@ export abstract class BaseService {
   protected folderRepo: FolderRepository;
   protected tagRepo: TagRepository;
   protected tagAssignmentRepo: TagAssignmentRepository;
+  protected userColorRepo: UserColorRepository;
   protected db: Database;
 
   constructor() {
@@ -22,6 +24,7 @@ export abstract class BaseService {
     this.folderRepo = new FolderRepository();
     this.tagRepo = new TagRepository();
     this.tagAssignmentRepo = new TagAssignmentRepository();
+    this.userColorRepo = new UserColorRepository();
   }
 
   /** Valida que la base de datos esté inicializada */

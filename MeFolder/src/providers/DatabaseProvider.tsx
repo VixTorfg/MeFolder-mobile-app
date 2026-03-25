@@ -3,6 +3,7 @@ import { Database } from '@/database/sqlite/Database';
 import { createFilesTable } from '@/database/migrations/files';
 import { createFoldersTable } from '@/database/migrations/folders';
 import { createTagsTable } from '@/database/migrations/tags';
+import { createUserColorsTable } from '@/database/migrations/userColors';
 import { seedSystemFolders } from '@/database/seeds/systemFolders';
 
 interface DatabaseContextType {
@@ -49,6 +50,7 @@ const runMigrations = async (): Promise<void> => {
   await createFoldersTable();
   await createFilesTable();
   await createTagsTable();
+  await createUserColorsTable();
 
   // Seeds: carpetas del sistema (idempotente, segura en cada arranque)
   await seedSystemFolders();

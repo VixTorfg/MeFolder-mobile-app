@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { useDatabase } from './DatabaseProvider';
-import { FileService, FolderService, TagService, FileSystemService } from '@/services';
+import { FileService, FolderService, TagService, UserColorService, FileSystemService } from '@/services';
 
 interface Services {
   fileService: FileService;
   folderService: FolderService;
   tagService: TagService;
+  userColorService: UserColorService;
 }
 
 interface AppBootstrapContextType {
@@ -57,10 +58,11 @@ const createServices = (): Services => {
   const fileService = new FileService();
   const folderService = new FolderService();
   const tagService = new TagService();
+  const userColorService = new UserColorService();
 
   console.log('AppBootstrap: Servicios creados');
 
-  return { fileService, folderService, tagService };
+  return { fileService, folderService, tagService, userColorService };
 };
 
 /**
