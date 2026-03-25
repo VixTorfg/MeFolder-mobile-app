@@ -539,6 +539,7 @@ export class TagRepositoryImplementation implements TagRepository {
           b: row.color_rgb_b,
         },
         isSystem: row.type === 'system',
+        isFavorite: false,
       } as ColorInfo,
       usageCount: row.usage_count,
       

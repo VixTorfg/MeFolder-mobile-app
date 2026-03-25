@@ -123,7 +123,6 @@ export const useFilePropertyMenuStyles = () => {
       paddingHorizontal: theme.spacing.sm,
       borderRadius: theme.effects.radius.xxs,
       borderWidth: theme.effects.borderWidth.md,
-      borderColor: theme.colors.primary,
       backgroundColor: theme.colors.surface,
     },
     row: {

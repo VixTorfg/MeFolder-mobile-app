@@ -12,6 +12,7 @@ import { FileExtension, FileCategory } from '../../types/common/file-extensions'
 import { UUID } from '../../types/common/base';
 import { FileRepository } from '../../types/repositories/file';
 import { ROOT_FOLDER_ID } from '../seeds/systemFolders';
+import { ColorInfo } from '@/types/common/colors';
 
 /**
  * Implementación del repositorio de archivos.
@@ -523,7 +524,8 @@ export class FileRepositoryImplementation implements FileRepository {
             b: row.color_rgb_b,
           },
           isSystem: false,
-        } ,
+          isFavorite: false,
+        } as ColorInfo,
       }),
       ...(row.last_accessed_at && { lastAccessedAt: new Date(row.last_accessed_at) }),
       ...(row.archived_at && { archivedAt: new Date(row.archived_at) }),

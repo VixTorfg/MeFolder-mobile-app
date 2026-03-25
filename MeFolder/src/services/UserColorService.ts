@@ -26,7 +26,7 @@ export class UserColorService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      const exists = await this.userColorRepo.existsByHex(input.color.hex);
+      const exists = await this.userColorRepo.existsByHex(input.hex);
       if (exists) {
         throw new Error('Ya existe un color con ese valor hex');
       }
@@ -86,8 +86,8 @@ export class UserColorService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      if (input.color) {
-        const existing = await this.userColorRepo.findByHex(input.color.hex);
+      if (input.hex) {
+        const existing = await this.userColorRepo.findByHex(input.hex);
         if (existing && existing.id !== colorId) {
           throw new Error('Ya existe otro color con ese valor hex');
         }

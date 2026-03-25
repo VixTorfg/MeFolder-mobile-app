@@ -1,4 +1,4 @@
-import { ColorInfo, SystemColorName } from '@/src/types/common/colors';
+import { ColorInfo, SystemColorName } from '@/types/common/colors';
 import { Colors } from './types';
 
 export const lightColors: Colors = {
@@ -82,7 +82,8 @@ export const defaultColor: ColorInfo = {
     b: parseInt(lightColors.primary.slice(5, 7), 16),
   },
   name: 'Primary',
-  isSystem: false
+  isSystem: false,
+  isFavorite: false,
 }
 
 export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
@@ -91,6 +92,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 242, g: 201, b: 76 },
     name: 'Yellow',
     isSystem: true,
+    isFavorite: false,
     systemName: 'yellow',
   },
   red: {
@@ -98,6 +100,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 235, g: 87, b: 87 },
     name: 'Red',
     isSystem: true,
+    isFavorite: false,
     systemName: 'red',
   },
   blue: {
@@ -105,6 +108,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 93, g: 169, b: 199 },
     name: 'Blue',
     isSystem: true,
+    isFavorite: false,
     systemName: 'blue',
   },
   green: {
@@ -112,6 +116,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 111, g: 207, b: 151 },
     name: 'Green',
     isSystem: true,
+    isFavorite: false,
     systemName: 'green',
   }, 
   purple: {
@@ -119,6 +124,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 155, g: 81, b: 224 },
     name: 'Purple',
     isSystem: true,
+    isFavorite: false,
     systemName: 'purple',
   },
   orange: {
@@ -126,6 +132,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 242, g: 153, b: 74 },
     name: 'Orange',
     isSystem: true,
+    isFavorite: false,
     systemName: 'orange',
   },
   pink: {
@@ -133,6 +140,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 240, g: 98, b: 146 },
     name: 'Pink',
     isSystem: true,
+    isFavorite: false,
     systemName: 'pink',
   },
   cyan: {
@@ -140,6 +148,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 77, g: 182, b: 172 },
     name: 'Cyan',
     isSystem: true,
+    isFavorite: false,
     systemName: 'cyan',
   },
   gray: {
@@ -147,6 +156,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 154, g: 154, b: 144 },
     name: 'Gray',
     isSystem: true,
+    isFavorite: false,
     systemName: 'gray',
   },
   black: {
@@ -154,6 +164,7 @@ export const SYSTEM_COLORS: Record<SystemColorName, ColorInfo> = {
     rgb: { r: 43, g: 43, b: 40 },
     name: 'Black',
     isSystem: true,
+    isFavorite: false,
     systemName: 'black',
   },
 };

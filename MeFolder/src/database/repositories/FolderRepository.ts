@@ -616,6 +616,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
             b: row.color_rgb_b,
           },
           isSystem: false,
+          isFavorite: false,
         } as ColorInfo,
       }),
       ...(row.icon && { icon: row.icon }),

@@ -1,20 +1,13 @@
 import { BaseEntity } from '../common/base';
 import { ColorInfo } from '../common/colors';
 
-export interface UserColor extends BaseEntity {
-  name?: string;
-  color: ColorInfo;
-  isFavorite: boolean;
-}
+export interface UserColor extends ColorInfo, BaseEntity {}
 
-export interface CreateUserColorInput {
-  name?: string;
-  color: ColorInfo;
-  isFavorite?: boolean;
-}
+export type CreateUserColorInput = ColorInfo;
 
 export interface UpdateUserColorInput {
   name?: string;
-  color?: ColorInfo;
+  hex?: string;
+  rgb?: { r: number; g: number; b: number };
   isFavorite?: boolean;
 }

@@ -8,6 +8,8 @@ import {
   TextInput,
   Dimensions,
   Switch,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import Animated, {
   useSharedValue,
@@ -24,7 +26,7 @@ import {
   GestureHandlerRootView,
 } from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/providers';
+import { useAlert, useTheme } from '@/providers';
 import { useColorPickerStyles } from './styles';
 import { ColorInfo } from '@/types/common/colors';
 
@@ -121,8 +123,8 @@ function buildColorMapGrid(hue: number, lightnessLevel: number): string[][] {
 export interface ColorPickerProps {
   visible: boolean;
   onClose: () => void;
-  onSave?: (data: { color: ColorInfo; name?: string; isFavorite: boolean }) => void;
-  initialColor?: ColorInfo;
+  onSave?: (data: ColorInfo) => Promise<void> | void;
+  initialColor?: ColorInfo | null;
 }
 
 export default function ColorPicker({
@@ -132,6 +134,7 @@ export default function ColorPicker({
   initialColor,
 }: ColorPickerProps) {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const styles = useColorPickerStyles();
 
   const translateY = useSharedValue(SCREEN_HEIGHT);
@@ -288,14 +291,21 @@ export default function ColorPicker({
   }, [selectedR, selectedG, selectedB, applyRgb]);
 
   const handleSave = useCallback(() => {
+    const trimmedName = colorName.trim();
+    if (!trimmedName) {
+      showAlert({title: 'Error', message: 'Es necesario asignar un nombre al color para guardarlo.'});
+      return;
+    }
+
     const colorInfo: ColorInfo = {
       hex: currentHex,
       rgb: { r: selectedR, g: selectedG, b: selectedB },
+      name: trimmedName,
       isSystem: false,
-      ...(colorName.trim() && { name: colorName.trim() }),
+      isFavorite,
     };
-    const trimmedName = colorName.trim();
-    onSave?.({ color: colorInfo, ...(trimmedName && { name: trimmedName }), isFavorite });
+
+    onSave?.(colorInfo);
     handleClose();
   }, [currentHex, selectedR, selectedG, selectedB, colorName, isFavorite, onSave, handleClose]);
 
@@ -314,6 +324,10 @@ export default function ColorPicker({
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
         </Animated.View>
 
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
         <Animated.View style={[styles.containerWrapper, containerStyle]}>
           <View style={styles.container}>
 
@@ -338,6 +352,7 @@ export default function ColorPicker({
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.08 }}
+              keyboardShouldPersistTaps="handled"
             >
              
               <View style={styles.colorMapSection}>
@@ -425,7 +440,6 @@ export default function ColorPicker({
                 />
               </View>
 
-              {/* ── RGB inputs ── */}
               <View style={styles.inputSection}>
                 <Text style={styles.label}>RGB</Text>
                 <View style={styles.inputRow}>
@@ -468,7 +482,6 @@ export default function ColorPicker({
                 </View>
               </View>
 
-              {/* ── Name ── */}
               <View style={styles.nameSection}>
                 <Text style={styles.label}>Nombre (opcional)</Text>
                 <TextInput
@@ -483,7 +496,6 @@ export default function ColorPicker({
                 />
               </View>
 
-              {/* ── Favorite toggle ── */}
               <View style={styles.favoriteSection}>
                 <View style={styles.favoriteLabel}>
                   <Ionicons
@@ -504,7 +516,6 @@ export default function ColorPicker({
                 />
               </View>
 
-              {/* ── Save button ── */}
               <TouchableOpacity
                 style={styles.saveButton}
                 onPress={handleSave}
@@ -515,6 +526,7 @@ export default function ColorPicker({
             </ScrollView>
           </View>
         </Animated.View>
+        </KeyboardAvoidingView>
       </GestureHandlerRootView>
     </Modal>
   );

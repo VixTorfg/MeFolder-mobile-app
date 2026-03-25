@@ -5,7 +5,6 @@ import {
   UpdateUserColorInput 
 } from '../../types/entities/userColor';
 import { UUID } from '../../types/common/base';
-import { ColorInfo } from '../../types/common/colors';
 import { UserColorRepository } from '../../types/repositories/userColor';
 
 /**
@@ -80,8 +79,10 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
         id,
         createdAt: now,
         updatedAt: now,
-        color: input.color,
-        isFavorite: input.isFavorite ?? false,
+        hex: input.hex,
+        rgb: input.rgb,
+        isSystem: false,
+        isFavorite: input.isFavorite,
         ...(input.name && { name: input.name.trim() }),
       };
 
@@ -94,8 +95,8 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
       `, [
         userColor.id, userColor.createdAt, userColor.updatedAt,
         userColor.name ?? null,
-        userColor.color.hex,
-        userColor.color.rgb.r, userColor.color.rgb.g, userColor.color.rgb.b,
+        userColor.hex,
+        userColor.rgb.r, userColor.rgb.g, userColor.rgb.b,
         userColor.isFavorite,
       ]);
 
@@ -117,7 +118,8 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
         ...existing,
         updatedAt: new Date(),
         ...(input.name !== undefined && { name: input.name?.trim() }),
-        ...(input.color && { color: input.color }),
+        ...(input.hex && { hex: input.hex }),
+        ...(input.rgb && { rgb: input.rgb }),
         ...(input.isFavorite !== undefined && { isFavorite: input.isFavorite }),
       };
 
@@ -134,8 +136,8 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
       `, [
         updated.updatedAt,
         updated.name ?? null,
-        updated.color.hex,
-        updated.color.rgb.r, updated.color.rgb.g, updated.color.rgb.b,
+        updated.hex,
+        updated.rgb.r, updated.rgb.g, updated.rgb.b,
         updated.isFavorite,
         id,
       ]);
@@ -204,17 +206,15 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
       id: row.id,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
-      name: row.name ?? undefined,
-      color: {
-        hex: row.color_hex,
-        rgb: {
-          r: row.color_rgb_r,
-          g: row.color_rgb_g,
-          b: row.color_rgb_b,
-        },
-        isSystem: false,
-      } as ColorInfo,
+      hex: row.color_hex,
+      rgb: {
+        r: row.color_rgb_r,
+        g: row.color_rgb_g,
+        b: row.color_rgb_b,
+      },
+      isSystem: false,
       isFavorite: Boolean(row.is_favorite),
+      ...(row.name && { name: row.name }),
     };
   }
 

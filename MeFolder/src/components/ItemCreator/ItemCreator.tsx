@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, TouchableOpacity, Modal, ScrollView, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, Modal, ScrollView, Dimensions, KeyboardAvoidingView, Platform } from 'react-native';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -137,6 +137,10 @@ export default function ItemCreator({
         <Animated.View style={[styles.overlay, overlayStyle]}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
         </Animated.View>
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
         <Animated.View style={[styles.containerWrapper, containerStyle]}>
           <View style={styles.container}>
             
@@ -217,9 +221,9 @@ export default function ItemCreator({
               </TouchableOpacity>
             </View>
 
-            {/* Contenido dinámico */}
             <ScrollView 
               showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ 
                 paddingBottom: 4 * theme.spacing.xxl, 
               }}
@@ -238,6 +242,7 @@ export default function ItemCreator({
             </ScrollView>
           </View>
         </Animated.View>
+        </KeyboardAvoidingView>
       </GestureHandlerRootView>
     </Modal>
   );

@@ -38,6 +38,7 @@ export const FilePropertyMenu = ({
 
   const [fileName, setFileName] = useState(item.name);
   const [file, setFile] = useState(item);
+  const [focused, setFocused] = useState(false);
   const isRenaming = fileName !== file.name;
 
   const getFileCategoryFromMime = (mimeType?: string): FileCategory => {
@@ -124,8 +125,10 @@ export const FilePropertyMenu = ({
               
               <View style={{flex: 1}}>
                   <TextInput
-                      style={styles.fileNameInput} 
+                      style={{...styles.fileNameInput, borderColor: focused ? theme.colors.primary : theme.colors.borderSoft}} 
                       value={fileName}
+                      onBlur={() => setFocused(false)}
+                      onFocus={() => setFocused(true)}
                       onChangeText={handleFileNameChange}
                       placeholder="Nombre del archivo"
                       placeholderTextColor={theme.colors.textMuted}     

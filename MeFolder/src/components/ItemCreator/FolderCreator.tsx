@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/providers';
+import { useAlert, useServices, useTheme } from '@/providers';
 import { useFolderCreatorStyles } from './styles';
-import { ColorInfo, SystemColorName } from '@/types/common/colors';
+import { ColorInfo } from '@/types/common/colors';
 import { SYSTEM_COLORS } from '@/constants/themes/colors';
 import { ColorPicker } from '@/components/ColorPicker';
 
@@ -27,7 +27,6 @@ interface FolderCreatorProps {
   currentFolderId?: string;
 }
 
-// Iconos predefinidos para carpetas
 const FOLDER_ICONS: Array<{ id: string; icon: keyof typeof Ionicons.glyphMap }> = [
   { id: 'folder', icon: 'folder' },
   { id: 'star', icon: 'star' },
@@ -51,19 +50,48 @@ const MOCK_TAGS: MockTag[] = [
   { id: '5', name: 'Referencia', color: '#F2994A' },
 ];
 
+function sortColors(colors: ColorInfo[]): ColorInfo[] {
+  return colors.sort((a, b) => {
+    if (a.isFavorite && !b.isFavorite) return -1;
+    if (!a.isFavorite && b.isFavorite) return 1;
+    return 0;
+  });
+}
+
 export default function FolderCreator({ onSave, currentFolderId }: FolderCreatorProps) {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
+  const { services: { userColorService } } = useServices();
   const styles = useFolderCreatorStyles();
 
   const [folderName, setFolderName] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedColor, setSelectedColor] = useState<SystemColorName>('yellow');
+  const [selectedColor, setSelectedColor] = useState<ColorInfo>(SYSTEM_COLORS['yellow']);
   const [selectedIcon, setSelectedIcon] = useState<string>(FOLDER_ICONS[0]!.id);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [nameFocused, setNameFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
   const [showColorPicker, setShowColorPicker] = useState(false);
-  const [customColor, setCustomColor] = useState<ColorInfo | null>(null);
+  const [colors, setColors] = useState<ColorInfo[] | []>(SYSTEM_COLORS ? Object.values(SYSTEM_COLORS) : []);
+
+  useEffect(() => {
+    async function loadUserColors() {
+      if(!userColorService) return;
+      try {
+        const userColors = await userColorService.getAllColors();
+
+        const allColors = [...colors, ...userColors];
+        const sortedColors = sortColors(allColors);
+
+        setColors(sortedColors);
+      } catch (error) {
+        console.error('Error loading user colors:', error);
+        showAlert({ title: 'Error', message: 'No se pudieron cargar los colores personalizados. Inténtalo de nuevo.' });
+      }
+    }
+
+    loadUserColors();
+  }, [userColorService]);
 
   const toggleTag = (tagId: string): void => {
     setSelectedTags(prev => {
@@ -80,10 +108,9 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
   const canSave = folderName.trim().length > 0;
 
   const handleSave = async (): Promise<void> => {
-    if (!canSave) return;
-    const color: ColorInfo = (selectedColor === ('custom' as SystemColorName) && customColor)
-      ? customColor
-      : SYSTEM_COLORS[selectedColor];
+    if (!canSave) return
+    
+    const color = selectedColor
     const icon = FOLDER_ICONS.find(i => i.id === selectedIcon);
 
     await onSave({
@@ -102,6 +129,23 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       return;
     }
     setSelectedIcon(iconId);
+  }
+
+  const handleSaveColor = async (data: ColorInfo): Promise<void> => {
+    try
+    {
+      if(!userColorService) return;
+
+      await userColorService.createColor(data);
+        
+      setColors(prev => [...prev, data]);
+      setSelectedColor(data);
+      setShowColorPicker(false);
+        
+    }catch(error){
+      showAlert({ title: 'Error', message: 'No se pudo guardar el color personalizado. Inténtalo de nuevo.' });
+      return;
+    }
   }
 
   return (
@@ -143,27 +187,33 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       <View style={styles.colorSection}>
         <Text style={styles.label}>Color</Text>
         <View style={styles.colorList}>
-          {Object.entries(SYSTEM_COLORS).map(([key, color]) => (
+          {colors.map((color, index) => (
             <TouchableOpacity
-              key={key}
+              key={index}
               style={[
                 styles.colorOption,
-                selectedColor === key && styles.colorOptionSelected,
+                selectedColor === color && styles.colorOptionSelected,
               ]}
-              onPress={() => setSelectedColor(key as SystemColorName)}
+              onPress={() => setSelectedColor(color)}
               activeOpacity={0.7}
             >
               <View
                 style={[styles.colorOptionInner, { backgroundColor: color.hex }]}
               />
+              {color.isFavorite && (
+                <Ionicons
+                  name="star"
+                  size={16}
+                  color={theme.colors.primary}
+                  style={{ position: 'absolute', top: 20, right: 0 }}
+                />
+              )}
             </TouchableOpacity>
           ))}
-          {/* Custom color picker button */}
+          
+          {/* Opción para agregar color personalizado */}
           <TouchableOpacity
-            style={[
-              styles.colorOption,
-              customColor && selectedColor === ('custom' as SystemColorName) && styles.colorOptionSelected,
-            ]}
+            style={styles.colorOption}
             onPress={() => setShowColorPicker(true)}
             activeOpacity={0.7}
           >
@@ -171,7 +221,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
               style={[
                 styles.colorOptionInner,
                 {
-                  backgroundColor: customColor?.hex ?? theme.colors.surface,
                   borderWidth: 1.5,
                   borderColor: theme.colors.borderSoft,
                   borderStyle: 'dashed',
@@ -256,12 +305,7 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       <ColorPicker
         visible={showColorPicker}
         onClose={() => setShowColorPicker(false)}
-        onSave={(data) => {
-          setCustomColor(data.color);
-          setSelectedColor('custom' as SystemColorName);
-          setShowColorPicker(false);
-        }}
-        initialColor={customColor ?? undefined}
+        onSave={async (data) => await handleSaveColor(data)}
       />
     </View>
   );

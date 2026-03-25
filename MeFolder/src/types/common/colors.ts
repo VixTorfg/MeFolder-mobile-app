@@ -25,5 +25,6 @@ export interface ColorPalette {
 export interface ColorInfo extends ColorValue {
   name?: string;
   isSystem: boolean;
+  isFavorite: boolean;
   systemName?: SystemColorName;
 }
