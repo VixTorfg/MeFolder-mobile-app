@@ -28,8 +28,6 @@ import { useTheme } from '@/providers';
 import { useColorPickerStyles } from './styles';
 import { ColorInfo } from '@/types/common/colors';
 
-/* ─── Constants ─── */
-
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const CLOSE_THRESHOLD = 120;
 
@@ -42,9 +40,7 @@ const GRAYSCALE_STEPS = [
   '#808080', '#606060', '#404040', '#202020', '#000000',
 ];
 
-const HUE_STEPS = 36; // one step every 10°
-
-/* ─── Color helpers ─── */
+const HUE_STEPS = 36; 
 
 function hslToRgb(h: number, s: number, l: number): { r: number; g: number; b: number } {
   const c = (1 - Math.abs(2 * l - 1)) * s;
@@ -79,7 +75,7 @@ function rgbToHsl(r: number, g: number, b: number): { h: number; s: number; l: n
 }
 
 function rgbToHex(r: number, g: number, b: number): string {
-  const toHex = (v: number) => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0');
+  const toHex = (v: number) => clamp(v, 0, 255).toString(16).padStart(2, '0');
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
@@ -97,19 +93,24 @@ function clamp(v: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, v));
 }
 
-/* ─── Color map grid (rendered via JS cells) ─── */
-
 const COLOR_MAP_COLS = 12;
 const COLOR_MAP_ROWS = 10;
 
-function buildColorMapGrid(hue: number): string[][] {
+function buildColorMapGrid(hue: number, lightnessLevel: number): string[][] {
   const grid: string[][] = [];
+  const t = lightnessLevel / (GRAYSCALE_STEPS.length - 1);
+  const center = 0.80 - t * 0.60;
+  const halfRange = 0.425 - Math.abs(t - 0.5) * 0.49;
+  const minL = Math.max(0.02, center - halfRange);
+  const maxL = Math.min(0.98, center + halfRange);
+
   for (let row = 0; row < COLOR_MAP_ROWS; row++) {
     const rowColors: string[] = [];
-    const lightness = 1 - row / (COLOR_MAP_ROWS - 1); // top = light, bottom = dark
+    const rowT = 1 - row / (COLOR_MAP_ROWS - 1);
+    const lightness = minL + rowT * (maxL - minL);
     for (let col = 0; col < COLOR_MAP_COLS; col++) {
-      const saturation = col / (COLOR_MAP_COLS - 1); // left = gray, right = saturated
-      const rgb = hslToRgb(hue, saturation, lightness * 0.85 + 0.075);
+      const saturation = col / (COLOR_MAP_COLS - 1);
+      const rgb = hslToRgb(hue, saturation, lightness);
       rowColors.push(rgbToHex(rgb.r, rgb.g, rgb.b));
     }
     grid.push(rowColors);
@@ -117,16 +118,12 @@ function buildColorMapGrid(hue: number): string[][] {
   return grid;
 }
 
-/* ─── Props ─── */
-
 export interface ColorPickerProps {
   visible: boolean;
   onClose: () => void;
   onSave?: (data: { color: ColorInfo; name?: string; isFavorite: boolean }) => void;
   initialColor?: ColorInfo;
 }
-
-/* ─── Component ─── */
 
 export default function ColorPicker({
   visible,
@@ -137,7 +134,6 @@ export default function ColorPicker({
   const { theme } = useTheme();
   const styles = useColorPickerStyles();
 
-  /* ── Animated bottom-sheet ── */
   const translateY = useSharedValue(SCREEN_HEIGHT);
   const overlayProgress = useSharedValue(0);
 
@@ -188,7 +184,6 @@ export default function ColorPicker({
     transform: [{ translateY: translateY.value }],
   }));
 
-  /* ── Color state ── */
   const initRgb = initialColor?.rgb ?? { r: 242, g: 201, b: 76 };
   const initHsl = rgbToHsl(initRgb.r, initRgb.g, initRgb.b);
 
@@ -199,6 +194,8 @@ export default function ColorPicker({
   const [hexText, setHexText] = useState(rgbToHex(initRgb.r, initRgb.g, initRgb.b));
   const [colorName, setColorName] = useState(initialColor?.name ?? '');
   const [isFavorite, setIsFavorite] = useState(false);
+  const [lightnessLevel, setLightnessLevel] = useState(4);
+  const [selectedCell, setSelectedCell] = useState<{ row: number; col: number } | null>(null);
 
   const [hexFocused, setHexFocused] = useState(false);
   const [rFocused, setRFocused] = useState(false);
@@ -208,10 +205,8 @@ export default function ColorPicker({
 
   const currentHex = rgbToHex(selectedR, selectedG, selectedB);
 
-  /* ── Color map grid (recalculated when hue changes) ── */
-  const colorGrid = useMemo(() => buildColorMapGrid(hue), [hue]);
+  const colorGrid = useMemo(() => buildColorMapGrid(hue, lightnessLevel), [hue, lightnessLevel]);
 
-  /* ── Hue bar colors ── */
   const hueBarColors = useMemo(() => {
     const colors: string[] = [];
     for (let i = 0; i <= HUE_STEPS; i++) {
@@ -222,8 +217,6 @@ export default function ColorPicker({
     return colors;
   }, []);
 
-  /* ── Handlers ── */
-
   const applyRgb = useCallback((r: number, g: number, b: number) => {
     setSelectedR(r);
     setSelectedG(g);
@@ -233,25 +226,46 @@ export default function ColorPicker({
     setHue(hsl.h);
   }, []);
 
-  const handleColorCellPress = useCallback((hex: string) => {
+  const applyFromCell = useCallback((row: number, col: number, grid: string[][]) => {
+    const hex = grid[row]?.[col];
+    if (!hex) return;
+    const rgb = hexToRgb(hex);
+    if (rgb) {
+      setSelectedR(rgb.r);
+      setSelectedG(rgb.g);
+      setSelectedB(rgb.b);
+      setHexText(rgbToHex(rgb.r, rgb.g, rgb.b));
+    }
+  }, []);
+
+  const handleColorCellPress = useCallback((hex: string, row: number, col: number) => {
+    setSelectedCell({ row, col });
     const rgb = hexToRgb(hex);
     if (rgb) applyRgb(rgb.r, rgb.g, rgb.b);
   }, [applyRgb]);
 
-  const handleGrayscalePress = useCallback((hex: string) => {
-    const rgb = hexToRgb(hex);
-    if (rgb) applyRgb(rgb.r, rgb.g, rgb.b);
-  }, [applyRgb]);
+  const handleGrayscalePress = useCallback((index: number) => {
+    setLightnessLevel(index);
+    if (selectedCell) {
+      const newGrid = buildColorMapGrid(hue, index);
+      applyFromCell(selectedCell.row, selectedCell.col, newGrid);
+    }
+  }, [selectedCell, hue, applyFromCell]);
 
   const handleHueCellPress = useCallback((index: number) => {
     const newHue = (index / HUE_STEPS) * 360;
     setHue(newHue);
-    const rgb = hslToRgb(newHue, 1, 0.5);
-    setSelectedR(rgb.r);
-    setSelectedG(rgb.g);
-    setSelectedB(rgb.b);
-    setHexText(rgbToHex(rgb.r, rgb.g, rgb.b));
-  }, []);
+    if (selectedCell) {
+      const newGrid = buildColorMapGrid(newHue, lightnessLevel);
+      applyFromCell(selectedCell.row, selectedCell.col, newGrid);
+    } else {
+      const rgb = hslToRgb(newHue, 1, 0.5);
+      setSelectedR(rgb.r);
+      setSelectedG(rgb.g);
+      setSelectedB(rgb.b);
+      setHexText(rgbToHex(rgb.r, rgb.g, rgb.b));
+    }
+  }, [selectedCell, lightnessLevel, applyFromCell]);
 
   const handleHexSubmit = useCallback(() => {
     const clean = hexText.startsWith('#') ? hexText : `#${hexText}`;
@@ -285,8 +299,6 @@ export default function ColorPicker({
     handleClose();
   }, [currentHex, selectedR, selectedG, selectedB, colorName, isFavorite, onSave, handleClose]);
 
-  /* ─── Render ─── */
-
   return (
     <Modal
       visible={visible}
@@ -297,23 +309,21 @@ export default function ColorPicker({
       onRequestClose={handleClose}
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
-        {/* Overlay */}
+        
         <Animated.View style={[styles.overlay, overlayStyle]}>
           <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
         </Animated.View>
 
-        {/* Bottom sheet */}
         <Animated.View style={[styles.containerWrapper, containerStyle]}>
           <View style={styles.container}>
 
-            {/* Drag handle */}
             <GestureDetector gesture={panGesture}>
               <Animated.View style={styles.handleZone}>
                 <View style={styles.handle} />
               </Animated.View>
             </GestureDetector>
 
-            {/* Header */}
+
             <View style={styles.header}>
               <Text style={styles.headerTitle}>Nuevo color</Text>
               <TouchableOpacity
@@ -327,26 +337,26 @@ export default function ColorPicker({
 
             <ScrollView
               showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 32 }}
+              contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.08 }}
             >
-              {/* ── Color map + grayscale ── */}
+             
               <View style={styles.colorMapSection}>
                 <Text style={styles.label}>Seleccionar color</Text>
                 <View style={styles.colorMapRow}>
-                  {/* Main color grid */}
+                  
                   <View style={styles.colorMapContainer}>
                     {colorGrid.map((row, rowIdx) => (
-                      <View key={rowIdx} style={{ flex: 1, flexDirection: 'row' }}>
+                      <View key={rowIdx} style={{ flex: 1, flexDirection: 'row', marginBottom: rowIdx < COLOR_MAP_ROWS - 1 ? -1 : 0 }}>
                         {row.map((cellHex, colIdx) => (
                           <TouchableOpacity
                             key={`${rowIdx}-${colIdx}`}
                             style={{
                               flex: 1,
                               backgroundColor: cellHex,
-                              borderWidth: cellHex === currentHex ? 2 : 0,
+                              borderWidth: selectedCell?.row === rowIdx && selectedCell?.col === colIdx ? 2 : 0,
                               borderColor: '#FFFFFF',
                             }}
-                            onPress={() => handleColorCellPress(cellHex)}
+                            onPress={() => handleColorCellPress(cellHex, rowIdx, colIdx)}
                             activeOpacity={0.8}
                           />
                         ))}
@@ -354,20 +364,20 @@ export default function ColorPicker({
                     ))}
                   </View>
 
-                  {/* Grayscale strip */}
                   <View style={styles.grayscaleStrip}>
-                    {GRAYSCALE_STEPS.map((gray) => (
+                    {GRAYSCALE_STEPS.map((gray, index) => (
                       <TouchableOpacity
                         key={gray}
                         style={[
                           styles.grayscaleCell,
                           {
+                            marginBottom: index < GRAYSCALE_STEPS.length - 1 ? -1 : 0,
                             backgroundColor: gray,
-                            borderWidth: gray === currentHex ? 2 : 0,
+                            borderWidth: index === lightnessLevel ? 2 : 0,
                             borderColor: gray === '#FFFFFF' ? '#000' : '#FFF',
                           },
                         ]}
-                        onPress={() => handleGrayscalePress(gray)}
+                        onPress={() => handleGrayscalePress(index)}
                         activeOpacity={0.8}
                       />
                     ))}
@@ -375,7 +385,6 @@ export default function ColorPicker({
                 </View>
               </View>
 
-              {/* ── Hue slider ── */}
               <View style={styles.hueSliderSection}>
                 <View style={styles.hueSliderTrack}>
                   <View style={styles.hueSliderGradient}>
@@ -391,7 +400,6 @@ export default function ColorPicker({
                 </View>
               </View>
 
-              {/* ── Preview ── */}
               <View style={styles.previewSection}>
                 <View style={[styles.previewCircle, { backgroundColor: currentHex }]} />
                 <View style={styles.previewInfo}>
@@ -400,7 +408,6 @@ export default function ColorPicker({
                 </View>
               </View>
 
-              {/* ── Hex input ── */}
               <View style={styles.inputSection}>
                 <Text style={styles.label}>Hexadecimal</Text>
                 <TextInput
