@@ -102,7 +102,6 @@ export const useLibraryStyles = () => {
         },
         footerEmptyContainer: {
             flex: 1,
-            justifyContent: 'center',
             alignItems: 'center',
         },
         flatListContent: {

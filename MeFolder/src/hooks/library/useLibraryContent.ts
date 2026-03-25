@@ -1,13 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useWindowDimensions } from 'react-native';
-import { FileModel, FolderModel } from '@/models';
 import { useLibraryStore } from '@/stores/useLibraryStore';
 import { useNavigationStore } from '@/stores';
 import { useAlert, useDatabase, useServices } from '@/providers';
 import { useFocusEffect } from 'expo-router';
 import { sortItems } from '@/utils';
 import { getGridConfig, ViewMode } from '@/utils/ui/responsive';
-import type { FolderSortBy, FolderSortOrder, FolderViewMode } from '@/types';
+import type { FolderSortBy, FolderSortOrder, FolderViewMode, ViewOptions } from '@/types';
 
 export const useLibraryContent = () => {
   const { isReady } = useDatabase();
@@ -24,8 +23,9 @@ export const useLibraryContent = () => {
   const [selectedView, setSelectedView] = useState<FolderViewMode>('list');
   const [orderBy, setOrderBy] = useState<FolderSortBy>('name');
   const [sortValue, setSortValue] = useState<FolderSortOrder>('asc');
+  const [loading, setLoading] = useState(true);
+  const [viewOptions, setViewOptions] = useState<ViewOptions>({ showExtension: true, showHiddenFiles: false });
 
-  const isEmpty = items.length === 0;
   const gridConfig = getGridConfig(selectedView as ViewMode, width);
 
   const sortedItems = useMemo(
@@ -38,26 +38,31 @@ export const useLibraryContent = () => {
       if (!isReady) return;
 
       const loadContent = async () => {
-        let folders: FolderModel[] = [];
-        let files: FileModel[] = [];
+        setItems([]);
+        setLoading(true);
+        try {
+          const viewConfig = currentFolderId ? await folderService.getFolderViewConfig(currentFolderId) : null;
 
-        const viewConfig = currentFolderId ? await folderService.getFolderViewConfig(currentFolderId) : null;
+          if (viewConfig) {
+            setSelectedView(viewConfig.viewMode);
+            setOrderBy(viewConfig.sortBy);
+            setSortValue(viewConfig.sortOrder);
+            if (viewConfig.options) {
+              setViewOptions(viewConfig.options);
+            }
+          }
 
-        if (viewConfig) {
-          setSelectedView(viewConfig.viewMode);
-          setOrderBy(viewConfig.sortBy);
-          setSortValue(viewConfig.sortOrder);
+          const [folders, files] = await Promise.all([
+            currentFolderId ? folderService.getSubfolders(currentFolderId) : folderService.getSubfolders(),
+            currentFolderId ? fileService.getFilesInFolder(currentFolderId) : fileService.getFilesInFolder(),
+          ]);
+
+          setItems([...folders, ...files]);
+        } catch {
+          showAlert({ title: 'Error', message: 'No se pudo cargar el contenido de la carpeta' });
+        } finally {
+          setLoading(false);
         }
-
-        if (currentFolderId) {
-          folders = await folderService.getSubfolders(currentFolderId);
-          files = await fileService.getFilesInFolder(currentFolderId);
-        } else {
-          folders = await folderService.getSubfolders();
-          files = await fileService.getFilesInFolder();
-        }
-
-        setItems([...folders, ...files]);
       };
 
       loadContent();
@@ -86,17 +91,29 @@ export const useLibraryContent = () => {
     }
   };
 
+  const handleViewOptionsChange = async (options: ViewOptions) => {
+    setViewOptions(options);
+    if (!currentFolderId || !folderService) return;
+    try {
+      await folderService.updateFolderViewConfig(currentFolderId, { options });
+    } catch {
+      showAlert({ title: 'Error', message: 'No se pudo actualizar las opciones de vista' });
+    }
+  };
+
   return {
     items,
     sortedItems,
-    isEmpty,
+    loading,
     selectedView,
     orderBy,
     sortValue,
+    viewOptions,
     gridConfig,
     folderService,
     fileService,
     handleSortItems,
     handleViewModeChange,
+    handleViewOptionsChange,
   };
 };

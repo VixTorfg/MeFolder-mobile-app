@@ -1,6 +1,6 @@
 import { ViewDropDown, ViewCards, ItemCreator, MultiActionButton, ContextMenu, Breadcrumb, OptionDropDown, PropertyMenu } from '@/components';
 import React, { useMemo, useRef, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Text } from 'react-native';
+import { View, FlatList, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
 import { useNavigationStore } from '@/stores';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FileModel, FolderModel } from '@/models';
@@ -21,15 +21,17 @@ export default function LibraryScreen() {
   const {
     items,
     sortedItems,
-    isEmpty,
+    loading,
     selectedView,
     orderBy,
     sortValue,
+    viewOptions,
     gridConfig,
     folderService,
     fileService,
     handleSortItems,
     handleViewModeChange,
+    handleViewOptionsChange,
   } = useLibraryContent();
 
   const {
@@ -139,7 +141,7 @@ export default function LibraryScreen() {
             defaultOrderByValue={orderBy}
             defaultSortValue={sortValue}
           />
-          <ViewDropDown size={42} onChange={async (selectedMode) => await handleViewModeChange(selectedMode.id)} defaultValue={selectedView} />
+          <ViewDropDown size={42} onChange={async (selectedMode) => await handleViewModeChange(selectedMode.id)} defaultValue={selectedView} viewOptions={viewOptions} onViewOptionsChange={handleViewOptionsChange} />
           <OptionDropDown size={42} onSelect={handleOnSelectOption} />
         </>
       );
@@ -156,7 +158,7 @@ export default function LibraryScreen() {
               backgroundColor="transparent"
               iconColor={styles.iconColor.color}
               size={42}
-              onPress={() => navigateBack()}
+              onPress={() => {clearSelection(); navigateBack();}}
             />
           )}
         </View>
@@ -180,13 +182,16 @@ export default function LibraryScreen() {
         onSaveFile={handleSaveFile}
         onSaveFolder={handleSaveFolder}
       />
-      {isEmpty ? (
+      {loading ? (
+        <View style={[styles.footerEmptyContainer, { justifyContent: 'center' }]}>
+          <ActivityIndicator size="large" color={styles.iconColor.primaryColor} />
+        </View>
+      ) : sortedItems.length === 0 ? (
         <View style={styles.footerEmptyContainer}>
           <View style={styles.emptyFolderIconContainer}>
             <EmptyFolder strokeWidth={0.35} width={120} height={120} folderColor={styles.iconColor.color} crossColor={styles.iconColor.primaryColor} />
             <Text style={styles.emptyFolderText}>La carpeta está vacía</Text>
           </View>
-
           <TouchableOpacity style={styles.volverButton} onPress={() => navigateBack()}>
             <Text style={styles.volverText}>Volver</Text>
           </TouchableOpacity>
@@ -203,6 +208,7 @@ export default function LibraryScreen() {
               <ViewCards
                 data={item}
                 viewConfig={selectedView}
+                viewOptions={viewOptions}
                 selected={itemsSelected.some(i => i.id === item.id)}
                 isRenaming={clickedItem?.id === item.id ? isRenaming : false}
                 onRename={handleRename}
