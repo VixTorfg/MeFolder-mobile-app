@@ -22,8 +22,6 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
     this.db = Database.getInstance();
   }
 
-  // ===== OPERACIONES PARA ARCHIVOS =====
-
   /**
    * Asignar etiquetas a un archivo
    */
@@ -31,7 +29,6 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
     try {
       if (tagIds.length === 0) return;
 
-      // Primero obtener tags existentes para evitar duplicados
       const existingTagIds = await this.getFileTagIds(fileId);
       const newTagIds = tagIds.filter(id => !existingTagIds.includes(id));
 
@@ -101,8 +98,6 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
       throw new Error(`Error al obtener etiquetas del archivo: ${error}`);
     }
   }
-
-  // ===== OPERACIONES PARA CARPETAS =====
 
   /**
    * Asignar etiquetas a una carpeta
@@ -180,8 +175,6 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
       throw new Error(`Error al obtener etiquetas de la carpeta: ${error}`);
     }
   }
-
-  // ===== OPERACIONES MIXTAS =====
 
   /**
    * Obtener archivos que tienen una etiqueta específica
@@ -261,8 +254,6 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
     }
   }
 
-  // ===== OPERACIONES DE LIMPIEZA =====
-
   /**
    * Limpiar etiquetas no utilizadas
    */
@@ -324,8 +315,6 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
       throw new Error(`Error al remover todas las etiquetas de la carpeta: ${error}`);
     }
   }
-
-  // ===== ESTADÍSTICAS =====
 
   /**
    * Obtener estadísticas de asignación de una etiqueta

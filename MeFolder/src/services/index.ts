@@ -5,4 +5,3 @@ export { TagService } from './TagService';
 export { UserColorService } from './UserColorService';
 export { FileSystemService } from './filesystem/FileSystemService';
 export { MediaService } from './media/MediaService';
-export { FileServiceExample, runFileServiceExamples } from './FileServiceExample';

@@ -136,6 +136,11 @@ export class TagModel extends BaseModel<Tag> {
     return this.data.priority === 'high' || this.data.priority === 'critical';
   }
 
+  /** Verifica si es un álbum */
+  isAlbum(): boolean {
+    return this.data.type === 'album';
+  }
+
   /** Verifica si puede eliminarse */
   canBeDeleted(): boolean {
     return this.data.type !== 'system' && this.data.usageCount === 0;

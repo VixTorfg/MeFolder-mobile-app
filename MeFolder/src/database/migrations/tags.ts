@@ -17,7 +17,7 @@ export const createTagsTable = async (): Promise<void> => {
       description TEXT,
       
       type TEXT NOT NULL DEFAULT 'user' 
-        CHECK (type IN ('system', 'user', 'automatic')),
+        CHECK (type IN ('system', 'user', 'automatic', 'album')),
       priority TEXT NOT NULL DEFAULT 'normal' 
         CHECK (priority IN ('low', 'normal', 'high', 'critical')),
       

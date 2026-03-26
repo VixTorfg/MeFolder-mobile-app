@@ -1,7 +1,7 @@
 import { BaseEntity, UUID } from '../common/base';
 import { ColorInfo } from '../common/colors';
 
-export type TagType = 'system' | 'user' | 'automatic';
+export type TagType = 'system' | 'user' | 'automatic' | 'album';
 
 export type TagPriority = 'low' | 'normal' | 'high' | 'critical';
 
@@ -44,3 +44,4 @@ export interface TagWithRelations extends Tag {
   fileCount: number;        
   folderCount: number;      
 }
+

@@ -5,6 +5,7 @@ import { createFoldersTable } from '@/database/migrations/folders';
 import { createTagsTable } from '@/database/migrations/tags';
 import { createUserColorsTable } from '@/database/migrations/userColors';
 import { seedSystemFolders } from '@/database/seeds/systemFolders';
+import { seedSystemTags } from '@/database/seeds/systemTags';
 
 interface DatabaseContextType {
   /** Instancia singleton de la base de datos */
@@ -53,6 +54,7 @@ const runMigrations = async (): Promise<void> => {
   await createUserColorsTable();
 
   // Seeds: carpetas del sistema (idempotente, segura en cada arranque)
+  await seedSystemTags();
   await seedSystemFolders();
 
   console.log('Migraciones completadas exitosamente');

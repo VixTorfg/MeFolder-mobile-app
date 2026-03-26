@@ -6,6 +6,7 @@ import {
 import { UUID } from '../types/common/base';
 import { ColorInfo } from '../types/common/colors';
 import { TagModel, TagFactory } from '../models/tag';
+import { SYSTEM_ALBUM_TAG_ID } from '../database/seeds/systemTags';
 
 /**
  * TagService MVP - Funcionalidades básicas para desarrollo inicial
@@ -265,40 +266,37 @@ export class TagService extends BaseService {
   }
 
   /**
-   * Crear tags predeterminados del sistema
+   * Crear nuevo álbum (tag de tipo album, hijo de sys_album)
    */
-  async createSystemTags(): Promise<TagModel[]> {
+  async createAlbum(input: Omit<CreateTagInput, 'type' | 'parentId'>): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
 
-      const systemTags = [
-        { name: 'Importante', color: { hex: '#ff4444', rgb: { r: 255, g: 68, b: 68 }, isSystem: true, systemName: 'red' as const }, type: 'system' as TagType },
-        { name: 'Trabajo', color: { hex: '#4444ff', rgb: { r: 68, g: 68, b: 255 }, isSystem: true, systemName: 'blue' as const }, type: 'system' as TagType },
-        { name: 'Personal', color: { hex: '#44ff44', rgb: { r: 68, g: 255, b: 68 }, isSystem: true, systemName: 'green' as const }, type: 'system' as TagType },
-        { name: 'Documento', color: { hex: '#ffaa44', rgb: { r: 255, g: 170, b: 68 }, isSystem: true, systemName: 'orange' as const }, type: 'system' as TagType },
-        { name: 'Imagen', color: { hex: '#aa44ff', rgb: { r: 170, g: 68, b: 255 }, isSystem: true, systemName: 'purple' as const }, type: 'system' as TagType },
-        { name: 'Favorito', color: { hex: '#ff44aa', rgb: { r: 255, g: 68, b: 170 }, isSystem: true, systemName: 'pink' as const }, type: 'system' as TagType }
-      ];
+      await this.validateUniqueTagName(input.name);
 
-      const createdTags: TagModel[] = [];
+      const tag = await this.tagRepo.create({
+        ...input,
+        type: 'album',
+        parentId: SYSTEM_ALBUM_TAG_ID,
+      });
 
-      for (const tagData of systemTags) {
-        try {
-          // Verificar si ya existe
-          const existing = await this.tagRepo.findByName(tagData.name);
-          if (!existing) {
-            const tag = await this.tagRepo.create(tagData);
-            createdTags.push(TagFactory.fromJSON(tag));
-          }
-        } catch {
-          // Continuar si hay error con un tag específico
-        }
-      }
-
-      return createdTags;
-      
+      return TagFactory.fromJSON(tag);
     } catch (error) {
-      return this.handleError(error, 'crear tags del sistema');
+      return this.handleError(error, 'crear álbum');
+    }
+  }
+
+  /**
+   * Obtener todos los álbumes (hijos de sys_album)
+   */
+  async getAlbums(): Promise<TagModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      const albums = await this.tagRepo.findByParentId(SYSTEM_ALBUM_TAG_ID);
+      return albums.map(t => TagFactory.fromJSON(t));
+    } catch (error) {
+      return this.handleError(error, 'obtener álbumes');
     }
   }
 

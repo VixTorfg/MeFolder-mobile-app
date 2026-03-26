@@ -5,9 +5,9 @@ export const getResponsiveSize = (screenWidth: number) => {
   const scale = screenWidth / baseWidth;
   
   return {
-    iconSize: Math.round(24 + (4 * scale)), 
-    padding: Math.round(16 + (8 * scale)),   
-    tabPadding: Math.round(12 + (4 * scale)),
+    iconSize: Math.round(20 + (4 * scale)), 
+    padding: Math.round(12 + (8 * scale)),   
+    tabPadding: Math.round(8 + (4 * scale)),
     scale, // Exponemos el scale para usar en otros componentes 
   };
 };
