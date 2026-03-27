@@ -4,10 +4,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/providers';
 import { useColors } from '@/hooks';
 import { useTagCreatorFormStyles } from './styles';
-import { ColorPicker } from '@/components/ColorPicker';
 import type { TagType } from '@/types/entities/tag';
 import type { ColorInfo } from '@/types/common/colors';
 import { ToggleAlbum, ToggleFavourite } from '../Toggles';
+import { ColorList } from '@/components/ColorPicker';
 
 export interface NewTag {
   name: string;
@@ -87,64 +87,22 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
         />
       </View>
 
-      {/* Color */}
-      <View style={styles.colorSection}>
-        <Text style={styles.label}>Color</Text>
-        <View style={styles.colorList}>
-          {colors.map((color, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[
-                styles.colorOption,
-                selectedColor === color && styles.colorOptionSelected,
-              ]}
-              onPress={() => setSelectedColor(color)}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[styles.colorOptionInner, { backgroundColor: color.hex }]}
-              />
-              {color.isFavorite && (
-                <Ionicons
-                  name="star"
-                  size={16}
-                  color={theme.colors.primary}
-                  style={{ position: 'absolute', top: 20, right: 0 }}
-                />
-              )}
-            </TouchableOpacity>
-          ))}
+    <View style={styles.colorSection}>
+    <Text style={styles.label}>Color</Text>   
+        <ColorList
+            colors={colors}
+            selectedColor={selectedColor}
+            onSelect={setSelectedColor}
+            onAddColor={() => setShowColorPicker(true)}
+            showPicker={showColorPicker}
+            onClosePicker={() => setShowColorPicker(false)}
+            onSavePickerColor={handleSaveColor}
+        />
+    </View>
 
-          {/* Agregar color personalizado */}
-          <TouchableOpacity
-            style={styles.colorOption}
-            onPress={() => setShowColorPicker(true)}
-            activeOpacity={0.7}
-          >
-            <View
-              style={[
-                styles.colorOptionInner,
-                {
-                  borderWidth: 1.5,
-                  borderColor: theme.colors.borderSoft,
-                  borderStyle: 'dashed',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                },
-              ]}
-            >
-              <Ionicons name="add" size={18} color={theme.colors.textSecondary} />
-            </View>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Opciones: Álbum y Favorito */}
       <View style={styles.optionsSection}>
         <Text style={styles.label}>Opciones</Text>
-
         <ToggleAlbum onToggle={() => setIsAlbum(!isAlbum)} isActive={isAlbum} />
-
         <ToggleFavourite onToggle={() => setIsFavorite(!isFavorite)} isActive={isFavorite} />
       </View>
 
@@ -167,7 +125,6 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
         </View>
       </View>
 
-      {/* Botón guardar */}
       <TouchableOpacity
         style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
         onPress={handleSave}
@@ -176,12 +133,6 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
       >
         <Text style={styles.saveButtonText}>Crear etiqueta</Text>
       </TouchableOpacity>
-
-      <ColorPicker
-        visible={showColorPicker}
-        onClose={() => setShowColorPicker(false)}
-        onSave={async (data) => await handleSaveColor(data)}
-      />
     </View>
   );
 }
