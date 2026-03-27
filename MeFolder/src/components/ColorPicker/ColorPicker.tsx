@@ -3,39 +3,18 @@ import {
   View,
   Text,
   TouchableOpacity,
-  Modal,
   ScrollView,
   TextInput,
   Dimensions,
   Switch,
-  KeyboardAvoidingView,
-  Platform,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withTiming,
-  Easing,
-  interpolate,
-  Extrapolation,
-} from 'react-native-reanimated';
-import { scheduleOnRN } from 'react-native-worklets';
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from 'react-native-gesture-handler';
 import { Ionicons } from '@expo/vector-icons';
 import { useAlert, useTheme } from '@/providers';
 import { useColorPickerStyles } from './styles';
+import { BottomSheet } from '@/animations';
 import { ColorInfo } from '@/types/common/colors';
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
-const CLOSE_THRESHOLD = 120;
-
-const OPEN_CONFIG = { duration: 400, easing: Easing.out(Easing.cubic) };
-const CLOSE_CONFIG = { duration: 250, easing: Easing.in(Easing.cubic) };
-const SNAP_BACK_CONFIG = { duration: 200, easing: Easing.out(Easing.cubic) };
 
 const GRAYSCALE_STEPS = [
   '#FFFFFF', '#E0E0E0', '#C0C0C0', '#A0A0A0',
@@ -136,56 +115,6 @@ export default function ColorPicker({
   const { theme } = useTheme();
   const { showAlert } = useAlert();
   const styles = useColorPickerStyles();
-
-  const translateY = useSharedValue(SCREEN_HEIGHT);
-  const overlayProgress = useSharedValue(0);
-
-  const onModalShow = useCallback(() => {
-    translateY.value = withTiming(0, OPEN_CONFIG);
-    overlayProgress.value = withTiming(1, OPEN_CONFIG);
-  }, []);
-
-  const closeModal = useCallback(() => {
-    onClose();
-  }, [onClose]);
-
-  const animateClose = useCallback(() => {
-    translateY.value = withTiming(SCREEN_HEIGHT, CLOSE_CONFIG, (finished) => {
-      if (finished) scheduleOnRN(closeModal);
-    });
-    overlayProgress.value = withTiming(0, CLOSE_CONFIG);
-  }, [closeModal]);
-
-  const handleClose = useCallback(() => animateClose(), [animateClose]);
-
-  const panGesture = Gesture.Pan()
-    .onUpdate((e) => {
-      if (e.translationY > 0) {
-        translateY.value = e.translationY;
-        overlayProgress.value = interpolate(
-          e.translationY,
-          [0, SCREEN_HEIGHT],
-          [1, 0],
-          Extrapolation.CLAMP,
-        );
-      }
-    })
-    .onEnd((e) => {
-      if (e.translationY > CLOSE_THRESHOLD || e.velocityY > 500) {
-        translateY.value = withTiming(SCREEN_HEIGHT, CLOSE_CONFIG, (finished) => {
-          if (finished) scheduleOnRN(closeModal);
-        });
-        overlayProgress.value = withTiming(0, CLOSE_CONFIG);
-      } else {
-        translateY.value = withTiming(0, SNAP_BACK_CONFIG);
-        overlayProgress.value = withTiming(1, SNAP_BACK_CONFIG);
-      }
-    });
-
-  const overlayStyle = useAnimatedStyle(() => ({ opacity: overlayProgress.value }));
-  const containerStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: translateY.value }],
-  }));
 
   const initRgb = initialColor?.rgb ?? { r: 242, g: 201, b: 76 };
   const initHsl = rgbToHsl(initRgb.r, initRgb.g, initRgb.b);
@@ -306,49 +235,11 @@ export default function ColorPicker({
     };
 
     onSave?.(colorInfo);
-    handleClose();
-  }, [currentHex, selectedR, selectedG, selectedB, colorName, isFavorite, onSave, handleClose]);
+    onClose();
+  }, [currentHex, selectedR, selectedG, selectedB, colorName, isFavorite, onSave, onClose]);
 
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      transparent
-      statusBarTranslucent
-      onShow={onModalShow}
-      onRequestClose={handleClose}
-    >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        
-        <Animated.View style={[styles.overlay, overlayStyle]}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
-        </Animated.View>
-
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        >
-        <Animated.View style={[styles.containerWrapper, containerStyle]}>
-          <View style={styles.container}>
-
-            <GestureDetector gesture={panGesture}>
-              <Animated.View style={styles.handleZone}>
-                <View style={styles.handle} />
-              </Animated.View>
-            </GestureDetector>
-
-
-            <View style={styles.header}>
-              <Text style={styles.headerTitle}>Nuevo color</Text>
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={handleClose}
-                activeOpacity={0.7}
-              >
-                <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
-              </TouchableOpacity>
-            </View>
-
+    <BottomSheet visible={visible} onClose={onClose} title="Nuevo color">
             <ScrollView
               showsVerticalScrollIndicator={false}
               contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.08 }}
@@ -524,10 +415,6 @@ export default function ColorPicker({
                 <Text style={styles.saveButtonText}>Guardar color</Text>
               </TouchableOpacity>
             </ScrollView>
-          </View>
-        </Animated.View>
-        </KeyboardAvoidingView>
-      </GestureHandlerRootView>
-    </Modal>
+    </BottomSheet>
   );
 }

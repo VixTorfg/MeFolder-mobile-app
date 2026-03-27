@@ -5,3 +5,4 @@ export { useAlert } from '@/providers';
 export * from './useStyles';
 export * from './useFileSystem';
 export * from './useMedia';
+export * from './useColors';

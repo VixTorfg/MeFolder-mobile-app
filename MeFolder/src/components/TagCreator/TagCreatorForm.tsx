@@ -1,0 +1,187 @@
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTheme } from '@/providers';
+import { useColors } from '@/hooks';
+import { useTagCreatorFormStyles } from './styles';
+import { ColorPicker } from '@/components/ColorPicker';
+import type { TagType } from '@/types/entities/tag';
+import type { ColorInfo } from '@/types/common/colors';
+import { ToggleAlbum, ToggleFavourite } from '../Toggles';
+
+export interface NewTag {
+  name: string;
+  description: string | null;
+  color: ColorInfo;
+  type: TagType;
+  isFavorite: boolean;
+}
+
+interface TagCreatorFormProps {
+  onSave: (data: NewTag) => Promise<void> | void;
+}
+
+export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
+  const { theme } = useTheme();
+  const styles = useTagCreatorFormStyles();
+  const { colors, selectedColor, showColorPicker, setSelectedColor, setShowColorPicker, handleSaveColor } = useColors();
+
+  const [tagName, setTagName] = useState('');
+  const [description, setDescription] = useState('');
+  const [isAlbum, setIsAlbum] = useState(false);
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [nameFocused, setNameFocused] = useState(false);
+  const [descFocused, setDescFocused] = useState(false);
+
+  const canSave = tagName.trim().length > 0;
+
+  const handleSave = async (): Promise<void> => {
+    if (!canSave) return;
+
+    await onSave({
+      name: tagName.trim(),
+      description: description.trim() || null,
+      color: selectedColor,
+      type: isAlbum ? 'album' : 'user',
+      isFavorite,
+    });
+  };
+
+
+
+  return (
+    <View style={styles.container}>
+      {/* Nombre */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Nombre</Text>
+        <TextInput
+          style={[styles.textInput, nameFocused && styles.textInputFocused]}
+          value={tagName}
+          onChangeText={setTagName}
+          placeholder="Nombre de la etiqueta"
+          placeholderTextColor={theme.colors.textMuted}
+          onFocus={() => setNameFocused(true)}
+          onBlur={() => setNameFocused(false)}
+          maxLength={50}
+        />
+      </View>
+
+      {/* Descripción */}
+      <View style={styles.inputGroup}>
+        <Text style={styles.label}>Descripción (opcional)</Text>
+        <TextInput
+          style={[
+            styles.textInput,
+            styles.descriptionInput,
+            descFocused && styles.textInputFocused,
+          ]}
+          value={description}
+          onChangeText={setDescription}
+          placeholder="Añade una descripción..."
+          placeholderTextColor={theme.colors.textMuted}
+          multiline
+          numberOfLines={3}
+          onFocus={() => setDescFocused(true)}
+          onBlur={() => setDescFocused(false)}
+          maxLength={300}
+        />
+      </View>
+
+      {/* Color */}
+      <View style={styles.colorSection}>
+        <Text style={styles.label}>Color</Text>
+        <View style={styles.colorList}>
+          {colors.map((color, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.colorOption,
+                selectedColor === color && styles.colorOptionSelected,
+              ]}
+              onPress={() => setSelectedColor(color)}
+              activeOpacity={0.7}
+            >
+              <View
+                style={[styles.colorOptionInner, { backgroundColor: color.hex }]}
+              />
+              {color.isFavorite && (
+                <Ionicons
+                  name="star"
+                  size={16}
+                  color={theme.colors.primary}
+                  style={{ position: 'absolute', top: 20, right: 0 }}
+                />
+              )}
+            </TouchableOpacity>
+          ))}
+
+          {/* Agregar color personalizado */}
+          <TouchableOpacity
+            style={styles.colorOption}
+            onPress={() => setShowColorPicker(true)}
+            activeOpacity={0.7}
+          >
+            <View
+              style={[
+                styles.colorOptionInner,
+                {
+                  borderWidth: 1.5,
+                  borderColor: theme.colors.borderSoft,
+                  borderStyle: 'dashed',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+              ]}
+            >
+              <Ionicons name="add" size={18} color={theme.colors.textSecondary} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {/* Opciones: Álbum y Favorito */}
+      <View style={styles.optionsSection}>
+        <Text style={styles.label}>Opciones</Text>
+
+        <ToggleAlbum onToggle={() => setIsAlbum(!isAlbum)} isActive={isAlbum} />
+
+        <ToggleFavourite onToggle={() => setIsFavorite(!isFavorite)} isActive={isFavorite} />
+      </View>
+
+      {/* Preview */}
+      <View style={styles.previewSection}>
+        <Text style={styles.label}>Vista previa</Text>
+        <View style={styles.previewContainer}>
+          <View style={[styles.previewTag, { borderColor: selectedColor.hex }]}>
+            <View style={[styles.previewDot, { backgroundColor: selectedColor.hex }]} />
+            <Text style={styles.previewTagText}>
+              {tagName.trim() || 'Etiqueta'}
+            </Text>
+            {isAlbum && (
+              <Ionicons name="albums" size={14} color={theme.colors.textSecondary} />
+            )}
+            {isFavorite && (
+              <Ionicons name="star" size={14} color={theme.colors.primary} />
+            )}
+          </View>
+        </View>
+      </View>
+
+      {/* Botón guardar */}
+      <TouchableOpacity
+        style={[styles.saveButton, !canSave && styles.saveButtonDisabled]}
+        onPress={handleSave}
+        disabled={!canSave}
+        activeOpacity={0.8}
+      >
+        <Text style={styles.saveButtonText}>Crear etiqueta</Text>
+      </TouchableOpacity>
+
+      <ColorPicker
+        visible={showColorPicker}
+        onClose={() => setShowColorPicker(false)}
+        onSave={async (data) => await handleSaveColor(data)}
+      />
+    </View>
+  );
+}

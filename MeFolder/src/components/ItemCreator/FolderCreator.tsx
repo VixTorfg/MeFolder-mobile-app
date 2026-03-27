@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useAlert, useServices, useTheme } from '@/providers';
+import { useTheme } from '@/providers';
+import { useColors } from '@/hooks';
 import { useFolderCreatorStyles } from './styles';
 import { ColorInfo } from '@/types/common/colors';
 import { SYSTEM_COLORS } from '@/constants/themes/colors';
@@ -50,48 +51,17 @@ const MOCK_TAGS: MockTag[] = [
   { id: '5', name: 'Referencia', color: '#F2994A' },
 ];
 
-function sortColors(colors: ColorInfo[]): ColorInfo[] {
-  return colors.sort((a, b) => {
-    if (a.isFavorite && !b.isFavorite) return -1;
-    if (!a.isFavorite && b.isFavorite) return 1;
-    return 0;
-  });
-}
-
 export default function FolderCreator({ onSave, currentFolderId }: FolderCreatorProps) {
   const { theme } = useTheme();
-  const { showAlert } = useAlert();
-  const { services: { userColorService } } = useServices();
   const styles = useFolderCreatorStyles();
+  const { colors, selectedColor, showColorPicker, setSelectedColor, setShowColorPicker, handleSaveColor } = useColors();
 
   const [folderName, setFolderName] = useState('');
   const [description, setDescription] = useState('');
-  const [selectedColor, setSelectedColor] = useState<ColorInfo>(SYSTEM_COLORS['yellow']);
   const [selectedIcon, setSelectedIcon] = useState<string>(FOLDER_ICONS[0]!.id);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [nameFocused, setNameFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
-  const [showColorPicker, setShowColorPicker] = useState(false);
-  const [colors, setColors] = useState<ColorInfo[] | []>(SYSTEM_COLORS ? Object.values(SYSTEM_COLORS) : []);
-
-  useEffect(() => {
-    async function loadUserColors() {
-      if(!userColorService) return;
-      try {
-        const userColors = await userColorService.getAllColors();
-
-        const allColors = [...colors, ...userColors];
-        const sortedColors = sortColors(allColors);
-
-        setColors(sortedColors);
-      } catch (error) {
-        console.error('Error loading user colors:', error);
-        showAlert({ title: 'Error', message: 'No se pudieron cargar los colores personalizados. Inténtalo de nuevo.' });
-      }
-    }
-
-    loadUserColors();
-  }, [userColorService]);
 
   const toggleTag = (tagId: string): void => {
     setSelectedTags(prev => {
@@ -129,23 +99,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       return;
     }
     setSelectedIcon(iconId);
-  }
-
-  const handleSaveColor = async (data: ColorInfo): Promise<void> => {
-    try
-    {
-      if(!userColorService) return;
-
-      await userColorService.createColor(data);
-        
-      setColors(prev => [...prev, data]);
-      setSelectedColor(data);
-      setShowColorPicker(false);
-        
-    }catch(error){
-      showAlert({ title: 'Error', message: 'No se pudo guardar el color personalizado. Inténtalo de nuevo.' });
-      return;
-    }
   }
 
   return (
