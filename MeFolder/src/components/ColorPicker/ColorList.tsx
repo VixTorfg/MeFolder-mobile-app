@@ -1,6 +1,5 @@
 import { ColorInfo } from "@/types/common/colors";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/providers";
 import { useColorListStyles } from "./styles";
 import { TouchableOpacity, View } from "react-native";
 import ColorPicker from "./ColorPicker";
@@ -25,16 +24,15 @@ export const ColorList = ({
     onClosePicker, 
     onSavePickerColor 
 }: ColorListProps) => {
-    const { theme } = useTheme();
     const styles = useColorListStyles();
 
     return(
         <>
        
             <View style={styles.colorList}>
-            {colors.map((color, index) => (
+            {colors.map((color) => (
                 <TouchableOpacity
-                key={index}
+                key={color.hex}
                 style={[
                     styles.colorOption,
                     selectedColor === color && styles.colorOptionSelected,
@@ -49,8 +47,8 @@ export const ColorList = ({
                     <Ionicons
                     name="star"
                     size={16}
-                    color={theme.colors.primary}
-                    style={{ position: 'absolute', top: 20, right: 0 }}
+                    color={styles.favoriteIconColor.color}
+                    style={styles.favoriteIcon}
                     />
                 )}
                 </TouchableOpacity>
@@ -62,19 +60,8 @@ export const ColorList = ({
                 onPress={onAddColor}
                 activeOpacity={0.7}
             >
-                <View
-                style={[
-                    styles.colorOptionInner,
-                    {
-                        borderWidth: 1.5,
-                        borderColor: theme.colors.borderSoft,
-                        borderStyle: 'dashed',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                    },
-                ]}
-                >
-                <Ionicons name="add" size={18} color={theme.colors.textSecondary} />
+                <View style={styles.addButtonInner}>
+                    <Ionicons name="add" size={18} color={styles.addIconColor.color} />
                 </View>
             </TouchableOpacity>
             </View>
@@ -82,7 +69,7 @@ export const ColorList = ({
         <ColorPicker
             visible={showPicker}
             onClose={onClosePicker}
-            onSave={async (data) => await onSavePickerColor(data)}
+            onSave={onSavePickerColor}
         />
       </>
     )

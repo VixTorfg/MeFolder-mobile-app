@@ -225,5 +225,26 @@ export const useColorListStyles = () => {
       height: 30,
       borderRadius: 15,
     },
+    favoriteIcon: {
+      position: 'absolute',
+      top: 20,
+      right: 0,
+    },
+    favoriteIconColor: {
+      color: theme.colors.primary,
+    },
+    addButtonInner: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+      borderWidth: 1.5,
+      borderColor: theme.colors.borderSoft,
+      borderStyle: 'dashed',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addIconColor: {
+      color: theme.colors.textSecondary,
+    },
   }))
 }
