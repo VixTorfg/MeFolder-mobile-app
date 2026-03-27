@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/providers';
 import { useColors } from '@/hooks';
 import { useTagCreatorFormStyles } from './styles';
@@ -8,6 +7,7 @@ import type { TagType, TagPriority } from '@/types/entities/tag';
 import type { ColorInfo } from '@/types/common/colors';
 import { ToggleAlbum, ToggleFavourite, PrioritySelector } from '../Toggles';
 import { ColorList } from '@/components/ColorPicker';
+import { TagPreview } from './TagPreview';
 
 export interface NewTag {
   name: string;
@@ -57,16 +57,21 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
       {/* Nombre */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Nombre</Text>
-        <TextInput
-          style={[styles.textInput, nameFocused && styles.textInputFocused]}
-          value={tagName}
-          onChangeText={setTagName}
-          placeholder="Nombre de la etiqueta"
-          placeholderTextColor={theme.colors.textMuted}
-          onFocus={() => setNameFocused(true)}
-          onBlur={() => setNameFocused(false)}
-          maxLength={50}
-        />
+        <View style={styles.nameInputAndPreview}>
+            <TextInput
+                style={[styles.textInput, styles.nameInput, nameFocused && styles.textInputFocused]}
+                value={tagName}
+                onChangeText={setTagName}
+                placeholder="Nombre de la etiqueta"
+                placeholderTextColor={theme.colors.textMuted}
+                onFocus={() => setNameFocused(true)}
+                onBlur={() => setNameFocused(false)}
+                maxLength={50}
+            />
+            <View style={styles.namePreview}>
+                <TagPreview name={tagName} color={selectedColor} isAlbum={isAlbum} isFavorite={isFavorite} />
+            </View>
+        </View>
       </View>
 
       {/* Descripción */}
@@ -112,25 +117,6 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
         <Text style={styles.label}>Opciones</Text>
         <ToggleAlbum onToggle={() => setIsAlbum(!isAlbum)} isActive={isAlbum} />
         <ToggleFavourite onToggle={() => setIsFavorite(!isFavorite)} isActive={isFavorite} />
-      </View>
-
-      {/* Preview */}
-      <View style={styles.previewSection}>
-        <Text style={styles.label}>Vista previa</Text>
-        <View style={styles.previewContainer}>
-          <View style={[styles.previewTag, { borderColor: selectedColor.hex }]}>
-            <View style={[styles.previewDot, { backgroundColor: selectedColor.hex }]} />
-            <Text style={styles.previewTagText}>
-              {tagName.trim() || 'Etiqueta'}
-            </Text>
-            {isAlbum && (
-              <Ionicons name="albums" size={14} color={theme.colors.textSecondary} />
-            )}
-            {isFavorite && (
-              <Ionicons name="star" size={14} color={theme.colors.primary} />
-            )}
-          </View>
-        </View>
       </View>
 
       <TouchableOpacity
