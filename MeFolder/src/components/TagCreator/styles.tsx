@@ -1,4 +1,4 @@
-import { useStyles } from '@/hooks';
+import { useStyles } from '@/hooks/useStyles';
 
 export const useTagCreatorFormStyles = () => {
   return useStyles(theme => ({

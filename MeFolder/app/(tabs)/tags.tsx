@@ -3,9 +3,8 @@ import { View, Text, ScrollView, TouchableOpacity, FlatList } from 'react-native
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { MultiActionButton, TagCreator } from '@/components';
 import { useTagsStyles } from '@/screenStyles/tagsStyle';
-import TagCreatorForm from '@/components/TagCreator/TagCreatorForm';
-
-// ── Datos de ejemplo para maquetar ──
+import { useServices } from '@/providers';
+import { useTagsActions } from '@/hooks/tags/useTagsActions';
 
 type SampleTag = {
   id: string;
@@ -47,11 +46,14 @@ const PRIORITY_CONFIG = {
 
 export default function TagsScreen() {
   const [showTagCreator, setShowTagCreator] = useState(false);
+  const [tags, setTags] = useState<any>(SAMPLE_TAGS);
+  const { services: { tagService } } = useServices();
+  const { handleSaveTag } = useTagsActions({ tagService, onTagCreated: (newTag) => setTags(prev => [...prev, newTag]) });
   const styles = useTagsStyles();
 
-  const favoriteTags = SAMPLE_TAGS.filter(t => t.favorite);
-  const highPriorityTags = SAMPLE_TAGS.filter(t => t.priority === 'high' || t.priority === 'critical');
-  const allTags = SAMPLE_TAGS;
+  const favoriteTags = tags.filter(t => t.favorite);
+  const highPriorityTags = tags.filter(t => t.priority === 'high' || t.priority === 'critical');
+  const allTags = tags;
 
   // ── Header buttons ──
   const renderHeaderButtons = () => (
@@ -264,7 +266,7 @@ export default function TagsScreen() {
         <TagCreator 
             visible={showTagCreator}
             onClose={() => setShowTagCreator(false)}
-            onSave={()=>(console.log("guardando..."))}//handleSaveTag}
+            onSave={(data) => handleSaveTag(data)}
         />
       )}
     </View>

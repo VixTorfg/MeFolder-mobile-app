@@ -159,7 +159,6 @@ export class TagFactory {
       priority: input.priority || 'normal',
       isActive: true,
       usageCount: 0,
-      children: [],
       createdAt: now,
       updatedAt: now,
 

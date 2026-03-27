@@ -17,7 +17,6 @@ export interface Tag extends BaseEntity {
   lastUsedAt?: Date;         
   
   parentId?: UUID;
-  children?: UUID[];
 }
 
 export interface CreateTagInput {

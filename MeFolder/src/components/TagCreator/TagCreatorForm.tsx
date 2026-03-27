@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '@/providers';
 import { useColors } from '@/hooks';
 import { useTagCreatorFormStyles } from './styles';
-import type { TagType } from '@/types/entities/tag';
+import type { TagType, TagPriority } from '@/types/entities/tag';
 import type { ColorInfo } from '@/types/common/colors';
-import { ToggleAlbum, ToggleFavourite } from '../Toggles';
+import { ToggleAlbum, ToggleFavourite, PrioritySelector } from '../Toggles';
 import { ColorList } from '@/components/ColorPicker';
 
 export interface NewTag {
@@ -14,6 +14,7 @@ export interface NewTag {
   description: string | null;
   color: ColorInfo;
   type: TagType;
+  priority: TagPriority;
   isFavorite: boolean;
 }
 
@@ -30,6 +31,7 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
   const [description, setDescription] = useState('');
   const [isAlbum, setIsAlbum] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
+  const [priority, setPriority] = useState<TagPriority>('normal');
   const [nameFocused, setNameFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
 
@@ -43,6 +45,7 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
       description: description.trim() || null,
       color: selectedColor,
       type: isAlbum ? 'album' : 'user',
+      priority,
       isFavorite,
     });
   };
@@ -99,6 +102,11 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
             onSavePickerColor={handleSaveColor}
         />
     </View>
+
+      <View style={styles.optionsSection}>
+        <Text style={styles.label}>Prioridad</Text>
+        <PrioritySelector selected={priority} onSelect={setPriority} />
+      </View>
 
       <View style={styles.optionsSection}>
         <Text style={styles.label}>Opciones</Text>

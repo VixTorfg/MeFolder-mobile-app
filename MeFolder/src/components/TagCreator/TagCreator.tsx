@@ -21,7 +21,7 @@ export default function TagCreator({ visible, onClose, onSave }: TagCreatorProps
     <BottomSheet visible={visible} onClose={onClose} title="Nueva etiqueta">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.10 }}
+        contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.15 }}
         keyboardShouldPersistTaps="handled"
       >
         <TagCreatorForm onSave={handleSave} />
