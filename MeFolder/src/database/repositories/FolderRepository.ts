@@ -1,18 +1,18 @@
-import { Database } from '../sqlite/Database';
-import { FolderFactory } from '../../models/folder';
-import { 
-  Folder, 
-  CreateFolderInput, 
-  UpdateFolderInput, 
-  FolderStatus, 
+import { Database } from "../sqlite/Database";
+import { FolderFactory } from "../../models/folder";
+import {
+  Folder,
+  CreateFolderInput,
+  UpdateFolderInput,
+  FolderStatus,
   FolderVisibility,
   FolderType,
-  FolderViewSettings
-} from '../../types/entities/folder';
-import { UUID } from '../../types/common/base';
-import { ColorInfo } from '../../types/common/colors';
-import { FolderRepository } from '../../types/repositories/folder';
-import { ROOT_FOLDER_ID } from '../seeds/systemFolders';
+  FolderViewSettings,
+} from "../../types/entities/folder";
+import { UUID } from "../../types/common/base";
+import { ColorInfo } from "../../types/common/colors";
+import { FolderRepository } from "../../types/repositories/folder";
+import { ROOT_FOLDER_ID } from "../seeds/systemFolders";
 
 /**
  * Implementación del repositorio de carpetas.
@@ -31,13 +31,13 @@ export class FolderRepositoryImplementation implements FolderRepository {
   async findById(id: UUID): Promise<Folder | null> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT * FROM folders WHERE id = ?',
-        [id]
+        "SELECT * FROM folders WHERE id = ?",
+        [id],
       );
 
       return row ? this.mapRowToFolder(row) : null;
     } catch (error) {
-      console.error('Error finding folder by id:', error);
+      console.error("Error finding folder by id:", error);
       throw new Error(`Error al buscar carpeta: ${error}`);
     }
   }
@@ -48,13 +48,13 @@ export class FolderRepositoryImplementation implements FolderRepository {
   async findRootFolders(): Promise<Folder[]> {
     try {
       const rows = await this.db.query<any>(
-        'SELECT * FROM folders WHERE (parent_id = ? OR parent_id IS NULL) AND id != ? AND status != ?',
-        [ROOT_FOLDER_ID, ROOT_FOLDER_ID, 'deleted']
+        "SELECT * FROM folders WHERE (parent_id = ? OR parent_id IS NULL) AND id != ? AND status != ?",
+        [ROOT_FOLDER_ID, ROOT_FOLDER_ID, "deleted"],
       );
 
       return rows.map(this.mapRowToFolder);
     } catch (error) {
-      console.error('Error finding root folders:', error);
+      console.error("Error finding root folders:", error);
       throw new Error(`Error al buscar carpetas raíz: ${error}`);
     }
   }
@@ -63,12 +63,15 @@ export class FolderRepositoryImplementation implements FolderRepository {
    * Devuelve las carpetas hijas de una carpeta padre dada.
    */
   async findChildren(folderId: UUID): Promise<Folder[]> {
-     try {
-      const rows = await this.findAll({
-        parentId: folderId,
-        status: 'active'
-      }, false);
-    
+    try {
+      const rows = await this.findAll(
+        {
+          parentId: folderId,
+          status: "active",
+        },
+        false,
+      );
+
       return rows.map(this.mapRowToFolder);
     } catch (error) {
       throw new Error(`Error al buscar carpetas: ${error}`);
@@ -80,86 +83,85 @@ export class FolderRepositoryImplementation implements FolderRepository {
    */
   async findAll(filters?: any, includeDeleted = false): Promise<Folder[]> {
     try {
-
       let sql = includeDeleted
-        ? 'SELECT * FROM folders WHERE 1=1'
-        : 'SELECT * FROM folders WHERE status != ?';
-      const params: any[] = includeDeleted ? [] : ['deleted'];
+        ? "SELECT * FROM folders WHERE 1=1"
+        : "SELECT * FROM folders WHERE status != ?";
+      const params: any[] = includeDeleted ? [] : ["deleted"];
 
       // Aplicar filtros si existen
       if (filters) {
         if (filters.parentId) {
-          sql += ' AND parent_id = ?';
+          sql += " AND parent_id = ?";
           params.push(filters.parentId);
         }
         if (filters.status) {
-          sql += ' AND status = ?';
+          sql += " AND status = ?";
           params.push(filters.status);
         }
         if (filters.visibility) {
-          sql += ' AND visibility = ?';
+          sql += " AND visibility = ?";
           params.push(filters.visibility);
         }
         if (filters.type) {
-          sql += ' AND type = ?';
+          sql += " AND type = ?";
           params.push(filters.type);
         }
         if (filters.level !== undefined) {
-          sql += ' AND level = ?';
+          sql += " AND level = ?";
           params.push(filters.level);
         }
         if (filters.isSystemFolder !== undefined) {
-          sql += ' AND is_system_folder = ?';
+          sql += " AND is_system_folder = ?";
           params.push(filters.isSystemFolder);
         }
       }
 
-      sql += ' ORDER BY name ASC';
+      sql += " ORDER BY name ASC";
 
       // Paginación si se especifica
       if (filters?.limit) {
-        sql += ' LIMIT ?';
+        sql += " LIMIT ?";
         params.push(filters.limit);
         if (filters?.offset) {
-          sql += ' OFFSET ?';
+          sql += " OFFSET ?";
           params.push(filters.offset);
         }
       }
 
       const rows = await this.db.query<any>(sql, params);
-      return rows.map(row => this.mapRowToFolder(row));
+      return rows.map((row) => this.mapRowToFolder(row));
     } catch (error) {
-      console.error('Error finding all folders:', error);
+      console.error("Error finding all folders:", error);
       throw new Error(`Error al buscar carpetas: ${error}`);
     }
   }
 
-  /** 
+  /**
    * Actualizar estado de la carpeta
    */
   async updateStatus(folderId: UUID, status: string): Promise<void> {
     try {
       await this.db.execute(
-        'UPDATE folders SET status = ?, updated_at = ? WHERE id = ?',
-        [status, new Date().getTime(), folderId]
+        "UPDATE folders SET status = ?, updated_at = ? WHERE id = ?",
+        [status, new Date().getTime(), folderId],
       );
     } catch (error) {
-      console.error('Error updating folder status:', error);
+      console.error("Error updating folder status:", error);
       throw new Error(`Error al actualizar estado de la carpeta: ${error}`);
     }
   }
 
   /**
-   * Restaurar carpeta eliminado 
+   * Restaurar carpeta eliminado
    */
   async restore(folderId: UUID): Promise<void> {
     try {
       await this.db.execute(
-        'UPDATE folders SET status = ?, updated_at = ? WHERE id = ?',
-        ['active', new Date().getTime(), folderId]
+        "UPDATE folders SET status = ?, updated_at = ? WHERE id = ?",
+        ["active", new Date().getTime(), folderId],
       );
     } catch (error) {
-      console.error('Error restoring folder:', error);
+      console.error("Error restoring folder:", error);
       throw new Error(`Error al restaurar carpeta: ${error}`);
     }
   }
@@ -184,7 +186,9 @@ export class FolderRepositoryImplementation implements FolderRepository {
 
       const validation = folderModel.validate();
       if (!validation.isValid) {
-        throw new Error(`Validación fallida: ${validation.errors.map(e => e.message).join(', ')}`);
+        throw new Error(
+          `Validación fallida: ${validation.errors.map((e) => e.message).join(", ")}`,
+        );
       }
 
       await this.db.transaction([
@@ -200,26 +204,39 @@ export class FolderRepositoryImplementation implements FolderRepository {
             view_settings_show_extension, last_accessed_at, archived_at
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
-            folder.id, folder.createdAt, folder.updatedAt,
-            folder.name, folder.description, folder.parentId, folder.path, folder.level,
-            folder.status, folder.type, folder.visibility,
-            folder.color?.hex, folder.color?.rgb.r, folder.color?.rgb.g, folder.color?.rgb.b,
-            folder.icon, folder.isFavorite, folder.isProtected, folder.isSystemFolder,
-            folder.viewSettings.sortBy, folder.viewSettings.sortOrder,
-            folder.viewSettings.viewMode, folder.viewSettings.options?.showHiddenFiles,
-            folder.viewSettings.options?.showExtension, folder.lastAccessedAt, folder.archivedAt
-          ]
+            folder.id,
+            folder.createdAt,
+            folder.updatedAt,
+            folder.name,
+            folder.description,
+            folder.parentId,
+            folder.path,
+            folder.level,
+            folder.status,
+            folder.type,
+            folder.visibility,
+            folder.color?.hex,
+            folder.color?.rgb.r,
+            folder.color?.rgb.g,
+            folder.color?.rgb.b,
+            folder.icon,
+            folder.isFavorite,
+            folder.isProtected,
+            folder.isSystemFolder,
+            folder.viewSettings.sortBy,
+            folder.viewSettings.sortOrder,
+            folder.viewSettings.viewMode,
+            folder.viewSettings.options?.showHiddenFiles,
+            folder.viewSettings.options?.showExtension,
+            folder.lastAccessedAt,
+            folder.archivedAt,
+          ],
         },
-        // Insertar tags si existen
-        ...(folder.tagIds?.map(tagId => ({
-          sql: 'INSERT INTO folder_tags (folder_id, tag_id) VALUES (?, ?)',
-          params: [folder.id, tagId]
-        })) || [])
       ]);
 
       return folder;
     } catch (error) {
-      console.error('Error creating folder:', error);
+      console.error("Error creating folder:", error);
       throw new Error(`Error al crear carpeta: ${error}`);
     }
   }
@@ -227,25 +244,31 @@ export class FolderRepositoryImplementation implements FolderRepository {
   /**
    * Obtiene la configuración de vista de una carpeta específica
    */
-  async getFolderViewConfig(folderId: UUID): Promise<Folder['viewSettings'] | null> {
-    try{
+  async getFolderViewConfig(
+    folderId: UUID,
+  ): Promise<Folder["viewSettings"] | null> {
+    try {
       const [row] = await this.db.query<any>(
-        'SELECT view_settings_sort_by, view_settings_sort_order, view_settings_view_mode, view_settings_show_hidden_files, view_settings_show_extension FROM folders WHERE id = ?',
-        [folderId]
+        "SELECT view_settings_sort_by, view_settings_sort_order, view_settings_view_mode, view_settings_show_hidden_files, view_settings_show_extension FROM folders WHERE id = ?",
+        [folderId],
       );
 
-      return(row ? {
-        sortBy: row.view_settings_sort_by || 'name',
-        sortOrder: row.view_settings_sort_order || 'asc',
-        viewMode: row.view_settings_view_mode || 'list',
-        options: {
-          showHiddenFiles: Boolean(row.view_settings_show_hidden_files),
-          showExtension: Boolean(row.view_settings_show_extension),
-        }
-      } as FolderViewSettings : null); 
-    }catch(error){
-      console.error('Error getting folder view config:', error);
-      throw new Error(`Error al obtener configuración de vista de la carpeta: ${error}`);
+      return row
+        ? ({
+            sortBy: row.view_settings_sort_by || "name",
+            sortOrder: row.view_settings_sort_order || "asc",
+            viewMode: row.view_settings_view_mode || "list",
+            options: {
+              showHiddenFiles: Boolean(row.view_settings_show_hidden_files),
+              showExtension: Boolean(row.view_settings_show_extension),
+            },
+          } as FolderViewSettings)
+        : null;
+    } catch (error) {
+      console.error("Error getting folder view config:", error);
+      throw new Error(
+        `Error al obtener configuración de vista de la carpeta: ${error}`,
+      );
     }
   }
 
@@ -257,13 +280,13 @@ export class FolderRepositoryImplementation implements FolderRepository {
     try {
       const existingFolder = await this.findById(id);
       if (!existingFolder) {
-        throw new Error('Carpeta no encontrada');
+        throw new Error("Carpeta no encontrada");
       }
 
       const folderModel = FolderFactory.fromJSON(existingFolder);
 
       // Si cambia el parentId, recalcular path y level usando setParent
-      if ('parentId' in input && input.parentId !== existingFolder.parentId) {
+      if ("parentId" in input && input.parentId !== existingFolder.parentId) {
         let parentPath: string | undefined;
         let parentLevel: number | undefined;
         if (input.parentId) {
@@ -279,26 +302,29 @@ export class FolderRepositoryImplementation implements FolderRepository {
       // Aplicar el resto de cambios (excluir parentId ya manejado arriba)
       const { parentId: _parentId, ...restInput } = input;
       const updateData: any = { ...restInput };
-      
+
       if (input.viewSettings) {
         updateData.viewSettings = {
           ...existingFolder.viewSettings,
-          ...input.viewSettings
+          ...input.viewSettings,
         };
       }
-      
+
       if (Object.keys(updateData).length > 0) {
         folderModel.update(updateData);
       }
 
       const validation = folderModel.validate();
       if (!validation.isValid) {
-        throw new Error(`Validación fallida: ${validation.errors.map(e => e.message).join(', ')}`);
+        throw new Error(
+          `Validación fallida: ${validation.errors.map((e) => e.message).join(", ")}`,
+        );
       }
 
       const folder = folderModel.toJSON();
 
-      await this.db.execute(`
+      await this.db.execute(
+        `
         UPDATE folders SET 
           updated_at = ?,
           name = ?, 
@@ -324,21 +350,38 @@ export class FolderRepositoryImplementation implements FolderRepository {
           last_accessed_at = ?,
           archived_at = ?
         WHERE id = ?
-      `, [
-        folder.updatedAt,
-        folder.name, folder.description, folder.parentId, folder.path, folder.level,
-        folder.status, folder.type, folder.visibility,
-        folder.color?.hex, folder.color?.rgb.r, folder.color?.rgb.g, folder.color?.rgb.b,
-        folder.icon, folder.isFavorite, folder.isProtected,
-        folder.viewSettings.sortBy, folder.viewSettings.sortOrder,
-        folder.viewSettings.viewMode, folder.viewSettings.options?.showHiddenFiles,
-        folder.viewSettings.options?.showExtension, folder.lastAccessedAt, folder.archivedAt,
-        id
-      ]);
+      `,
+        [
+          folder.updatedAt,
+          folder.name,
+          folder.description,
+          folder.parentId,
+          folder.path,
+          folder.level,
+          folder.status,
+          folder.type,
+          folder.visibility,
+          folder.color?.hex,
+          folder.color?.rgb.r,
+          folder.color?.rgb.g,
+          folder.color?.rgb.b,
+          folder.icon,
+          folder.isFavorite,
+          folder.isProtected,
+          folder.viewSettings.sortBy,
+          folder.viewSettings.sortOrder,
+          folder.viewSettings.viewMode,
+          folder.viewSettings.options?.showHiddenFiles,
+          folder.viewSettings.options?.showExtension,
+          folder.lastAccessedAt,
+          folder.archivedAt,
+          id,
+        ],
+      );
 
       return folder;
     } catch (error) {
-      console.error('Error updating folder:', error);
+      console.error("Error updating folder:", error);
       throw new Error(`Error al actualizar carpeta: ${error}`);
     }
   }
@@ -349,13 +392,13 @@ export class FolderRepositoryImplementation implements FolderRepository {
   async delete(id: UUID): Promise<boolean> {
     try {
       const result = await this.db.execute(
-        'UPDATE folders SET status = ?, updated_at = ? WHERE id = ?',
-        ['deleted', new Date(), id]
+        "UPDATE folders SET status = ?, updated_at = ? WHERE id = ?",
+        ["deleted", new Date(), id],
       );
 
       return result.changes > 0;
     } catch (error) {
-      console.error('Error deleting folder:', error);
+      console.error("Error deleting folder:", error);
       throw new Error(`Error al eliminar carpeta: ${error}`);
     }
   }
@@ -363,38 +406,36 @@ export class FolderRepositoryImplementation implements FolderRepository {
   /**
    * Eliminación física permanente de la carpeta
    */
-   async permanentDelete(id: UUID): Promise<boolean> {
+  async permanentDelete(id: UUID): Promise<boolean> {
     try {
-      const result = await this.db.execute(
-        'DELETE FROM folders WHERE id = ?',
-        [id]
-      );
+      const result = await this.db.execute("DELETE FROM folders WHERE id = ?", [
+        id,
+      ]);
 
       return result.changes > 0;
     } catch (error) {
-      console.error('Error deleting folder:', error);
+      console.error("Error deleting folder:", error);
       throw new Error(`Error al eliminar carpeta: ${error}`);
     }
   }
-
 
   /**
    * Contar carpetas con filtros opcionales
    */
   async count(filters?: any): Promise<number> {
     try {
-      let sql = 'SELECT COUNT(*) as total FROM folders WHERE status != ?';
-      const params: any[] = ['deleted'];
+      let sql = "SELECT COUNT(*) as total FROM folders WHERE status != ?";
+      const params: any[] = ["deleted"];
 
       if (filters?.parentId) {
-        sql += ' AND parent_id = ?';
+        sql += " AND parent_id = ?";
         params.push(filters.parentId);
       }
 
       const [result] = await this.db.query<{ total: number }>(sql, params);
       return result?.total || 0;
     } catch (error) {
-      console.error('Error counting folders:', error);
+      console.error("Error counting folders:", error);
       throw new Error(`Error al contar carpetas: ${error}`);
     }
   }
@@ -405,12 +446,12 @@ export class FolderRepositoryImplementation implements FolderRepository {
   async exists(id: UUID): Promise<boolean> {
     try {
       const [result] = await this.db.query<{ count: number }>(
-        'SELECT COUNT(*) as count FROM folders WHERE id = ? AND status != ?',
-        [id, 'deleted']
+        "SELECT COUNT(*) as count FROM folders WHERE id = ? AND status != ?",
+        [id, "deleted"],
       );
       return (result?.count || 0) > 0;
     } catch (error) {
-      console.error('Error checking folder existence:', error);
+      console.error("Error checking folder existence:", error);
       return false;
     }
   }
@@ -447,49 +488,29 @@ export class FolderRepositoryImplementation implements FolderRepository {
    * Buscar carpetas eliminadas (status = 'deleted')
    */
   async findDeletedFolders(): Promise<Folder[]> {
-    return this.findAll({ status: 'deleted' }, true);
-  }
-
-  /**
-   * Buscar carpetas que tengan ciertos tags
-   */
-  async findByTagIds(tagIds: UUID[]): Promise<Folder[]> {
-    try {
-      if (tagIds.length === 0) return [];
-
-      const placeholders = tagIds.map(() => '?').join(',');
-      const sql = `
-        SELECT DISTINCT f.* FROM folders f
-        INNER JOIN folder_tags ft ON f.id = ft.folder_id
-        WHERE ft.tag_id IN (${placeholders})
-        AND f.status != 'deleted'
-        ORDER BY f.name ASC
-      `;
-
-      const rows = await this.db.query<any>(sql, tagIds);
-      return rows.map(row => this.mapRowToFolder(row));
-    } catch (error) {
-      console.error('Error finding folders by tags:', error);
-      throw new Error(`Error al buscar carpetas por tags: ${error}`);
-    }
+    return this.findAll({ status: "deleted" }, true);
   }
 
   /**
    * Actualizar configuración de vista de una carpeta
    */
-  async updateViewConfig(folderId: UUID, viewSettings: Partial<Folder['viewSettings']>): Promise<void> {
-    try{
+  async updateViewConfig(
+    folderId: UUID,
+    viewSettings: Partial<Folder["viewSettings"]>,
+  ): Promise<void> {
+    try {
       const existingFolder = await this.findById(folderId);
 
       if (!existingFolder) {
-        throw new Error('Carpeta no encontrada');
+        throw new Error("Carpeta no encontrada");
       }
       const updatedViewSettings = {
         ...existingFolder.viewSettings,
         ...viewSettings,
       };
 
-      await this.db.execute(`
+      await this.db.execute(
+        `
         UPDATE folders SET 
           view_settings_sort_by = ?,
           view_settings_sort_order = ?,
@@ -498,41 +519,22 @@ export class FolderRepositoryImplementation implements FolderRepository {
           view_settings_show_extension = ?,
           updated_at = ?
         WHERE id = ?
-      `, [
-        updatedViewSettings.sortBy, 
-        updatedViewSettings.sortOrder,
-        updatedViewSettings.viewMode,
-        updatedViewSettings.options?.showHiddenFiles,
-        updatedViewSettings.options?.showExtension,
-        new Date().getTime(),
-        folderId
-      ]);
+      `,
+        [
+          updatedViewSettings.sortBy,
+          updatedViewSettings.sortOrder,
+          updatedViewSettings.viewMode,
+          updatedViewSettings.options?.showHiddenFiles,
+          updatedViewSettings.options?.showExtension,
+          new Date().getTime(),
+          folderId,
+        ],
+      );
     } catch (error) {
-      console.error('Error updating folder view settings:', error);
-      throw new Error(`Error al actualizar configuración de vista de la carpeta: ${error}`);
-    }
-  }
-
-  /**
-   * Actualizar tags de una carpeta
-   */
-  async updateTags(folderId: UUID, tagIds: UUID[]): Promise<void> {
-    try {
-      await this.db.transaction([
-        // Eliminar tags existentes
-        {
-          sql: 'DELETE FROM folder_tags WHERE folder_id = ?',
-          params: [folderId]
-        },
-        // Insertar nuevos tags
-        ...tagIds.map(tagId => ({
-          sql: 'INSERT INTO folder_tags (folder_id, tag_id) VALUES (?, ?)',
-          params: [folderId, tagId]
-        }))
-      ]);
-    } catch (error) {
-      console.error('Error updating folder tags:', error);
-      throw new Error(`Error al actualizar tags de la carpeta: ${error}`);
+      console.error("Error updating folder view settings:", error);
+      throw new Error(
+        `Error al actualizar configuración de vista de la carpeta: ${error}`,
+      );
     }
   }
 
@@ -550,25 +552,25 @@ export class FolderRepositoryImplementation implements FolderRepository {
 
       if (filters) {
         if (filters.parentId) {
-          sql += ' AND parent_id = ?';
+          sql += " AND parent_id = ?";
           params.push(filters.parentId);
         }
         if (filters.type) {
-          sql += ' AND type = ?';
+          sql += " AND type = ?";
           params.push(filters.type);
         }
         if (filters.level !== undefined) {
-          sql += ' AND level = ?';
+          sql += " AND level = ?";
           params.push(filters.level);
         }
       }
 
-      sql += ' ORDER BY name ASC';
+      sql += " ORDER BY name ASC";
 
       const rows = await this.db.query<any>(sql, params);
-      return rows.map(row => this.mapRowToFolder(row));
+      return rows.map((row) => this.mapRowToFolder(row));
     } catch (error) {
-      console.error('Error searching folders:', error);
+      console.error("Error searching folders:", error);
       throw new Error(`Error al buscar carpetas: ${error}`);
     }
   }
@@ -587,15 +589,15 @@ export class FolderRepositoryImplementation implements FolderRepository {
       status: row.status as FolderStatus,
       type: row.type as FolderType,
       visibility: row.visibility as FolderVisibility,
-      tagIds: [], 
+      tagIds: [],
       viewSettings: {
-        sortBy: row.view_settings_sort_by || 'name',
-        sortOrder: row.view_settings_sort_order || 'asc',
-        viewMode: row.view_settings_view_mode || 'list',
+        sortBy: row.view_settings_sort_by || "name",
+        sortOrder: row.view_settings_sort_order || "asc",
+        viewMode: row.view_settings_view_mode || "list",
         options: {
           showExtension: Boolean(row.view_settings_show_extension),
           showHiddenFiles: Boolean(row.view_settings_show_hidden_files),
-        }
+        },
       } as FolderViewSettings,
       isFavorite: Boolean(row.is_favorite),
       isProtected: Boolean(row.is_protected),
@@ -604,7 +606,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
 
     return {
       ...baseFolder,
-      
+
       ...(row.description && { description: row.description }),
       ...(row.parent_id && { parentId: row.parent_id }),
       ...(row.color_hex && {
@@ -620,7 +622,9 @@ export class FolderRepositoryImplementation implements FolderRepository {
         } as ColorInfo,
       }),
       ...(row.icon && { icon: row.icon }),
-      ...(row.last_accessed_at && { lastAccessedAt: new Date(row.last_accessed_at) }),
+      ...(row.last_accessed_at && {
+        lastAccessedAt: new Date(row.last_accessed_at),
+      }),
       ...(row.archived_at && { archivedAt: new Date(row.archived_at) }),
     };
   }

@@ -1,11 +1,11 @@
-import { Database } from '../sqlite/Database';
+import { Database } from "../sqlite/Database";
 
 /**
  * Crea las tablas tags y file_tags para el sistema de etiquetado con soporte para jerarquías, colores y contadores de uso
  */
 export const createTagsTable = async (): Promise<void> => {
   const db = Database.getInstance();
-  
+
   const createTagsTableSQL = `
     CREATE TABLE IF NOT EXISTS tags (
 
@@ -47,56 +47,38 @@ export const createTagsTable = async (): Promise<void> => {
     );
   `;
 
-  const createFolderTagsTableSQL = `
-    CREATE TABLE IF NOT EXISTS folder_tags (
-      folder_id TEXT NOT NULL REFERENCES folders(id) ON DELETE CASCADE,
-      tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-      created_at DATETIME NOT NULL DEFAULT (DATETIME('now')),
-      
-      PRIMARY KEY (folder_id, tag_id)
-    );
-  `;
-
   const createIndexesSQL = [
-    'CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);',
-    'CREATE INDEX IF NOT EXISTS idx_tags_type ON tags(type);',
-    'CREATE INDEX IF NOT EXISTS idx_tags_priority ON tags(priority);',
-    'CREATE INDEX IF NOT EXISTS idx_tags_is_active ON tags(is_active);',
-    'CREATE INDEX IF NOT EXISTS idx_tags_usage_count ON tags(usage_count);',
-    'CREATE INDEX IF NOT EXISTS idx_tags_parent_id ON tags(parent_id);',
-    'CREATE INDEX IF NOT EXISTS idx_tags_created_at ON tags(created_at);',
-    
-    'CREATE INDEX IF NOT EXISTS idx_file_tags_file_id ON file_tags(file_id);',
-    'CREATE INDEX IF NOT EXISTS idx_file_tags_tag_id ON file_tags(tag_id);',
-    'CREATE INDEX IF NOT EXISTS idx_file_tags_created_at ON file_tags(created_at);',
-    
-    'CREATE INDEX IF NOT EXISTS idx_folder_tags_folder_id ON folder_tags(folder_id);',
-    'CREATE INDEX IF NOT EXISTS idx_folder_tags_tag_id ON folder_tags(tag_id);',
-    'CREATE INDEX IF NOT EXISTS idx_folder_tags_created_at ON folder_tags(created_at);',
+    "CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);",
+    "CREATE INDEX IF NOT EXISTS idx_tags_type ON tags(type);",
+    "CREATE INDEX IF NOT EXISTS idx_tags_priority ON tags(priority);",
+    "CREATE INDEX IF NOT EXISTS idx_tags_is_active ON tags(is_active);",
+    "CREATE INDEX IF NOT EXISTS idx_tags_usage_count ON tags(usage_count);",
+    "CREATE INDEX IF NOT EXISTS idx_tags_parent_id ON tags(parent_id);",
+    "CREATE INDEX IF NOT EXISTS idx_tags_created_at ON tags(created_at);",
+
+    "CREATE INDEX IF NOT EXISTS idx_file_tags_file_id ON file_tags(file_id);",
+    "CREATE INDEX IF NOT EXISTS idx_file_tags_tag_id ON file_tags(tag_id);",
+    "CREATE INDEX IF NOT EXISTS idx_file_tags_created_at ON file_tags(created_at);",
   ];
 
   try {
-    console.log('Creando tablas de tags...');
-    
+    console.log("Creando tablas de tags...");
+
     await db.execute(createTagsTableSQL);
-    console.log('Tabla tags creada');
-    
+    console.log("Tabla tags creada");
+
     await db.execute(createFileTagsTableSQL);
-    console.log('Tabla file_tags creada');
-    
-    await db.execute(createFolderTagsTableSQL);
-    console.log('Tabla folder_tags creada');
-    
+    console.log("Tabla file_tags creada");
+
     // Crear índices
     for (const indexSQL of createIndexesSQL) {
       await db.execute(indexSQL);
     }
-    console.log('Índices creados');
-    
-    console.log('Sistema de tags creado exitosamente');
-    
+    console.log("Índices creados");
+
+    console.log("Sistema de tags creado exitosamente");
   } catch (error) {
-    console.error('Error al crear sistema de tags:', error);
+    console.error("Error al crear sistema de tags:", error);
     throw error;
   }
 };
@@ -106,9 +88,8 @@ export const createTagsTable = async (): Promise<void> => {
  */
 export const createTagTriggers = async (): Promise<void> => {
   const db = Database.getInstance();
-  
+
   const triggers = [
-  
     `CREATE TRIGGER IF NOT EXISTS trg_file_tag_insert
      AFTER INSERT ON file_tags
      FOR EACH ROW
@@ -119,30 +100,9 @@ export const createTagTriggers = async (): Promise<void> => {
            updated_at = DATETIME('now')
        WHERE id = NEW.tag_id;
      END;`,
-     
+
     `CREATE TRIGGER IF NOT EXISTS trg_file_tag_delete
      AFTER DELETE ON file_tags
-     FOR EACH ROW
-     BEGIN
-       UPDATE tags 
-       SET usage_count = MAX(usage_count - 1, 0),
-           updated_at = DATETIME('now')
-       WHERE id = OLD.tag_id;
-     END;`,
-     
-    `CREATE TRIGGER IF NOT EXISTS trg_folder_tag_insert
-     AFTER INSERT ON folder_tags
-     FOR EACH ROW
-     BEGIN
-       UPDATE tags 
-       SET usage_count = usage_count + 1,
-           last_used_at = DATETIME('now'),
-           updated_at = DATETIME('now')
-       WHERE id = NEW.tag_id;
-     END;`,
-     
-    `CREATE TRIGGER IF NOT EXISTS trg_folder_tag_delete
-     AFTER DELETE ON folder_tags
      FOR EACH ROW
      BEGIN
        UPDATE tags 
@@ -153,16 +113,15 @@ export const createTagTriggers = async (): Promise<void> => {
   ];
 
   try {
-    console.log('Creando triggers para tags...');
-    
+    console.log("Creando triggers para tags...");
+
     for (const trigger of triggers) {
       await db.execute(trigger);
     }
-    
-    console.log('Triggers de tags creados exitosamente');
-    
+
+    console.log("Triggers de tags creados exitosamente");
   } catch (error) {
-    console.error('Error al crear triggers de tags:', error);
+    console.error("Error al crear triggers de tags:", error);
     throw error;
   }
 };
@@ -172,17 +131,17 @@ export const createTagTriggers = async (): Promise<void> => {
  */
 export const dropTagsSystem = async (): Promise<void> => {
   const db = Database.getInstance();
-  
+
   try {
-    console.log('Eliminando sistema de tags...');
-    
+    console.log("Eliminando sistema de tags...");
+
     const dropTriggers = [
-      'DROP TRIGGER IF EXISTS trg_file_tag_insert;',
-      'DROP TRIGGER IF EXISTS trg_file_tag_delete;',
-      'DROP TRIGGER IF EXISTS trg_folder_tag_insert;',
-      'DROP TRIGGER IF EXISTS trg_folder_tag_delete;',
+      "DROP TRIGGER IF EXISTS trg_file_tag_insert;",
+      "DROP TRIGGER IF EXISTS trg_file_tag_delete;",
+      "DROP TRIGGER IF EXISTS trg_folder_tag_insert;",
+      "DROP TRIGGER IF EXISTS trg_folder_tag_delete;",
     ];
-    
+
     for (const dropTrigger of dropTriggers) {
       try {
         await db.execute(dropTrigger);
@@ -190,15 +149,14 @@ export const dropTagsSystem = async (): Promise<void> => {
         console.warn(`No se pudo eliminar trigger: ${dropTrigger}`, e);
       }
     }
-    
-    await db.execute('DROP TABLE IF EXISTS file_tags;');
-    await db.execute('DROP TABLE IF EXISTS folder_tags;');
-    await db.execute('DROP TABLE IF EXISTS tags;');
-    
-    console.log('Sistema de tags eliminado');
-    
+
+    await db.execute("DROP TABLE IF EXISTS file_tags;");
+    await db.execute("DROP TABLE IF EXISTS folder_tags;");
+    await db.execute("DROP TABLE IF EXISTS tags;");
+
+    console.log("Sistema de tags eliminado");
   } catch (error) {
-    console.error('Error al eliminar sistema de tags:', error);
+    console.error("Error al eliminar sistema de tags:", error);
     throw error;
   }
 };

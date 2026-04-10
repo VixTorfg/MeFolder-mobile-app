@@ -1,17 +1,17 @@
-import { BaseService } from './base/BaseService';
-import { 
-  Folder, 
+import { BaseService } from "./base/BaseService";
+import {
+  Folder,
   CreateFolderInput,
-  FolderStatus
-} from '../types/entities/folder';
-import { UUID } from '../types/common/base';
-import { FolderModel, FolderFactory } from '../models/folder';
-import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
-import { FileSystemService } from './filesystem/FileSystemService';
+  FolderStatus,
+} from "../types/entities/folder";
+import { UUID } from "../types/common/base";
+import { FolderModel, FolderFactory } from "../models/folder";
+import { ROOT_FOLDER_ID } from "../database/seeds/systemFolders";
+import { FileSystemService } from "./filesystem/FileSystemService";
 
 /**
  * FolderService MVP - Funcionalidades básicas para desarrollo inicial
- * 
+ *
  * Funciones incluidas:
  * - Crear carpeta simple
  * - Obtener carpeta por ID
@@ -19,7 +19,7 @@ import { FileSystemService } from './filesystem/FileSystemService';
  * - Mover carpeta entre jerarquías
  * - Eliminar carpeta (soft delete)
  * - Navegación básica de jerarquía
- * 
+ *
  * Perfecta para construir MVP y entender la arquitectura de carpetas
  */
 export class FolderService extends BaseService {
@@ -31,7 +31,7 @@ export class FolderService extends BaseService {
   async createFolder(input: CreateFolderInput): Promise<FolderModel> {
     try {
       this.ensureDbInitialized();
-      
+
       // Si no se especifica padre, usa root
       const parentId = input.parentId || ROOT_FOLDER_ID;
 
@@ -44,34 +44,43 @@ export class FolderService extends BaseService {
       // Crear carpeta usando el repositorio
       const folder = await this.folderRepo.create({ ...input, parentId });
       return FolderFactory.fromJSON(folder);
-      
     } catch (error) {
-      return this.handleError(error, 'crear carpeta');
+      return this.handleError(error, "crear carpeta");
     }
   }
 
   /**
    *  Actualizar configuración de vista de carpeta
    */
-  async updateFolderViewConfig(folderId: UUID, viewSettings: Partial<Folder['viewSettings']>): Promise<void> {
+  async updateFolderViewConfig(
+    folderId: UUID,
+    viewSettings: Partial<Folder["viewSettings"]>,
+  ): Promise<void> {
     try {
       this.ensureDbInitialized();
 
       await this.folderRepo.updateViewConfig(folderId, viewSettings);
-
-    }catch (error) {
-      return this.handleError(error, 'actualizar configuración de vista de carpeta');
+    } catch (error) {
+      return this.handleError(
+        error,
+        "actualizar configuración de vista de carpeta",
+      );
     }
   }
 
   /** Obtiene la configuración de vista de una carpeta específica */
-  async getFolderViewConfig(folderId: UUID): Promise<Folder['viewSettings'] | null> {
+  async getFolderViewConfig(
+    folderId: UUID,
+  ): Promise<Folder["viewSettings"] | null> {
     try {
       this.ensureDbInitialized();
 
       return await this.folderRepo.getFolderViewConfig(folderId);
     } catch (error) {
-      return this.handleError(error, 'obtener configuración de vista de carpeta');
+      return this.handleError(
+        error,
+        "obtener configuración de vista de carpeta",
+      );
     }
   }
 
@@ -84,13 +93,12 @@ export class FolderService extends BaseService {
 
       const folder = await this.folderRepo.findById(folderId);
       if (!folder) {
-        throw new Error('Carpeta no encontrada');
+        throw new Error("Carpeta no encontrada");
       }
 
       return FolderFactory.fromJSON(folder);
-      
     } catch (error) {
-      return this.handleError(error, 'obtener carpeta');
+      return this.handleError(error, "obtener carpeta");
     }
   }
 
@@ -101,14 +109,14 @@ export class FolderService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      const folders = parentId === ROOT_FOLDER_ID
-        ? await this.folderRepo.findRootFolders()
-        : await this.folderRepo.findByFolderId(parentId);
+      const folders =
+        parentId === ROOT_FOLDER_ID
+          ? await this.folderRepo.findRootFolders()
+          : await this.folderRepo.findByFolderId(parentId);
 
-      return folders.map(f => FolderFactory.fromJSON(f));
-      
+      return folders.map((f) => FolderFactory.fromJSON(f));
     } catch (error) {
-      return this.handleError(error, 'obtener subcarpetas');
+      return this.handleError(error, "obtener subcarpetas");
     }
   }
 
@@ -121,31 +129,33 @@ export class FolderService extends BaseService {
 
       const path: string[] = [];
       let currentId: UUID | null = folderId;
-      
+
       while (currentId && currentId !== ROOT_FOLDER_ID) {
         const folder = await this.folderRepo.findById(currentId);
         if (!folder) break;
-        
+
         path.unshift(folder.name);
         currentId = folder.parentId || null;
       }
 
       return path;
-      
     } catch (error) {
-      return this.handleError(error, 'obtener ruta de carpeta');
+      return this.handleError(error, "obtener ruta de carpeta");
     }
   }
 
   /**
    * Mover carpeta a otro padre
    */
-  async moveFolder(folderId: UUID, newParentId: UUID = ROOT_FOLDER_ID): Promise<FolderModel> {
+  async moveFolder(
+    folderId: UUID,
+    newParentId: UUID = ROOT_FOLDER_ID,
+  ): Promise<FolderModel> {
     try {
       this.ensureDbInitialized();
 
       const folder = await this.folderRepo.findById(folderId);
-      if (!folder) throw new Error('Carpeta no encontrada');
+      if (!folder) throw new Error("Carpeta no encontrada");
 
       // Validar que no sea su propio descendiente (evitar bucles)
       if (newParentId !== ROOT_FOLDER_ID) {
@@ -158,12 +168,11 @@ export class FolderService extends BaseService {
 
       // Actualizar carpeta padre
       const updated = await this.folderRepo.update(folderId, {
-        parentId: newParentId
+        parentId: newParentId,
       });
       return FolderFactory.fromJSON(updated);
-      
     } catch (error) {
-      return this.handleError(error, 'mover carpeta');
+      return this.handleError(error, "mover carpeta");
     }
   }
 
@@ -176,13 +185,13 @@ export class FolderService extends BaseService {
       this.ensureDbInitialized();
 
       const folder = await this.folderRepo.findById(folderId);
-      if (!folder) throw new Error('Carpeta no encontrada');
+      if (!folder) throw new Error("Carpeta no encontrada");
 
       if (folder.isSystemFolder) {
-        throw new Error('No se puede eliminar una carpeta del sistema');
+        throw new Error("No se puede eliminar una carpeta del sistema");
       }
       if (folder.isProtected) {
-        throw new Error('No se puede eliminar una carpeta protegida');
+        throw new Error("No se puede eliminar una carpeta protegida");
       }
 
       if (!force) {
@@ -192,11 +201,10 @@ export class FolderService extends BaseService {
       await this.folderRepo.delete(folderId);
 
       await this.deleteChildrenRecursive(folderId);
-      
+
       return true;
-      
     } catch (error) {
-      return this.handleError(error, 'eliminar carpeta');
+      return this.handleError(error, "eliminar carpeta");
     }
   }
 
@@ -208,14 +216,14 @@ export class FolderService extends BaseService {
       this.ensureDbInitialized();
 
       const folder = await this.folderRepo.findById(folderId);
-      if (!folder) throw new Error('Carpeta no encontrada');
+      if (!folder) throw new Error("Carpeta no encontrada");
 
       // Las carpetas del sistema y protegidas no se pueden eliminar
       if (folder.isSystemFolder) {
-        throw new Error('No se puede eliminar una carpeta del sistema');
+        throw new Error("No se puede eliminar una carpeta del sistema");
       }
       if (folder.isProtected) {
-        throw new Error('No se puede eliminar una carpeta protegida');
+        throw new Error("No se puede eliminar una carpeta protegida");
       }
 
       await this.permanentDeleteChildrenRecursive(folderId);
@@ -223,74 +231,78 @@ export class FolderService extends BaseService {
 
       const fsResult = this.fs.deleteDirectory(folder.path);
       if (!fsResult.success) {
-        console.warn(`No se pudo eliminar carpeta del disco: ${fsResult.error}`);
+        console.warn(
+          `No se pudo eliminar carpeta del disco: ${fsResult.error}`,
+        );
       }
-      
+
       return true;
-      
     } catch (error) {
-      return this.handleError(error, 'eliminar carpeta');
+      return this.handleError(error, "eliminar carpeta");
     }
   }
 
   /**
-     * Devuelve la lista de carpetas eliminadas.
-     */
+   * Devuelve la lista de carpetas eliminadas.
+   */
   async getDeletedFolders(): Promise<FolderModel[]> {
     try {
       this.ensureDbInitialized();
-  
-      const deletedFolders = await this.folderRepo.findDeletedFolders(); 
-      const deletedFolderModels = deletedFolders.map(f => FolderFactory.fromJSON(f)); 
-      
+
+      const deletedFolders = await this.folderRepo.findDeletedFolders();
+      const deletedFolderModels = deletedFolders.map((f) =>
+        FolderFactory.fromJSON(f),
+      );
+
       return deletedFolderModels;
-        
     } catch (error) {
-      return this.handleError(error, 'obtener carpetas eliminadas');
+      return this.handleError(error, "obtener carpetas eliminadas");
     }
   }
 
   /**
-     * Devuelve la lista de subcarpetas eliminadas dado un parentId.
-     */
+   * Devuelve la lista de subcarpetas eliminadas dado un parentId.
+   */
   async getDeletedInFolder(parentId: UUID): Promise<FolderModel[]> {
     try {
       this.ensureDbInitialized();
-  
+
       const filter = {
         parentId,
-        status: 'deleted' as FolderStatus
+        status: "deleted" as FolderStatus,
       };
 
-      const deletedFolders = await this.folderRepo.findAll(filter); 
-      const deletedFolderModels = deletedFolders.map(f => FolderFactory.fromJSON(f)); 
-      
+      const deletedFolders = await this.folderRepo.findAll(filter);
+      const deletedFolderModels = deletedFolders.map((f) =>
+        FolderFactory.fromJSON(f),
+      );
+
       return deletedFolderModels;
-        
     } catch (error) {
-      return this.handleError(error, 'obtener carpetas eliminadas');
+      return this.handleError(error, "obtener carpetas eliminadas");
     }
   }
 
   /**
    * Contar contenido de una carpeta (archivos + subcarpetas)
    */
-  async getFolderContentCount(folderId: UUID): Promise<{ files: number; folders: number }> {
+  async getFolderContentCount(
+    folderId: UUID,
+  ): Promise<{ files: number; folders: number }> {
     try {
       this.ensureDbInitialized();
 
       const [files, subfolders] = await Promise.all([
         this.fileRepo.findByFolderId(folderId),
-        this.folderRepo.findByFolderId(folderId)
+        this.folderRepo.findByFolderId(folderId),
       ]);
 
       return {
         files: files.length,
-        folders: subfolders.length
+        folders: subfolders.length,
       };
-      
     } catch (error) {
-      return this.handleError(error, 'contar contenido de carpeta');
+      return this.handleError(error, "contar contenido de carpeta");
     }
   }
 
@@ -302,13 +314,17 @@ export class FolderService extends BaseService {
     try {
       this.ensureDbInitialized();
       const folder = await this.folderRepo.findById(folderId);
-      if (!folder) throw new Error('Carpeta no encontrada');
-      if (folder.status !== 'deleted') throw new Error('La carpeta no está eliminada');
+      if (!folder) throw new Error("Carpeta no encontrada");
+      if (folder.status !== "deleted")
+        throw new Error("La carpeta no está eliminada");
 
       const restoredIds: UUID[] = [];
 
       // Restaurar padres hacia arriba
-      await this.restoreParentChain(folder.parentId || ROOT_FOLDER_ID, restoredIds);
+      await this.restoreParentChain(
+        folder.parentId || ROOT_FOLDER_ID,
+        restoredIds,
+      );
 
       // Restaurar la carpeta
       await this.folderRepo.restore(folderId);
@@ -318,26 +334,29 @@ export class FolderService extends BaseService {
       await this.restoreChildrenRecursive(folderId, restoredIds);
 
       return restoredIds;
-
     } catch (error) {
-      return this.handleError(error, 'restaurar carpeta');
+      return this.handleError(error, "restaurar carpeta");
     }
   }
 
-  async copyFolder(folderId: UUID, destinationParentId: UUID, isRootCall: boolean = true): Promise<FolderModel> {
+  async copyFolder(
+    folderId: UUID,
+    destinationParentId: UUID,
+    isRootCall: boolean = true,
+  ): Promise<FolderModel> {
     const createdFolders: UUID[] = [];
     const createdFiles: UUID[] = [];
-    let parentFolderUri = '';
+    let parentFolderUri = "";
 
-    try {     
+    try {
       this.ensureDbInitialized();
 
       const folder = await this.folderRepo.findById(folderId);
-      if (!folder) throw new Error('Carpeta no encontrada');
+      if (!folder) throw new Error("Carpeta no encontrada");
 
       await this.validateParentFolder(destinationParentId);
 
-      if(isRootCall) 
+      if (isRootCall)
         await this.validateUniqueFolderName(folder.name, destinationParentId);
 
       const subfolders = await this.folderRepo.findChildren(folderId);
@@ -348,27 +367,29 @@ export class FolderService extends BaseService {
         parentId: destinationParentId,
         type: folder.type,
         visibility: folder.visibility,
-        tagIds: folder.tagIds,
         viewSettings: folder.viewSettings,
-        ...(folder.icon && {icon: folder.icon}),
-        ...(folder.color && {color: folder.color}),
-        ...(folder.description && {description: folder.description})
+        ...(folder.icon && { icon: folder.icon }),
+        ...(folder.color && { color: folder.color }),
+        ...(folder.description && { description: folder.description }),
       });
       createdFolders.push(newFolder.id);
-      
-      if(isRootCall){
-        this.fs.copyDirectory({from: folder.path, to: newFolder.path});
+
+      if (isRootCall) {
+        this.fs.copyDirectory({ from: folder.path, to: newFolder.path });
         parentFolderUri = newFolder.path;
       }
-       
 
-      const copySubfolderPromises = subfolders.map(async subfolder => {
-        const newSubfolder = await this.copyFolder(subfolder.id, newFolder.id, false);
+      const copySubfolderPromises = subfolders.map(async (subfolder) => {
+        const newSubfolder = await this.copyFolder(
+          subfolder.id,
+          newFolder.id,
+          false,
+        );
         return newSubfolder;
       });
       await Promise.all(copySubfolderPromises);
 
-      const copyFilePromises = subfiles.map(async file => {
+      const copyFilePromises = subfiles.map(async (file) => {
         const newFile = await this.fileRepo.create({
           name: file.name,
           originalName: file.originalName,
@@ -385,23 +406,22 @@ export class FolderService extends BaseService {
         return newFile;
       });
 
-      await Promise.all(copyFilePromises);   
+      await Promise.all(copyFilePromises);
 
       return FolderFactory.fromJSON(newFolder);
     } catch (error) {
-      
-      if(isRootCall && createdFolders.length > 0)
+      if (isRootCall && createdFolders.length > 0)
         this.fs.deleteDirectory(parentFolderUri);
-      
+
       for (const fileId of createdFiles.reverse()) {
         await this.fileRepo.permanentDelete(fileId);
       }
 
       for (const folderId of createdFolders.reverse()) {
-          await this.folderRepo.permanentDelete(folderId);
+        await this.folderRepo.permanentDelete(folderId);
       }
 
-      return this.handleError(error, 'copiar carpeta');
+      return this.handleError(error, "copiar carpeta");
     }
   }
 
@@ -413,60 +433,72 @@ export class FolderService extends BaseService {
       this.ensureDbInitialized();
 
       const folder = await this.folderRepo.findById(folderId);
-      if (!folder) throw new Error('Carpeta no encontrada');
+      if (!folder) throw new Error("Carpeta no encontrada");
 
       // Validar nombre único en el mismo nivel
-      await this.validateUniqueFolderName(newName, folder.parentId || ROOT_FOLDER_ID, folderId);
+      await this.validateUniqueFolderName(
+        newName,
+        folder.parentId || ROOT_FOLDER_ID,
+        folderId,
+      );
 
       // Actualizar nombre
       const updated = await this.folderRepo.update(folderId, {
-        name: newName
+        name: newName,
       });
       return FolderFactory.fromJSON(updated);
-      
     } catch (error) {
-      return this.handleError(error, 'renombrar carpeta');
+      return this.handleError(error, "renombrar carpeta");
     }
   }
-
 
   /** Validar que la carpeta padre existe */
   private async validateParentFolder(parentId: UUID): Promise<void> {
     const parent = await this.folderRepo.findById(parentId);
     if (!parent) {
-      throw new Error('Carpeta padre no encontrada');
+      throw new Error("Carpeta padre no encontrada");
     }
-    if (parent.status === 'deleted') {
-      throw new Error('No se puede crear subcarpeta en carpeta eliminada');
+    if (parent.status === "deleted") {
+      throw new Error("No se puede crear subcarpeta en carpeta eliminada");
     }
   }
 
   /** Validar que no existe otra carpeta con el mismo nombre en el nivel */
-  private async validateUniqueFolderName(name: string, parentId: UUID, excludeFolderId?: UUID): Promise<void> {
-    const siblings = parentId === ROOT_FOLDER_ID
-      ? await this.folderRepo.findRootFolders()
-      : await this.folderRepo.findByFolderId(parentId);
-    const conflicting = siblings.find((f: Folder) => 
-      f.name === name && f.id !== excludeFolderId
+  private async validateUniqueFolderName(
+    name: string,
+    parentId: UUID,
+    excludeFolderId?: UUID,
+  ): Promise<void> {
+    const siblings =
+      parentId === ROOT_FOLDER_ID
+        ? await this.folderRepo.findRootFolders()
+        : await this.folderRepo.findByFolderId(parentId);
+    const conflicting = siblings.find(
+      (f: Folder) => f.name === name && f.id !== excludeFolderId,
     );
-    
+
     if (conflicting) {
-      throw new Error(`Ya existe una carpeta con el nombre "${name}" en este nivel`);
+      throw new Error(
+        `Ya existe una carpeta con el nombre "${name}" en este nivel`,
+      );
     }
   }
 
   /** Validar que la carpeta no sea descendiente de la carpeta destino */
-  private async validateNotDescendant(folderId: UUID, targetParentId: UUID): Promise<void> {
+  private async validateNotDescendant(
+    folderId: UUID,
+    targetParentId: UUID,
+  ): Promise<void> {
     let currentId: UUID | null = targetParentId;
-    
+
     while (currentId && currentId !== ROOT_FOLDER_ID) {
       if (currentId === folderId) {
-        throw new Error('No se puede mover una carpeta dentro de sí misma');
+        throw new Error("No se puede mover una carpeta dentro de sí misma");
       }
-      
+
       const folder = await this.folderRepo.findById(currentId);
       if (!folder) break;
-      
+
       currentId = folder.parentId || null;
     }
   }
@@ -474,9 +506,11 @@ export class FolderService extends BaseService {
   /** Validar que la carpeta esté vacía */
   private async validateFolderEmpty(folderId: UUID): Promise<void> {
     const content = await this.getFolderContentCount(folderId);
-    
+
     if (content.files > 0 || content.folders > 0) {
-      throw new Error('No se puede eliminar carpeta que contiene archivos o subcarpetas');
+      throw new Error(
+        "No se puede eliminar carpeta que contiene archivos o subcarpetas",
+      );
     }
   }
 
@@ -484,38 +518,45 @@ export class FolderService extends BaseService {
    * Elimina recursivamente todos los hijos de una carpeta (subcarpetas y archivos)
    */
   private async deleteChildrenRecursive(folderId: UUID): Promise<void> {
-
     const files = await this.fileRepo.findByFolderId(folderId);
-    await Promise.all(files.map(f => this.fileRepo.delete(f.id)));
+    await Promise.all(files.map((f) => this.fileRepo.delete(f.id)));
 
     const subfolders = await this.folderRepo.findByFolderId(folderId);
-    await Promise.all(subfolders.map(async f => {
-      await this.deleteChildrenRecursive(f.id);
-      await this.folderRepo.delete(f.id);
-    }));
+    await Promise.all(
+      subfolders.map(async (f) => {
+        await this.deleteChildrenRecursive(f.id);
+        await this.folderRepo.delete(f.id);
+      }),
+    );
   }
 
   /**
    * Permanentemente elimina recursivamente todos los hijos de una carpeta (subcarpetas y archivos)
    */
-  private async permanentDeleteChildrenRecursive(folderId: UUID): Promise<void> {
-
+  private async permanentDeleteChildrenRecursive(
+    folderId: UUID,
+  ): Promise<void> {
     const files = await this.fileRepo.findByFolderId(folderId);
-    await Promise.all(files.map(f => this.fileRepo.permanentDelete(f.id)));
+    await Promise.all(files.map((f) => this.fileRepo.permanentDelete(f.id)));
 
     const subfolders = await this.folderRepo.findByFolderId(folderId);
-    await Promise.all(subfolders.map(async f => {
-      await this.permanentDeleteChildrenRecursive(f.id);
-      await this.folderRepo.permanentDelete(f.id);
-    }));
+    await Promise.all(
+      subfolders.map(async (f) => {
+        await this.permanentDeleteChildrenRecursive(f.id);
+        await this.folderRepo.permanentDelete(f.id);
+      }),
+    );
   }
 
   /**
    * Restaura recursivamente la cadena de carpetas padre eliminadas
    */
-  private async restoreParentChain(folderId: UUID, restoredIds: UUID[]): Promise<void> {
+  private async restoreParentChain(
+    folderId: UUID,
+    restoredIds: UUID[],
+  ): Promise<void> {
     const folder = await this.folderRepo.findById(folderId);
-    if (!folder || folder.status !== 'deleted') return;
+    if (!folder || folder.status !== "deleted") return;
 
     if (folder.parentId) {
       await this.restoreParentChain(folder.parentId, restoredIds);
@@ -528,18 +569,31 @@ export class FolderService extends BaseService {
   /**
    * Restaura recursivamente todos los hijos de una carpeta (subcarpetas y archivos)
    */
-  private async restoreChildrenRecursive(folderId: UUID, restoredIds: UUID[]): Promise<void> {
-    const files = await this.fileRepo.findAll({ folderId, status: 'deleted' }, true);
-    await Promise.all(files.map(async f => {
-      await this.fileRepo.restore(f.id);
-      restoredIds.push(f.id);
-    }));
+  private async restoreChildrenRecursive(
+    folderId: UUID,
+    restoredIds: UUID[],
+  ): Promise<void> {
+    const files = await this.fileRepo.findAll(
+      { folderId, status: "deleted" },
+      true,
+    );
+    await Promise.all(
+      files.map(async (f) => {
+        await this.fileRepo.restore(f.id);
+        restoredIds.push(f.id);
+      }),
+    );
 
-    const subfolders = await this.folderRepo.findAll({ parentId: folderId, status: 'deleted' }, true);
-    await Promise.all(subfolders.map(async f => {
-      await this.folderRepo.restore(f.id);
-      restoredIds.push(f.id);
-      await this.restoreChildrenRecursive(f.id, restoredIds);
-    }));
+    const subfolders = await this.folderRepo.findAll(
+      { parentId: folderId, status: "deleted" },
+      true,
+    );
+    await Promise.all(
+      subfolders.map(async (f) => {
+        await this.folderRepo.restore(f.id);
+        restoredIds.push(f.id);
+        await this.restoreChildrenRecursive(f.id, restoredIds);
+      }),
+    );
   }
 }

@@ -209,12 +209,10 @@ export class TagService extends BaseService {
       const tag = await this.tagRepo.findById(tagId);
       if (!tag) throw new Error("Tag no encontrado");
 
-      // Contar archivos y carpetas que usan este tag
+      // Contar archivos que usan este tag
       const fileCount = await this.tagAssignmentRepo.getTagUsageInFiles(tagId);
-      const folderCount =
-        await this.tagAssignmentRepo.getTagUsageInFolders(tagId);
 
-      return fileCount + folderCount;
+      return fileCount;
     } catch (error) {
       return this.handleError(error, "obtener estadísticas del tag");
     }
