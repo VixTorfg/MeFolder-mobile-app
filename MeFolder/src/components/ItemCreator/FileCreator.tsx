@@ -1,13 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/providers';
-import { useFileCreatorStyles } from './styles';
-import { getDocumentAsync } from 'expo-document-picker';
-import { formatFileSize } from '@/utils/format/bytes';
-import { FileCategory, MIME_PREFIX_CATEGORIES, MIME_TO_CATEGORY_MAP } from '@/types/common/file-extensions';
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, TextInput } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/providers";
+import { useFileCreatorStyles } from "./styles";
+import { getDocumentAsync } from "expo-document-picker";
+import { formatFileSize } from "@/utils/format/bytes";
+import {
+  FileCategory,
+  MIME_PREFIX_CATEGORIES,
+  MIME_TO_CATEGORY_MAP,
+} from "@/types/common/file-extensions";
+import { useTagsContent } from "@/hooks/tags/useTagsContent";
 
-type FileSource = 'gallery' | 'document' | 'camera';
+type FileSource = "gallery" | "document" | "camera";
 
 interface SelectedFile {
   id: string;
@@ -23,30 +28,19 @@ export type NewFile = {
   files: SelectedFile[];
   tags: string[];
   folderId: string | undefined;
-}
-
-interface MockTag {
-  id: string;
-  name: string;
-  color: string;
-}
+};
 
 interface FileCreatorProps {
   onSave: (data: NewFile) => Promise<void> | void;
   currentFolderId?: string;
 }
 
-// Tags de ejemplo para la parte visual
-const MOCK_TAGS: MockTag[] = [
-  { id: '1', name: 'Personal', color: '#F2C94C' },
-  { id: '2', name: 'Trabajo', color: '#5DA9C7' },
-  { id: '3', name: 'Importante', color: '#EB5757' },
-  { id: '4', name: 'Proyecto', color: '#6FCF97' },
-  { id: '5', name: 'Referencia', color: '#F2994A' },
-];
-
-export default function FileCreator({ onSave, currentFolderId }: FileCreatorProps) {
+export default function FileCreator({
+  onSave,
+  currentFolderId,
+}: FileCreatorProps) {
   const { theme } = useTheme();
+  const { items: tags, loading } = useTagsContent();
   const styles = useFileCreatorStyles();
 
   const [selectedSource, setSelectedSource] = useState<FileSource | null>(null);
@@ -54,7 +48,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
 
   const getFileCategoryFromMime = (mimeType?: string): FileCategory => {
-    if (!mimeType) return 'other';
+    if (!mimeType) return "other";
 
     const mime = mimeType.toLowerCase();
 
@@ -62,7 +56,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
       if (mime.startsWith(prefix)) return category;
     }
 
-    return MIME_TO_CATEGORY_MAP[mime] ?? 'other';
+    return MIME_TO_CATEGORY_MAP[mime] ?? "other";
   };
 
   /**
@@ -74,21 +68,21 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
     const mockFiles: SelectedFile[] = [
       {
         id: `file_${Date.now()}_1`,
-        name: 'IMG_20260219_001.jpg',
-        originalName: 'IMG_20260219_001.jpg',
-        uri: 'mock://gallery/photo1.jpg',
+        name: "IMG_20260219_001.jpg",
+        originalName: "IMG_20260219_001.jpg",
+        uri: "mock://gallery/photo1.jpg",
         size: 3456789,
-        mimeType: 'image/jpeg',
-        type: 'image',
+        mimeType: "image/jpeg",
+        type: "image",
       },
       {
         id: `file_${Date.now()}_2`,
-        name: 'VID_20260219_002.mp4',
-        originalName: 'VID_20260219_002.mp4',
-        uri: 'mock://gallery/video1.mp4',
+        name: "VID_20260219_002.mp4",
+        originalName: "VID_20260219_002.mp4",
+        uri: "mock://gallery/video1.mp4",
         size: 15678900,
-        mimeType: 'video/mp4',
-        type: 'video',
+        mimeType: "video/mp4",
+        type: "video",
       },
     ];
     setSelectedFiles(mockFiles);
@@ -96,8 +90,8 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
 
   const handlePickDocument = async (): Promise<void> => {
     const result = await getDocumentAsync({
-        multiple: true
-      });
+      multiple: true,
+    });
 
     if (result.canceled === true) {
       setSelectedFiles([]);
@@ -116,7 +110,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
         type: getFileCategoryFromMime(asset.mimeType),
       };
     });
-      
+
     setSelectedFiles(pickedFiles);
   };
 
@@ -131,10 +125,10 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
       id: `file_${Date.now()}`,
       name: captureName,
       originalName: captureName,
-      uri: 'mock://camera/capture.jpg',
+      uri: "mock://camera/capture.jpg",
       size: 2345678,
-      mimeType: 'image/jpeg',
-      type: 'image',
+      mimeType: "image/jpeg",
+      type: "image",
     };
     setSelectedFiles([mockFile]);
   };
@@ -144,30 +138,30 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
     setSelectedFiles([]);
 
     switch (source) {
-      case 'gallery':
+      case "gallery":
         await handlePickFromGallery();
         break;
-      case 'document':
+      case "document":
         await handlePickDocument();
         break;
-      case 'camera':
+      case "camera":
         await handleCaptureFromCamera();
         break;
     }
   };
 
   const handleFileNameChange = (fileId: string, newName: string): void => {
-    setSelectedFiles(prev =>
-      prev.map(f => (f.id === fileId ? { ...f, name: newName } : f))
+    setSelectedFiles((prev) =>
+      prev.map((f) => (f.id === fileId ? { ...f, name: newName } : f)),
     );
   };
 
   const handleRemoveFile = (fileId: string): void => {
-    setSelectedFiles(prev => prev.filter(f => f.id !== fileId));
+    setSelectedFiles((prev) => prev.filter((f) => f.id !== fileId));
   };
 
   const toggleTag = (tagId: string): void => {
-    setSelectedTags(prev => {
+    setSelectedTags((prev) => {
       const next = new Set(prev);
       if (next.has(tagId)) {
         next.delete(tagId);
@@ -178,16 +172,26 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
     });
   };
 
-  const getFileIcon = (type: SelectedFile['type']): keyof typeof Ionicons.glyphMap => {
+  const getFileIcon = (
+    type: SelectedFile["type"],
+  ): keyof typeof Ionicons.glyphMap => {
     switch (type) {
-      case 'image': return 'image-outline';
-      case 'video': return 'videocam-outline';
-      case 'audio': return 'musical-notes-outline';
-      case 'document': return 'document-text-outline';
-      case 'code': return 'code-slash-outline';
-      case 'archive': return 'file-tray-stacked-outline';
-      case 'spreadsheet': return 'grid-outline';
-      default: return 'document-outline';
+      case "image":
+        return "image-outline";
+      case "video":
+        return "videocam-outline";
+      case "audio":
+        return "musical-notes-outline";
+      case "document":
+        return "document-text-outline";
+      case "code":
+        return "code-slash-outline";
+      case "archive":
+        return "file-tray-stacked-outline";
+      case "spreadsheet":
+        return "grid-outline";
+      default:
+        return "document-outline";
     }
   };
 
@@ -211,22 +215,22 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
         <TouchableOpacity
           style={[
             styles.sourceOption,
-            selectedSource === 'gallery' && styles.sourceOptionActive,
+            selectedSource === "gallery" && styles.sourceOptionActive,
           ]}
-          onPress={() => handleSourceSelect('gallery')}
+          onPress={() => handleSourceSelect("gallery")}
           activeOpacity={0.7}
         >
           <View
             style={[
               styles.sourceIcon,
-              selectedSource === 'gallery' && styles.sourceIconActive,
+              selectedSource === "gallery" && styles.sourceIconActive,
             ]}
           >
             <Ionicons
               name="images-outline"
               size={22}
               color={
-                selectedSource === 'gallery'
+                selectedSource === "gallery"
                   ? theme.colors.textOnColor
                   : theme.colors.textSecondary
               }
@@ -235,7 +239,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
           <Text
             style={[
               styles.sourceOptionText,
-              selectedSource === 'gallery' && styles.sourceOptionTextActive,
+              selectedSource === "gallery" && styles.sourceOptionTextActive,
             ]}
           >
             Galería
@@ -246,22 +250,22 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
         <TouchableOpacity
           style={[
             styles.sourceOption,
-            selectedSource === 'document' && styles.sourceOptionActive,
+            selectedSource === "document" && styles.sourceOptionActive,
           ]}
-          onPress={() => handleSourceSelect('document')}
+          onPress={() => handleSourceSelect("document")}
           activeOpacity={0.7}
         >
           <View
             style={[
               styles.sourceIcon,
-              selectedSource === 'document' && styles.sourceIconActive,
+              selectedSource === "document" && styles.sourceIconActive,
             ]}
           >
             <Ionicons
               name="document-outline"
               size={22}
               color={
-                selectedSource === 'document'
+                selectedSource === "document"
                   ? theme.colors.textOnColor
                   : theme.colors.textSecondary
               }
@@ -270,7 +274,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
           <Text
             style={[
               styles.sourceOptionText,
-              selectedSource === 'document' && styles.sourceOptionTextActive,
+              selectedSource === "document" && styles.sourceOptionTextActive,
             ]}
           >
             Documentos
@@ -281,22 +285,22 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
         <TouchableOpacity
           style={[
             styles.sourceOption,
-            selectedSource === 'camera' && styles.sourceOptionActive,
+            selectedSource === "camera" && styles.sourceOptionActive,
           ]}
-          onPress={() => handleSourceSelect('camera')}
+          onPress={() => handleSourceSelect("camera")}
           activeOpacity={0.7}
         >
           <View
             style={[
               styles.sourceIcon,
-              selectedSource === 'camera' && styles.sourceIconActive,
+              selectedSource === "camera" && styles.sourceIconActive,
             ]}
           >
             <Ionicons
               name="camera-outline"
               size={22}
               color={
-                selectedSource === 'camera'
+                selectedSource === "camera"
                   ? theme.colors.textOnColor
                   : theme.colors.textSecondary
               }
@@ -305,7 +309,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
           <Text
             style={[
               styles.sourceOptionText,
-              selectedSource === 'camera' && styles.sourceOptionTextActive,
+              selectedSource === "camera" && styles.sourceOptionTextActive,
             ]}
           >
             Cámara
@@ -319,7 +323,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
           <Text style={styles.sectionTitle}>
             Archivos seleccionados ({selectedFiles.length})
           </Text>
-          {selectedFiles.map(file => (
+          {selectedFiles.map((file) => (
             <View key={file.id} style={styles.selectedFileCard}>
               {/* Thumbnail / Icono */}
               <View style={styles.fileThumbnail}>
@@ -374,7 +378,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
         <View style={styles.tagSection}>
           <Text style={styles.sectionTitle}>Etiquetas</Text>
           <View style={styles.tagList}>
-            {MOCK_TAGS.map(tag => (
+            {tags.map((tag) => (
               <TouchableOpacity
                 key={tag.id}
                 style={[
@@ -385,7 +389,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
                 activeOpacity={0.7}
               >
                 <View
-                  style={[styles.tagDot, { backgroundColor: tag.color }]}
+                  style={[styles.tagDot, { backgroundColor: tag.color.hex }]}
                 />
                 <Text
                   style={[
@@ -411,7 +415,7 @@ export default function FileCreator({ onSave, currentFolderId }: FileCreatorProp
         <Text style={styles.saveButtonText}>
           {selectedFiles.length > 1
             ? `Guardar ${selectedFiles.length} archivos`
-            : 'Guardar archivo'}
+            : "Guardar archivo"}
         </Text>
       </TouchableOpacity>
     </View>

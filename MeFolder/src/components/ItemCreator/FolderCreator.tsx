@@ -1,25 +1,18 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/providers';
-import { useColors } from '@/hooks';
-import { useFolderCreatorStyles } from './styles';
-import { SYSTEM_COLORS } from '@/constants/themes/colors';
-import { ColorList } from '@/components/ColorPicker/ColorList';
-import type { ColorInfo } from '@/types/common/colors';
-
-interface MockTag {
-  id: string;
-  name: string;
-  color: string;
-}
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, TextInput, Alert } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/providers";
+import { useColors } from "@/hooks";
+import { useFolderCreatorStyles } from "./styles";
+import { SYSTEM_COLORS } from "@/constants/themes/colors";
+import { ColorList } from "@/components/ColorPicker/ColorList";
+import type { ColorInfo } from "@/types/common/colors";
 
 export interface NewFolder {
   name: string;
   description: string | null;
   color: ColorInfo;
-  icon: keyof typeof Ionicons.glyphMap | undefined ;
-  tags: string[];
+  icon: keyof typeof Ionicons.glyphMap | undefined;
   parentId: string;
 }
 
@@ -28,78 +21,72 @@ interface FolderCreatorProps {
   currentFolderId?: string;
 }
 
-const FOLDER_ICONS: Array<{ id: string; icon: keyof typeof Ionicons.glyphMap }> = [
-  { id: 'folder', icon: 'folder' },
-  { id: 'star', icon: 'star' },
-  { id: 'heart', icon: 'heart' },
-  { id: 'briefcase', icon: 'briefcase' },
-  { id: 'school', icon: 'school' },
-  { id: 'camera', icon: 'camera' },
-  { id: 'musical-notes', icon: 'musical-notes' },
-  { id: 'game-controller', icon: 'game-controller' },
-  { id: 'code-slash', icon: 'code-slash' },
-  { id: 'airplane', icon: 'airplane' },
-  { id: 'fitness', icon: 'fitness' },
-  { id: 'add', icon: 'add' },
+const FOLDER_ICONS: Array<{
+  id: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}> = [
+  { id: "folder", icon: "folder" },
+  { id: "star", icon: "star" },
+  { id: "heart", icon: "heart" },
+  { id: "briefcase", icon: "briefcase" },
+  { id: "school", icon: "school" },
+  { id: "camera", icon: "camera" },
+  { id: "musical-notes", icon: "musical-notes" },
+  { id: "game-controller", icon: "game-controller" },
+  { id: "code-slash", icon: "code-slash" },
+  { id: "airplane", icon: "airplane" },
+  { id: "fitness", icon: "fitness" },
+  { id: "add", icon: "add" },
 ];
 
-const MOCK_TAGS: MockTag[] = [
-  { id: '1', name: 'Personal', color: '#F2C94C' },
-  { id: '2', name: 'Trabajo', color: '#5DA9C7' },
-  { id: '3', name: 'Importante', color: '#EB5757' },
-  { id: '4', name: 'Proyecto', color: '#6FCF97' },
-  { id: '5', name: 'Referencia', color: '#F2994A' },
-];
-
-export default function FolderCreator({ onSave, currentFolderId }: FolderCreatorProps) {
+export default function FolderCreator({
+  onSave,
+  currentFolderId,
+}: FolderCreatorProps) {
   const { theme } = useTheme();
   const styles = useFolderCreatorStyles();
-  const { colors, selectedColor, showColorPicker, setSelectedColor, setShowColorPicker, handleSaveColor } = useColors();
+  const {
+    colors,
+    selectedColor,
+    showColorPicker,
+    setSelectedColor,
+    setShowColorPicker,
+    handleSaveColor,
+  } = useColors();
 
-  const [folderName, setFolderName] = useState('');
-  const [description, setDescription] = useState('');
+  const [folderName, setFolderName] = useState("");
+  const [description, setDescription] = useState("");
   const [selectedIcon, setSelectedIcon] = useState<string>(FOLDER_ICONS[0]!.id);
-  const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
   const [nameFocused, setNameFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
-
-  const toggleTag = (tagId: string): void => {
-    setSelectedTags(prev => {
-      const next = new Set(prev);
-      if (next.has(tagId)) {
-        next.delete(tagId);
-      } else {
-        next.add(tagId);
-      }
-      return next;
-    });
-  };
 
   const canSave = folderName.trim().length > 0;
 
   const handleSave = async (): Promise<void> => {
-    if (!canSave) return
-    
-    const color = selectedColor
-    const icon = FOLDER_ICONS.find(i => i.id === selectedIcon);
+    if (!canSave) return;
+
+    const color = selectedColor;
+    const icon = FOLDER_ICONS.find((i) => i.id === selectedIcon);
 
     await onSave({
       name: folderName.trim(),
       description: description.trim() || null,
-      color: color || SYSTEM_COLORS['yellow'], 
+      color: color || SYSTEM_COLORS["yellow"],
       icon: icon?.icon,
-      tags: Array.from(selectedTags),
-      parentId: currentFolderId ?? '',
+      parentId: currentFolderId ?? "",
     });
   };
 
   const handleSelectIcon = (iconId: string): void => {
-    if (iconId === 'add') {
-      Alert.alert('Icono personalizado', 'Funcionalidad de icono personalizado no implementada en esta demo.');
+    if (iconId === "add") {
+      Alert.alert(
+        "Icono personalizado",
+        "Funcionalidad de icono personalizado no implementada en esta demo.",
+      );
       return;
     }
     setSelectedIcon(iconId);
-  }
+  };
 
   return (
     <View style={styles.container}>
@@ -153,7 +140,7 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       <View style={styles.iconSection}>
         <Text style={styles.label}>Icono</Text>
         <View style={styles.iconGrid}>
-          {FOLDER_ICONS.map(item => (
+          {FOLDER_ICONS.map((item) => (
             <TouchableOpacity
               key={item.id}
               style={[
@@ -169,40 +156,11 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
                 color={
                   selectedIcon === item.id
                     ? theme.colors.primary
-                    : (item.id === 'add' 
+                    : item.id === "add"
                       ? theme.colors.warning
-                      : theme.colors.textSecondary)
+                      : theme.colors.textSecondary
                 }
               />
-            </TouchableOpacity>
-          ))}
-        </View>
-      </View>
-
-      <View style={styles.tagSection}>
-        <Text style={styles.label}>Etiquetas</Text>
-        <View style={styles.tagList}>
-          {MOCK_TAGS.map(tag => (
-            <TouchableOpacity
-              key={tag.id}
-              style={[
-                styles.tagChip,
-                selectedTags.has(tag.id) && styles.tagChipSelected,
-              ]}
-              onPress={() => toggleTag(tag.id)}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[styles.tagDot, { backgroundColor: tag.color }]}
-              />
-              <Text
-                style={[
-                  styles.tagChipText,
-                  selectedTags.has(tag.id) && styles.tagChipTextSelected,
-                ]}
-              >
-                {tag.name}
-              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -216,7 +174,6 @@ export default function FolderCreator({ onSave, currentFolderId }: FolderCreator
       >
         <Text style={styles.saveButtonText}>Crear carpeta</Text>
       </TouchableOpacity>
-
     </View>
   );
 }

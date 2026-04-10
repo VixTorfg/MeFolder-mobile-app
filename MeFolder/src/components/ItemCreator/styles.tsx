@@ -1,18 +1,18 @@
-import { useStyles } from '@/hooks';
-import { basicCard } from '@/constants/styles/cards';
+import { useStyles } from "@/hooks";
+import { basicCard } from "@/constants/styles/cards";
 
 export const useItemCreatorStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     typeSelector: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: theme.spacing.sm,
       marginBottom: theme.spacing.lg,
     },
     typeOption: {
       flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       gap: theme.spacing.sm,
       paddingVertical: theme.spacing.md,
       borderRadius: theme.effects.radius.md,
@@ -37,7 +37,7 @@ export const useItemCreatorStyles = () => {
 };
 
 export const useFileCreatorStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     container: {
       flex: 1,
     },
@@ -49,14 +49,14 @@ export const useFileCreatorStyles = () => {
       marginTop: theme.spacing.md,
     },
     sourceSelector: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: theme.spacing.sm,
       marginBottom: theme.spacing.lg,
     },
     sourceOption: {
       flex: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       gap: theme.spacing.xs,
       paddingVertical: theme.spacing.md,
       paddingHorizontal: theme.spacing.sm,
@@ -74,8 +74,8 @@ export const useFileCreatorStyles = () => {
       height: 44,
       borderRadius: theme.effects.radius.xs,
       backgroundColor: theme.colors.subCard,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     sourceIconActive: {
       backgroundColor: theme.colors.secondary,
@@ -84,7 +84,7 @@ export const useFileCreatorStyles = () => {
       fontSize: theme.typography.fontSize.sm,
       fontFamily: theme.typography.fontFamily.primary.medium,
       color: theme.colors.textSecondary,
-      textAlign: 'center',
+      textAlign: "center",
     },
     sourceOptionTextActive: {
       color: theme.colors.secondary,
@@ -95,8 +95,8 @@ export const useFileCreatorStyles = () => {
     },
     selectedFileCard: {
       ...basicCard(theme),
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       padding: theme.spacing.sm,
       marginBottom: theme.spacing.sm,
       gap: theme.spacing.sm,
@@ -106,8 +106,8 @@ export const useFileCreatorStyles = () => {
       height: 48,
       borderRadius: theme.effects.radius.xs,
       backgroundColor: theme.colors.subCard,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     fileInfo: {
       flex: 1,
@@ -133,17 +133,17 @@ export const useFileCreatorStyles = () => {
       width: 32,
       height: 32,
       borderRadius: theme.effects.radius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     selectButton: {
       ...basicCard(theme),
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       gap: theme.spacing.sm,
       paddingVertical: theme.spacing.lg,
-      borderStyle: 'dashed',
+      borderStyle: "dashed",
       borderWidth: theme.effects.borderWidth.lg,
       borderColor: theme.colors.borderSoft,
     },
@@ -156,13 +156,13 @@ export const useFileCreatorStyles = () => {
       marginTop: theme.spacing.lg,
     },
     tagList: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: theme.spacing.sm,
     },
     tagChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: theme.spacing.xs,
       paddingVertical: theme.spacing.xs,
       paddingHorizontal: theme.spacing.sm,
@@ -193,8 +193,8 @@ export const useFileCreatorStyles = () => {
       paddingVertical: theme.spacing.md,
       borderRadius: theme.effects.radius.md,
       backgroundColor: theme.colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     saveButtonDisabled: {
       backgroundColor: theme.colors.borderSoft,
@@ -205,8 +205,8 @@ export const useFileCreatorStyles = () => {
       color: theme.colors.textOnColor,
     },
     emptyState: {
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       paddingVertical: theme.spacing.xxl,
     },
     emptyStateText: {
@@ -219,7 +219,7 @@ export const useFileCreatorStyles = () => {
 };
 
 export const useFolderCreatorStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     container: {
       flex: 1,
     },
@@ -248,7 +248,7 @@ export const useFolderCreatorStyles = () => {
     },
     descriptionInput: {
       minHeight: 80,
-      textAlignVertical: 'top',
+      textAlignVertical: "top",
     },
     colorSection: {
       marginBottom: theme.spacing.lg,
@@ -257,16 +257,16 @@ export const useFolderCreatorStyles = () => {
       marginBottom: theme.spacing.lg,
     },
     iconGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: theme.spacing.sm,
     },
     iconOption: {
       width: 48,
       height: 48,
       borderRadius: theme.effects.radius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: theme.colors.subCard,
       borderWidth: theme.effects.borderWidth.xs,
       borderColor: theme.colors.borderSoft,
@@ -275,49 +275,13 @@ export const useFolderCreatorStyles = () => {
       backgroundColor: theme.colors.primarySoft,
       borderColor: theme.colors.primary,
     },
-    tagSection: {
-      marginBottom: theme.spacing.lg,
-    },
-    tagList: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: theme.spacing.sm,
-    },
-    tagChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.xs,
-      paddingVertical: theme.spacing.xs,
-      paddingHorizontal: theme.spacing.sm,
-      borderRadius: theme.effects.radius.lg,
-      backgroundColor: theme.colors.subCard,
-      borderWidth: theme.effects.borderWidth.xs,
-      borderColor: theme.colors.borderSoft,
-    },
-    tagChipSelected: {
-      backgroundColor: theme.colors.primarySoft,
-      borderColor: theme.colors.primary,
-    },
-    tagDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-    },
-    tagChipText: {
-      fontSize: theme.typography.fontSize.sm,
-      fontFamily: theme.typography.fontFamily.primary.medium,
-      color: theme.colors.textSecondary,
-    },
-    tagChipTextSelected: {
-      color: theme.colors.primary,
-    },
     saveButton: {
       marginTop: theme.spacing.lg,
       paddingVertical: theme.spacing.md,
       borderRadius: theme.effects.radius.md,
       backgroundColor: theme.colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     saveButtonDisabled: {
       backgroundColor: theme.colors.borderSoft,

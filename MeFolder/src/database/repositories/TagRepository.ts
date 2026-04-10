@@ -1,15 +1,15 @@
-import { Database } from '../sqlite/Database';
-import { TagFactory } from '../../models/tag';
-import { 
-  Tag, 
-  CreateTagInput, 
-  UpdateTagInput, 
+import { Database } from "../sqlite/Database";
+import { TagFactory } from "../../models/tag";
+import {
+  Tag,
+  CreateTagInput,
+  UpdateTagInput,
   TagType,
-  TagPriority
-} from '../../types/entities/tag';
-import { UUID } from '../../types/common/base';
-import { ColorInfo } from '../../types/common/colors';
-import { TagRepository, TagTreeNode } from '../../types/repositories/tag';
+  TagPriority,
+} from "../../types/entities/tag";
+import { UUID } from "../../types/common/base";
+import { ColorInfo } from "../../types/common/colors";
+import { TagRepository, TagTreeNode } from "../../types/repositories/tag";
 
 /**
  * Implementación del repositorio de etiquetas.
@@ -28,13 +28,13 @@ export class TagRepositoryImplementation implements TagRepository {
   async findById(id: UUID): Promise<Tag | null> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT * FROM tags WHERE id = ? AND is_active = ?',
-        [id, true]
+        "SELECT * FROM tags WHERE id = ? AND is_active = ?",
+        [id, true],
       );
 
       return row ? this.mapRowToTag(row) : null;
     } catch (error) {
-      console.error('Error finding tag by id:', error);
+      console.error("Error finding tag by id:", error);
       throw new Error(`Error al buscar etiqueta: ${error}`);
     }
   }
@@ -45,13 +45,13 @@ export class TagRepositoryImplementation implements TagRepository {
   async findByName(name: string): Promise<Tag | null> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT * FROM tags WHERE name = ? AND is_active = ?',
-        [name, true]
+        "SELECT * FROM tags WHERE name = ? AND is_active = ?",
+        [name, true],
       );
 
       return row ? this.mapRowToTag(row) : null;
     } catch (error) {
-      console.error('Error finding tag by name:', error);
+      console.error("Error finding tag by name:", error);
       throw new Error(`Error al buscar etiqueta por nombre: ${error}`);
     }
   }
@@ -61,43 +61,47 @@ export class TagRepositoryImplementation implements TagRepository {
    */
   async findAll(filters?: any): Promise<Tag[]> {
     try {
-      let sql = 'SELECT * FROM tags WHERE is_active = ?';
+      let sql = "SELECT * FROM tags WHERE is_active = ?";
       const params: any[] = [true];
 
       if (filters) {
         if (filters.type) {
-          sql += ' AND type = ?';
+          sql += " AND type = ?";
           params.push(filters.type);
         }
+        if (filters.excludedType) {
+          sql += " AND type != ?";
+          params.push(filters.excludedType);
+        }
         if (filters.priority) {
-          sql += ' AND priority = ?';
+          sql += " AND priority = ?";
           params.push(filters.priority);
         }
         if (filters.parentId) {
-          sql += ' AND parent_id = ?';
+          sql += " AND parent_id = ?";
           params.push(filters.parentId);
         }
         if (filters.minUsage !== undefined) {
-          sql += ' AND usage_count >= ?';
+          sql += " AND usage_count >= ?";
           params.push(filters.minUsage);
         }
       }
 
-      sql += ' ORDER BY usage_count DESC, name ASC';
+      sql += " ORDER BY usage_count DESC, name ASC";
 
       if (filters?.limit) {
-        sql += ' LIMIT ?';
+        sql += " LIMIT ?";
         params.push(filters.limit);
         if (filters?.offset) {
-          sql += ' OFFSET ?';
+          sql += " OFFSET ?";
           params.push(filters.offset);
         }
       }
 
       const rows = await this.db.query<any>(sql, params);
-      return rows.map(row => this.mapRowToTag(row));
+      return rows.map((row) => this.mapRowToTag(row));
     } catch (error) {
-      console.error('Error finding all tags:', error);
+      console.error("Error finding all tags:", error);
       throw new Error(`Error al buscar etiquetas: ${error}`);
     }
   }
@@ -112,26 +116,42 @@ export class TagRepositoryImplementation implements TagRepository {
 
       const validation = tagModel.validate();
       if (!validation.isValid) {
-        throw new Error(`Validación fallida: ${validation.errors.map(e => e.message).join(', ')}`);
+        throw new Error(
+          `Validación fallida: ${validation.errors.map((e) => e.message).join(", ")}`,
+        );
       }
 
-      await this.db.execute(`
+      await this.db.execute(
+        `
         INSERT INTO tags (
           id, created_at, updated_at,
           name, description, type, priority, is_active,
           color_hex, color_rgb_r, color_rgb_g, color_rgb_b,
           usage_count, last_used_at, parent_id
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        tag.id, tag.createdAt, tag.updatedAt,
-        tag.name, tag.description, tag.type, tag.priority, tag.isActive,
-        tag.color.hex, tag.color.rgb.r, tag.color.rgb.g, tag.color.rgb.b,
-        tag.usageCount, tag.lastUsedAt, tag.parentId
-      ]);
+      `,
+        [
+          tag.id,
+          tag.createdAt.getTime(),
+          tag.updatedAt.getTime(),
+          tag.name,
+          tag.description,
+          tag.type,
+          tag.priority,
+          tag.isActive,
+          tag.color.hex,
+          tag.color.rgb.r,
+          tag.color.rgb.g,
+          tag.color.rgb.b,
+          tag.usageCount,
+          tag.lastUsedAt?.getTime(),
+          tag.parentId,
+        ],
+      );
 
       return tag;
     } catch (error) {
-      console.error('Error creating tag:', error);
+      console.error("Error creating tag:", error);
       throw new Error(`Error al crear etiqueta: ${error}`);
     }
   }
@@ -143,7 +163,7 @@ export class TagRepositoryImplementation implements TagRepository {
     try {
       const existingTag = await this.findById(id);
       if (!existingTag) {
-        throw new Error('Etiqueta no encontrada');
+        throw new Error("Etiqueta no encontrada");
       }
 
       const tagModel = TagFactory.fromJSON(existingTag);
@@ -151,12 +171,15 @@ export class TagRepositoryImplementation implements TagRepository {
 
       const validation = tagModel.validate();
       if (!validation.isValid) {
-        throw new Error(`Validación fallida: ${validation.errors.map(e => e.message).join(', ')}`);
+        throw new Error(
+          `Validación fallida: ${validation.errors.map((e) => e.message).join(", ")}`,
+        );
       }
 
       const tag = tagModel.toJSON();
 
-      await this.db.execute(`
+      await this.db.execute(
+        `
         UPDATE tags SET 
           updated_at = ?,
           name = ?, 
@@ -169,16 +192,25 @@ export class TagRepositoryImplementation implements TagRepository {
           color_rgb_b = ?,
           parent_id = ?
         WHERE id = ?
-      `, [
-        tag.updatedAt,
-        tag.name, tag.description, tag.type, tag.priority,
-        tag.color.hex, tag.color.rgb.r, tag.color.rgb.g, tag.color.rgb.b,
-        tag.parentId, id
-      ]);
+      `,
+        [
+          tag.updatedAt.toISOString(),
+          tag.name,
+          tag.description,
+          tag.type,
+          tag.priority,
+          tag.color.hex,
+          tag.color.rgb.r,
+          tag.color.rgb.g,
+          tag.color.rgb.b,
+          tag.parentId,
+          id,
+        ],
+      );
 
       return tag;
     } catch (error) {
-      console.error('Error updating tag:', error);
+      console.error("Error updating tag:", error);
       throw new Error(`Error al actualizar etiqueta: ${error}`);
     }
   }
@@ -189,13 +221,13 @@ export class TagRepositoryImplementation implements TagRepository {
   async delete(id: UUID): Promise<boolean> {
     try {
       const result = await this.db.execute(
-        'UPDATE tags SET is_active = ?, updated_at = ? WHERE id = ?',
-        [false, new Date(), id]
+        "UPDATE tags SET is_active = ?, updated_at = ? WHERE id = ?",
+        [false, Date.now(), id],
       );
 
       return result.changes > 0;
     } catch (error) {
-      console.error('Error deleting tag:', error);
+      console.error("Error deleting tag:", error);
       throw new Error(`Error al eliminar etiqueta: ${error}`);
     }
   }
@@ -232,9 +264,9 @@ export class TagRepositoryImplementation implements TagRepository {
    * Obtener etiquetas más usadas
    */
   async findMostUsed(limit: number): Promise<Tag[]> {
-    return this.findAll({ 
+    return this.findAll({
       limit,
-      minUsage: 0 // Para ordenar por usage_count DESC
+      minUsage: 0, // Para ordenar por usage_count DESC
     });
   }
 
@@ -242,7 +274,7 @@ export class TagRepositoryImplementation implements TagRepository {
    * Obtener etiquetas del sistema
    */
   async findSystemTags(): Promise<Tag[]> {
-    return this.findByType('system');
+    return this.findByType("system");
   }
 
   /**
@@ -265,16 +297,16 @@ export class TagRepositoryImplementation implements TagRepository {
       const params: any[] = [true, `%${query}%`, `%${query}%`];
 
       if (filters?.type) {
-        sql += ' AND type = ?';
+        sql += " AND type = ?";
         params.push(filters.type);
       }
 
-      sql += ' ORDER BY usage_count DESC, name ASC';
+      sql += " ORDER BY usage_count DESC, name ASC";
 
       const rows = await this.db.query<any>(sql, params);
-      return rows.map(row => this.mapRowToTag(row));
+      return rows.map((row) => this.mapRowToTag(row));
     } catch (error) {
-      console.error('Error searching tags:', error);
+      console.error("Error searching tags:", error);
       throw new Error(`Error al buscar etiquetas: ${error}`);
     }
   }
@@ -284,15 +316,18 @@ export class TagRepositoryImplementation implements TagRepository {
    */
   async updateUsageCount(tagId: UUID, increment: number): Promise<void> {
     try {
-      await this.db.execute(`
+      await this.db.execute(
+        `
         UPDATE tags SET 
           usage_count = usage_count + ?,
           last_used_at = ?,
           updated_at = ?
         WHERE id = ?
-      `, [increment, new Date(), new Date(), tagId]);
+      `,
+        [increment, Date.now(), Date.now(), tagId],
+      );
     } catch (error) {
-      console.error('Error updating usage count:', error);
+      console.error("Error updating usage count:", error);
       throw new Error(`Error al actualizar contador de uso: ${error}`);
     }
   }
@@ -317,11 +352,11 @@ export class TagRepositoryImplementation implements TagRepository {
   async updateLastUsed(tagId: UUID): Promise<void> {
     try {
       await this.db.execute(
-        'UPDATE tags SET last_used_at = ?, updated_at = ? WHERE id = ?',
-        [new Date(), new Date(), tagId]
+        "UPDATE tags SET last_used_at = ?, updated_at = ? WHERE id = ?",
+        [Date.now(), Date.now(), tagId],
       );
     } catch (error) {
-      console.error('Error updating last used:', error);
+      console.error("Error updating last used:", error);
       throw new Error(`Error al actualizar último uso: ${error}`);
     }
   }
@@ -331,14 +366,14 @@ export class TagRepositoryImplementation implements TagRepository {
    */
   async createHierarchy(parentId: UUID, childIds: UUID[]): Promise<void> {
     try {
-      const updates = childIds.map(childId => ({
-        sql: 'UPDATE tags SET parent_id = ?, updated_at = ? WHERE id = ?',
-        params: [parentId, new Date(), childId]
+      const updates = childIds.map((childId) => ({
+        sql: "UPDATE tags SET parent_id = ?, updated_at = ? WHERE id = ?",
+        params: [parentId, Date.now(), childId],
       }));
 
       await this.db.transaction(updates);
     } catch (error) {
-      console.error('Error creating hierarchy:', error);
+      console.error("Error creating hierarchy:", error);
       throw new Error(`Error al crear jerarquía: ${error}`);
     }
   }
@@ -360,9 +395,9 @@ export class TagRepositoryImplementation implements TagRepository {
       `;
 
       const rows = await this.db.query<any>(sql, [tagId, true, true]);
-      return rows.map(row => this.mapRowToTag(row));
+      return rows.map((row) => this.mapRowToTag(row));
     } catch (error) {
-      console.error('Error getting hierarchy:', error);
+      console.error("Error getting hierarchy:", error);
       throw new Error(`Error al obtener jerarquía: ${error}`);
     }
   }
@@ -382,7 +417,7 @@ export class TagRepositoryImplementation implements TagRepository {
 
       return tree;
     } catch (error) {
-      console.error('Error getting tag tree:', error);
+      console.error("Error getting tag tree:", error);
       throw new Error(`Error al obtener árbol de etiquetas: ${error}`);
     }
   }
@@ -401,7 +436,9 @@ export class TagRepositoryImplementation implements TagRepository {
 
         const validation = tagModel.validate();
         if (!validation.isValid) {
-          throw new Error(`Validación fallida para "${input.name}": ${validation.errors.map(e => e.message).join(', ')}`);
+          throw new Error(
+            `Validación fallida para "${input.name}": ${validation.errors.map((e) => e.message).join(", ")}`,
+          );
         }
 
         tags.push(tag);
@@ -411,18 +448,29 @@ export class TagRepositoryImplementation implements TagRepository {
             color_hex, color_rgb_r, color_rgb_g, color_rgb_b, usage_count, last_used_at, parent_id
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
-            tag.id, tag.createdAt, tag.updatedAt, tag.name, tag.description,
-            tag.type, tag.priority, tag.isActive, tag.color.hex,
-            tag.color.rgb.r, tag.color.rgb.g, tag.color.rgb.b,
-            tag.usageCount, tag.lastUsedAt, tag.parentId
-          ]
+            tag.id,
+            tag.createdAt.getTime(),
+            tag.updatedAt.getTime(),
+            tag.name,
+            tag.description,
+            tag.type,
+            tag.priority,
+            tag.isActive,
+            tag.color.hex,
+            tag.color.rgb.r,
+            tag.color.rgb.g,
+            tag.color.rgb.b,
+            tag.usageCount,
+            tag.lastUsedAt?.getTime(),
+            tag.parentId,
+          ],
         });
       }
 
       await this.db.transaction(queries);
       return tags;
     } catch (error) {
-      console.error('Error bulk creating tags:', error);
+      console.error("Error bulk creating tags:", error);
       throw new Error(`Error al crear etiquetas en lote: ${error}`);
     }
   }
@@ -434,15 +482,15 @@ export class TagRepositoryImplementation implements TagRepository {
     try {
       if (ids.length === 0) return 0;
 
-      const placeholders = ids.map(() => '?').join(',');
+      const placeholders = ids.map(() => "?").join(",");
       const result = await this.db.execute(
         `UPDATE tags SET is_active = ?, updated_at = ? WHERE id IN (${placeholders})`,
-        [false, new Date(), ...ids]
+        [false, Date.now(), ...ids],
       );
 
       return result.changes;
     } catch (error) {
-      console.error('Error bulk deleting tags:', error);
+      console.error("Error bulk deleting tags:", error);
       throw new Error(`Error al eliminar etiquetas en lote: ${error}`);
     }
   }
@@ -452,18 +500,18 @@ export class TagRepositoryImplementation implements TagRepository {
    */
   async count(filters?: any): Promise<number> {
     try {
-      let sql = 'SELECT COUNT(*) as total FROM tags WHERE is_active = ?';
+      let sql = "SELECT COUNT(*) as total FROM tags WHERE is_active = ?";
       const params: any[] = [true];
 
       if (filters?.type) {
-        sql += ' AND type = ?';
+        sql += " AND type = ?";
         params.push(filters.type);
       }
 
       const [result] = await this.db.query<{ total: number }>(sql, params);
       return result?.total || 0;
     } catch (error) {
-      console.error('Error counting tags:', error);
+      console.error("Error counting tags:", error);
       throw new Error(`Error al contar etiquetas: ${error}`);
     }
   }
@@ -474,12 +522,12 @@ export class TagRepositoryImplementation implements TagRepository {
   async exists(id: UUID): Promise<boolean> {
     try {
       const [result] = await this.db.query<{ count: number }>(
-        'SELECT COUNT(*) as count FROM tags WHERE id = ? AND is_active = ?',
-        [id, true]
+        "SELECT COUNT(*) as count FROM tags WHERE id = ? AND is_active = ?",
+        [id, true],
       );
       return (result?.count || 0) > 0;
     } catch (error) {
-      console.error('Error checking tag existence:', error);
+      console.error("Error checking tag existence:", error);
       return false;
     }
   }
@@ -490,12 +538,12 @@ export class TagRepositoryImplementation implements TagRepository {
   async existsByName(name: string): Promise<boolean> {
     try {
       const [result] = await this.db.query<{ count: number }>(
-        'SELECT COUNT(*) as count FROM tags WHERE name = ? AND is_active = ?',
-        [name, true]
+        "SELECT COUNT(*) as count FROM tags WHERE name = ? AND is_active = ?",
+        [name, true],
       );
       return (result?.count || 0) > 0;
     } catch (error) {
-      console.error('Error checking tag existence by name:', error);
+      console.error("Error checking tag existence by name:", error);
       return false;
     }
   }
@@ -515,7 +563,9 @@ export class TagRepositoryImplementation implements TagRepository {
     return {
       tag,
       children: childNodes,
-      totalUsage: tag.usageCount + childNodes.reduce((sum, child) => sum + child.totalUsage, 0)
+      totalUsage:
+        tag.usageCount +
+        childNodes.reduce((sum, child) => sum + child.totalUsage, 0),
     };
   }
 
@@ -538,11 +588,11 @@ export class TagRepositoryImplementation implements TagRepository {
           g: row.color_rgb_g,
           b: row.color_rgb_b,
         },
-        isSystem: row.type === 'system',
+        isSystem: row.type === "system",
         isFavorite: false,
       } as ColorInfo,
       usageCount: row.usage_count,
-      
+
       ...(row.description && { description: row.description }),
       ...(row.parent_id && { parentId: row.parent_id }),
       ...(row.last_used_at && { lastUsedAt: new Date(row.last_used_at) }),

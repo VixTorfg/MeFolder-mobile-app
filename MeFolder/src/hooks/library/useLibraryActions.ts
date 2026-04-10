@@ -1,13 +1,18 @@
-import { FileModel, FolderModel } from '@/models';
-import { useLibraryStore } from '@/stores/useLibraryStore';
-import { useClipboardStore, useNavigationStore } from '@/stores';
-import { useAlert } from '@/providers';
-import { useFileSystem, useMedia } from '@/hooks';
-import * as Sharing from 'expo-sharing';
-import mime from 'mime';
-import type { CreateFileInput, FileCategory, FileMetadata, FSFileInfo } from '@/types';
-import type { NewFile } from '@/components/ItemCreator/FileCreator';
-import type { NewFolder } from '@/components/ItemCreator/FolderCreator';
+import { FileModel, FolderModel } from "@/models";
+import { useLibraryStore } from "@/stores/useLibraryStore";
+import { useClipboardStore, useNavigationStore } from "@/stores";
+import { useAlert } from "@/providers";
+import { useFileSystem, useMedia } from "@/hooks";
+import * as Sharing from "expo-sharing";
+import mime from "mime";
+import type {
+  CreateFileInput,
+  FileCategory,
+  FileMetadata,
+  FSFileInfo,
+} from "@/types";
+import type { NewFile } from "@/components/ItemCreator/FileCreator";
+import type { NewFolder } from "@/components/ItemCreator/FolderCreator";
 
 interface UseLibraryActionsParams {
   folderService: any;
@@ -26,7 +31,7 @@ export const useLibraryActions = ({
   clearSelection,
   setIsRenaming,
 }: UseLibraryActionsParams) => {
-  const items = useLibraryStore(state => state.items);
+  const items = useLibraryStore((state) => state.items);
   const { setItems, addItem, updateItem } = useLibraryStore();
   const { currentFolderId } = useNavigationStore();
   const { copy, cut, paste, hasItems } = useClipboardStore();
@@ -34,8 +39,13 @@ export const useLibraryActions = ({
   const fs = useFileSystem();
   const media = useMedia();
 
-  const buildFileMetadata = async (category: FileCategory, uri: string, fsInfo: FSFileInfo | null, fileMimeType?: string): Promise<FileMetadata> => {
-    const mimeType = fileMimeType || fsInfo?.mimeType || '';
+  const buildFileMetadata = async (
+    category: FileCategory,
+    uri: string,
+    fsInfo: FSFileInfo | null,
+    fileMimeType?: string,
+  ): Promise<FileMetadata> => {
+    const mimeType = fileMimeType || fsInfo?.mimeType || "";
     const base: FileMetadata = {
       size: fsInfo?.size ?? 0,
       ...(mimeType && { mimeType }),
@@ -43,17 +53,17 @@ export const useLibraryActions = ({
     };
 
     switch (category) {
-      case 'video': {
+      case "video": {
         const videoMeta = await media.getVideoMetadata(uri);
         if (videoMeta) return { ...base, videoMetadata: videoMeta };
         return base;
       }
-      case 'audio': {
+      case "audio": {
         const audioMeta = await media.getAudioMetadata(uri);
         if (audioMeta) return { ...base, audioMetadata: audioMeta };
         return base;
       }
-      case 'image': {
+      case "image": {
         const imageMeta = await media.getImageMetadata(uri);
         if (imageMeta) return { ...base, imageMetadata: imageMeta };
         return base;
@@ -65,55 +75,101 @@ export const useLibraryActions = ({
 
   const handleShare = (item: FileModel | FolderModel) => {
     if (!Sharing.isAvailableAsync()) {
-      showAlert({ title: 'Compartir no disponible', message: 'La función de compartir no está disponible en este dispositivo.' });
+      showAlert({
+        title: "Compartir no disponible",
+        message:
+          "La función de compartir no está disponible en este dispositivo.",
+      });
       return;
     }
 
     if (item instanceof FileModel) {
       const fileUri = item.storageUrl;
       if (!fileUri) {
-        showAlert({ title: 'Ruta no disponible', message: 'La ubicación del archivo no está disponible.' });
+        showAlert({
+          title: "Ruta no disponible",
+          message: "La ubicación del archivo no está disponible.",
+        });
         return;
       }
 
       Sharing.shareAsync(fileUri)
-        .then(() => showAlert({ title: 'Compartir', message: 'Archivo compartido exitosamente.' }))
-        .catch(error => showAlert({ title: 'Error al compartir', message: `No se pudo compartir el archivo: ${error.message}` }));
+        .then(() =>
+          showAlert({
+            title: "Compartir",
+            message: "Archivo compartido exitosamente.",
+          }),
+        )
+        .catch((error) =>
+          showAlert({
+            title: "Error al compartir",
+            message: `No se pudo compartir el archivo: ${error.message}`,
+          }),
+        );
     } else {
-      showAlert({ title: 'Compartir carpeta', message: 'La función de compartir carpetas no está implementada aún.' });
+      showAlert({
+        title: "Compartir carpeta",
+        message: "La función de compartir carpetas no está implementada aún.",
+      });
     }
   };
 
-  const handleDeleteElements = (itemsToDelete?: (FileModel | FolderModel)[]) => {
+  const handleDeleteElements = (
+    itemsToDelete?: (FileModel | FolderModel)[],
+  ) => {
     const targetItems = itemsToDelete ?? itemsSelected;
 
     showAlert({
-      title: 'Confirmar eliminación',
+      title: "Confirmar eliminación",
       message: `¿Estás seguro de que deseas eliminar ${targetItems.length} elemento(s)?`,
       buttons: [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: "Cancelar", style: "cancel" },
         {
-          text: 'Eliminar', style: 'destructive', onPress: async () => {
-            const folderIdsToDelete = targetItems.filter(i => i instanceof FolderModel).map(f => f.id);
-            const fileIdsToDelete = targetItems.filter(i => i instanceof FileModel).map(f => f.id);
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            const folderIdsToDelete = targetItems
+              .filter((i) => i instanceof FolderModel)
+              .map((f) => f.id);
+            const fileIdsToDelete = targetItems
+              .filter((i) => i instanceof FileModel)
+              .map((f) => f.id);
 
             try {
-              const successFolders = await Promise.all(folderIdsToDelete.map(folderId => folderService.deleteFolder(folderId, true)));
-              const successFiles = await Promise.all(fileIdsToDelete.map(fileId => fileService.deleteFile(fileId)));
+              const successFolders = await Promise.all(
+                folderIdsToDelete.map((folderId) =>
+                  folderService.deleteFolder(folderId, true),
+                ),
+              );
+              const successFiles = await Promise.all(
+                fileIdsToDelete.map((fileId) => fileService.deleteFile(fileId)),
+              );
 
-              if (successFolders.every(s => s) && successFiles.every(s => s)) {
-                const newItems = items.filter(i => !targetItems.some(s => s.id === i.id));
+              if (
+                successFolders.every((s) => s) &&
+                successFiles.every((s) => s)
+              ) {
+                const newItems = items.filter(
+                  (i) => !targetItems.some((s) => s.id === i.id),
+                );
                 setItems(newItems);
                 clearSelection();
               } else {
-                showAlert({ title: 'Error', message: 'No se pudieron eliminar todos los elementos seleccionados' });
+                showAlert({
+                  title: "Error",
+                  message:
+                    "No se pudieron eliminar todos los elementos seleccionados",
+                });
               }
             } catch {
-              showAlert({ title: 'Error', message: 'Ocurrió un error al intentar eliminar los elementos' });
+              showAlert({
+                title: "Error",
+                message: "Ocurrió un error al intentar eliminar los elementos",
+              });
             }
-          }
+          },
         },
-      ]
+      ],
     });
   };
 
@@ -127,16 +183,20 @@ export const useLibraryActions = ({
       let copiedUri: string | null = null;
 
       try {
-        const resolvedExt = ((file.mimeType && mime.getExtension(file.mimeType)) || '');
-        const fileNameWithExt = resolvedExt && !file.name.endsWith(`.${resolvedExt}`)
-          ? `${file.name}.${resolvedExt}`
-          : file.name;
+        const resolvedExt =
+          (file.mimeType && mime.getExtension(file.mimeType)) || "";
+        const fileNameWithExt =
+          resolvedExt && !file.name.endsWith(`.${resolvedExt}`)
+            ? `${file.name}.${resolvedExt}`
+            : file.name;
 
-        const destinationUri = fs.resolveUri(`${targetPath}/${fileNameWithExt}`);
+        const destinationUri = fs.resolveUri(
+          `${targetPath}/${fileNameWithExt}`,
+        );
         const copyResult = fs.copyFile(file.uri, destinationUri);
 
         if (!copyResult.toUri) {
-          failed.push({ name: file.name, error: 'Error al copiar el archivo' });
+          failed.push({ name: file.name, error: "Error al copiar el archivo" });
           continue;
         }
 
@@ -144,17 +204,24 @@ export const useLibraryActions = ({
         const metadata = fs.getFileInfo(file.uri);
 
         if (!metadata) {
-          throw new Error('No se pudo obtener información del archivo');
+          throw new Error("No se pudo obtener información del archivo");
         }
 
-        const fileMetadata = await buildFileMetadata(file.type, file.uri, metadata, file.mimeType);
+        const fileMetadata = await buildFileMetadata(
+          file.type,
+          file.uri,
+          metadata,
+          file.mimeType,
+        );
 
         const fileResult = await fileService?.createFile({
           name: file.name,
           originalName: file.originalName,
-          extension: (resolvedExt || metadata.extension || '') as CreateFileInput['extension'],
+          extension: (resolvedExt ||
+            metadata.extension ||
+            "") as CreateFileInput["extension"],
           folderId: resolvedFolderId,
-          visibility: 'public',
+          visibility: "public",
           metadata: fileMetadata,
           tagIds: tags,
           storageUrl: copiedUri,
@@ -176,14 +243,14 @@ export const useLibraryActions = ({
 
     if (failed.length > 0) {
       showAlert({
-        title: 'Error al guardar archivos',
-        message: `No se pudieron guardar los siguientes archivos:\n${failed.map(f => `${f.name}: ${f.error}`).join('\n')}`,
+        title: "Error al guardar archivos",
+        message: `No se pudieron guardar los siguientes archivos:\n${failed.map((f) => `${f.name}: ${f.error}`).join("\n")}`,
       });
     }
   };
 
   const handleSaveFolder = async (data: NewFolder): Promise<void> => {
-    const { name, description, color, icon, tags, parentId } = data;
+    const { name, description, color, icon, parentId } = data;
     const resolvedParentId = parentId ?? currentFolderId;
 
     try {
@@ -192,8 +259,7 @@ export const useLibraryActions = ({
         ...(description && { description }),
         ...(color && { color }),
         ...(icon && { icon }),
-        visibility: 'public',
-        tagIds: tags,
+        visibility: "public",
         ...(resolvedParentId && { parentId: resolvedParentId }),
       });
 
@@ -202,25 +268,32 @@ export const useLibraryActions = ({
 
       if (!success) {
         await folderService.deleteFolder(folderResult.id, true);
-        showAlert({ title: 'Error', message: 'No se pudo crear la carpeta en el sistema de archivos' });
+        showAlert({
+          title: "Error",
+          message: "No se pudo crear la carpeta en el sistema de archivos",
+        });
         return;
       }
       addItem(folderResult);
     } catch {
-      showAlert({ title: 'Error', message: 'No se pudo crear la carpeta' });
+      showAlert({ title: "Error", message: "No se pudo crear la carpeta" });
     }
   };
 
   const handleRename = (newName: string) => {
     showAlert({
-      title: 'Renombrar archivo',
+      title: "Renombrar archivo",
       message: `¿Estás seguro de que quieres renombrar el archivo a "${newName}"?`,
       buttons: [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: "Cancelar", style: "cancel" },
         {
-          text: 'Renombrar', onPress: async () => {
+          text: "Renombrar",
+          onPress: async () => {
             if (!newName.trim()) {
-              showAlert({ title: 'Error', message: 'El nombre del archivo no puede estar vacío' });
+              showAlert({
+                title: "Error",
+                message: "El nombre del archivo no puede estar vacío",
+              });
               return;
             }
 
@@ -229,19 +302,29 @@ export const useLibraryActions = ({
             try {
               if (clickedItem instanceof FolderModel) {
                 if (!folderService) return;
-                const result = await folderService.renameFolder(clickedItem.id, newName);
+                const result = await folderService.renameFolder(
+                  clickedItem.id,
+                  newName,
+                );
                 updateItem(result);
               } else {
                 if (!fileService) return;
-                const result = await fileService.renameFile(clickedItem?.id, newName);
+                const result = await fileService.renameFile(
+                  clickedItem?.id,
+                  newName,
+                );
                 updateItem(result);
               }
               setIsRenaming(false);
             } catch {
-              showAlert({ title: 'Error', message: 'No se pudo renombrar el elemento' });
+              showAlert({
+                title: "Error",
+                message: "No se pudo renombrar el elemento",
+              });
             }
           },
-        }]
+        },
+      ],
     });
   };
 
@@ -255,21 +338,27 @@ export const useLibraryActions = ({
 
   const handlePaste = async () => {
     if (!hasItems()) {
-      showAlert({ title: 'Portapapeles vacío', message: 'No hay elementos para pegar.' });
+      showAlert({
+        title: "Portapapeles vacío",
+        message: "No hay elementos para pegar.",
+      });
       return;
     }
     try {
       const { createdFolders, createdFiles } = await paste(currentFolderId);
 
       const newItems = [
-        ...items.filter(i => i instanceof FolderModel),
+        ...items.filter((i) => i instanceof FolderModel),
         ...createdFolders,
-        ...items.filter(i => i instanceof FileModel),
-        ...createdFiles
+        ...items.filter((i) => i instanceof FileModel),
+        ...createdFiles,
       ];
       setItems(newItems);
     } catch {
-      showAlert({ title: 'Error', message: 'No se pudieron pegar los elementos' });
+      showAlert({
+        title: "Error",
+        message: "No se pudieron pegar los elementos",
+      });
     }
   };
 

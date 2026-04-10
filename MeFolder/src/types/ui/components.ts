@@ -1,29 +1,36 @@
-import { Ionicons }  from '@expo/vector-icons';
-import { UUID } from '../common/base';
-import { ColorInfo } from '../common/colors';
-import { FileModel } from '@/models/file';
-import { FolderModel } from '@/models/folder';
-import { ViewOptions } from '../entities/folder';
+import { Ionicons } from "@expo/vector-icons";
+import { UUID } from "../common/base";
+import { ColorInfo } from "../common/colors";
+import { FileModel } from "@/models/file";
+import { FolderModel } from "@/models/folder";
+import { ViewOptions } from "../entities/folder";
 
 export interface LoadingState {
   isLoading: boolean;
-  operation?: string;      
-  progress?: number;      
+  operation?: string;
+  progress?: number;
 }
 
 export interface CustomAlertButton {
   text: string;
   onPress?: () => void;
-  style?: 'default' | 'cancel' | 'destructive';
+  style?: "default" | "cancel" | "destructive";
 }
 
 export const OptionsIds = {
-  SELECT_ALL: 'select_all',
-  NO_SELECT: 'no_select',
-  INVERT_SELECT: 'invert_select',
-  PROPERTIES: 'properties',
-  SETTINGS: 'settings',
+  SELECT_ALL: "select_all",
+  NO_SELECT: "no_select",
+  INVERT_SELECT: "invert_select",
+  PROPERTIES: "properties",
+  SETTINGS: "settings",
 } as const;
+
+export const PRIORITY_CONFIG = {
+  critical: { label: "Crítica", bg: "#EB575720", color: "#EB5757" },
+  high: { label: "Alta", bg: "#F2994A20", color: "#F2994A" },
+  normal: { label: "Normal", bg: "#5DA9C720", color: "#5DA9C7" },
+  low: { label: "Baja", bg: "#9A9A9020", color: "#9A9A90" },
+};
 
 export type OptionsIds = (typeof OptionsIds)[keyof typeof OptionsIds];
 
@@ -47,8 +54,6 @@ export interface CommunCardProps {
   selected?: boolean;
 }
 
-
-
 export interface ErrorState {
   hasError: boolean;
   message?: string;
@@ -60,26 +65,26 @@ export interface SelectionConfig {
   enabled: boolean;
   selectedIds: Set<UUID>;
   selectAll: boolean;
-  maxSelection?: number;  
+  maxSelection?: number;
 }
 
 export interface ModalConfig {
   isVisible: boolean;
-  type: 'confirm' | 'alert' | 'input' | 'custom';
+  type: "confirm" | "alert" | "input" | "custom";
   title?: string;
   message?: string;
   confirmText?: string;
   cancelText?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
-  data?: any;             
+  data?: any;
 }
 
 export interface ToastConfig {
   id: string;
-  type: 'success' | 'error' | 'warning' | 'info';
+  type: "success" | "error" | "warning" | "info";
   message: string;
-  duration?: number;       // ms, undefined = no auto-dismiss
+  duration?: number; // ms, undefined = no auto-dismiss
   action?: {
     label: string;
     onPress: () => void;
@@ -87,10 +92,10 @@ export interface ToastConfig {
 }
 
 export interface UIThemeConfig {
-  colorScheme: 'light' | 'dark' | 'auto';
+  colorScheme: "light" | "dark" | "auto";
   accentColor: ColorInfo;
-  fontSize: 'small' | 'medium' | 'large';
-  density: 'compact' | 'comfortable' | 'spacious';
+  fontSize: "small" | "medium" | "large";
+  density: "compact" | "comfortable" | "spacious";
 }
 
 export interface SyncState {

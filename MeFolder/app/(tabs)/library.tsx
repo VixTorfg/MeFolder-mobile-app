@@ -1,19 +1,45 @@
-import { ViewDropDown, ViewCards, ItemCreator, MultiActionButton, ContextMenu, Breadcrumb, OptionDropDown, PropertyMenu } from '@/components';
-import React, { useMemo, useRef, useState } from 'react';
-import { View, FlatList, TouchableOpacity, Text, ActivityIndicator } from 'react-native';
-import { useNavigationStore } from '@/stores';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { FileModel, FolderModel } from '@/models';
-import { useLibraryStyles } from '@/screenStyles/libraryStyle';
-import EmptyFolder from '@/components/svgIcons/emptyFolder';
-import { SortDropDown } from '@/components/SortDropDown';
-import { useLibraryContent, useLibrarySelection, useLibraryActions } from '@/hooks/library';
+import {
+  ViewDropDown,
+  ViewCards,
+  ItemCreator,
+  MultiActionButton,
+  ContextMenu,
+  Breadcrumb,
+  OptionDropDown,
+  PropertyMenu,
+} from "@/components";
+import React, { useMemo, useRef, useState } from "react";
+import {
+  View,
+  FlatList,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+} from "react-native";
+import { useNavigationStore } from "@/stores";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { FileModel, FolderModel } from "@/models";
+import { useLibraryStyles } from "@/screenStyles/libraryStyle";
+import EmptyFolder from "@/components/svgIcons/emptyFolder";
+import { SortDropDown } from "@/components/SortDropDown";
+import {
+  useLibraryContent,
+  useLibrarySelection,
+  useLibraryActions,
+} from "@/hooks/library";
 
 export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
   const [showMenu, setShowMenu] = useState(false);
-  const [clickedItem, setClickedItem] = useState<FileModel | FolderModel | null>(null);
-  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const [clickedItem, setClickedItem] = useState<
+    FileModel | FolderModel | null
+  >(null);
+  const [menuPosition, setMenuPosition] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
   const [showPropertyMenu, setShowPropertyMenu] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const itemRefs = useRef<Map<string, View>>(new Map());
@@ -60,7 +86,8 @@ export default function LibraryScreen() {
     setIsRenaming,
   });
 
-  const { currentFolderId, navigateTo, currentFolderName, navigateBack } = useNavigationStore();
+  const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
+    useNavigationStore();
   const styles = useLibraryStyles();
 
   const handleElementPress = (item: FileModel | FolderModel) => {
@@ -77,24 +104,111 @@ export default function LibraryScreen() {
     }
   };
 
-  const menuOptions = useMemo(() => [
-    { hierarchy: '1', label: 'Abrir', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="open-in-app" size={20} color="black" /> },
-    { hierarchy: '2', label: 'Abrir con', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="folder" size={20} color="black" /> },
-    { hierarchy: '3', label: 'Compartir con', onPress: () => { clickedItem && handleShare(clickedItem); }, disabled: false, icon: <MaterialCommunityIcons name="share" size={20} color="black" /> },
-    { hierarchy: '4', label: 'Agregar a favoritos', onPress: () => {}, disabled: false, icon: <MaterialCommunityIcons name="star" size={20} color="black" /> },
-    { hierarchy: '5', label: 'Renombrar', onPress: () => {
-      setShowMenu(false);
-      setIsRenaming(true);
-    }, disabled: false, icon: <MaterialCommunityIcons name="pencil" size={20} color="black" /> },
-    { hierarchy: '6', label: 'Copiar', onPress: () => { clickedItem && handleCopy([clickedItem]); }, disabled: false, icon: <MaterialCommunityIcons name="content-copy" size={20} color="black" /> },
-    { hierarchy: '7', label: 'Cortar', onPress: () => { clickedItem && handleCut([clickedItem]); }, disabled: false, icon: <MaterialCommunityIcons name="content-cut" size={20} color="black" /> },
-    { hierarchy: '8', label: 'Pegar', onPress: () => { handlePaste(); }, disabled: false, icon: <MaterialCommunityIcons name="content-paste" size={20} color="black" /> },
-    { hierarchy: '9', label: 'Eliminar', onPress: () => { clickedItem && handleDeleteElements([clickedItem]); }, disabled: false, icon: <MaterialCommunityIcons name="delete" size={20} color="black" /> },
-    { hierarchy: '10', label: 'Propiedades', onPress: () => {
-      setShowPropertyMenu(true);
-      setShowMenu(false);
-    }, disabled: false, icon: <MaterialCommunityIcons name="information" size={20} color="black" /> },
-  ], [clickedItem]);
+  const menuOptions = useMemo(
+    () => [
+      {
+        hierarchy: "1",
+        label: "Abrir",
+        onPress: () => {},
+        disabled: false,
+        icon: (
+          <MaterialCommunityIcons name="open-in-app" size={20} color="black" />
+        ),
+      },
+      {
+        hierarchy: "2",
+        label: "Abrir con",
+        onPress: () => {},
+        disabled: false,
+        icon: <MaterialCommunityIcons name="folder" size={20} color="black" />,
+      },
+      {
+        hierarchy: "3",
+        label: "Compartir con",
+        onPress: () => {
+          clickedItem && handleShare(clickedItem);
+        },
+        disabled: false,
+        icon: <MaterialCommunityIcons name="share" size={20} color="black" />,
+      },
+      {
+        hierarchy: "4",
+        label: "Agregar a favoritos",
+        onPress: () => {},
+        disabled: false,
+        icon: <MaterialCommunityIcons name="star" size={20} color="black" />,
+      },
+      {
+        hierarchy: "5",
+        label: "Renombrar",
+        onPress: () => {
+          setShowMenu(false);
+          setIsRenaming(true);
+        },
+        disabled: false,
+        icon: <MaterialCommunityIcons name="pencil" size={20} color="black" />,
+      },
+      {
+        hierarchy: "6",
+        label: "Copiar",
+        onPress: () => {
+          clickedItem && handleCopy([clickedItem]);
+        },
+        disabled: false,
+        icon: (
+          <MaterialCommunityIcons name="content-copy" size={20} color="black" />
+        ),
+      },
+      {
+        hierarchy: "7",
+        label: "Cortar",
+        onPress: () => {
+          clickedItem && handleCut([clickedItem]);
+        },
+        disabled: false,
+        icon: (
+          <MaterialCommunityIcons name="content-cut" size={20} color="black" />
+        ),
+      },
+      {
+        hierarchy: "8",
+        label: "Pegar",
+        onPress: () => {
+          handlePaste();
+        },
+        disabled: false,
+        icon: (
+          <MaterialCommunityIcons
+            name="content-paste"
+            size={20}
+            color="black"
+          />
+        ),
+      },
+      {
+        hierarchy: "9",
+        label: "Eliminar",
+        onPress: () => {
+          clickedItem && handleDeleteElements([clickedItem]);
+        },
+        disabled: false,
+        icon: <MaterialCommunityIcons name="delete" size={20} color="black" />,
+      },
+      {
+        hierarchy: "10",
+        label: "Propiedades",
+        onPress: () => {
+          setShowPropertyMenu(true);
+          setShowMenu(false);
+        },
+        disabled: false,
+        icon: (
+          <MaterialCommunityIcons name="information" size={20} color="black" />
+        ),
+      },
+    ],
+    [clickedItem],
+  );
 
   const renderGroupButtons = () => {
     if (selectionMode) {
@@ -141,7 +255,15 @@ export default function LibraryScreen() {
             defaultOrderByValue={orderBy}
             defaultSortValue={sortValue}
           />
-          <ViewDropDown size={42} onChange={async (selectedMode) => await handleViewModeChange(selectedMode.id)} defaultValue={selectedView} viewOptions={viewOptions} onViewOptionsChange={handleViewOptionsChange} />
+          <ViewDropDown
+            size={42}
+            onChange={async (selectedMode) =>
+              await handleViewModeChange(selectedMode.id)
+            }
+            defaultValue={selectedView}
+            viewOptions={viewOptions}
+            onViewOptionsChange={handleViewOptionsChange}
+          />
           <OptionDropDown size={42} onSelect={handleOnSelectOption} />
         </>
       );
@@ -152,26 +274,25 @@ export default function LibraryScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          {currentFolderId !== 'sys_root' && (
+          {currentFolderId !== "sys_root" && (
             <MultiActionButton
               icon={"chevron-back"}
               backgroundColor="transparent"
               iconColor={styles.iconColor.color}
               size={42}
-              onPress={() => {clearSelection(); navigateBack();}}
+              onPress={() => {
+                clearSelection();
+                navigateBack();
+              }}
             />
           )}
         </View>
 
-        <View style={styles.buttonsGroup}>
-          {renderGroupButtons()}
-        </View>
+        <View style={styles.buttonsGroup}>{renderGroupButtons()}</View>
       </View>
 
       <View style={styles.headerBreadcrumb}>
-        <Text style={styles.headerBreadcrumbText}>
-          {currentFolderName}
-        </Text>
+        <Text style={styles.headerBreadcrumbText}>{currentFolderName}</Text>
         <Breadcrumb />
       </View>
 
@@ -183,16 +304,30 @@ export default function LibraryScreen() {
         onSaveFolder={handleSaveFolder}
       />
       {loading ? (
-        <View style={[styles.footerEmptyContainer, { justifyContent: 'center' }]}>
-          <ActivityIndicator size="large" color={styles.iconColor.primaryColor} />
+        <View
+          style={[styles.footerEmptyContainer, { justifyContent: "center" }]}
+        >
+          <ActivityIndicator
+            size="large"
+            color={styles.iconColor.primaryColor}
+          />
         </View>
       ) : sortedItems.length === 0 ? (
         <View style={styles.footerEmptyContainer}>
           <View style={styles.emptyFolderIconContainer}>
-            <EmptyFolder strokeWidth={0.35} width={120} height={120} folderColor={styles.iconColor.color} crossColor={styles.iconColor.primaryColor} />
+            <EmptyFolder
+              strokeWidth={0.35}
+              width={120}
+              height={120}
+              folderColor={styles.iconColor.color}
+              crossColor={styles.iconColor.primaryColor}
+            />
             <Text style={styles.emptyFolderText}>La carpeta está vacía</Text>
           </View>
-          <TouchableOpacity style={styles.volverButton} onPress={() => navigateBack()}>
+          <TouchableOpacity
+            style={styles.volverButton}
+            onPress={() => navigateBack()}
+          >
             <Text style={styles.volverText}>Volver</Text>
           </TouchableOpacity>
         </View>
@@ -204,22 +339,34 @@ export default function LibraryScreen() {
           numColumns={gridConfig.columns}
           onScroll={() => setShowMenu(false)}
           renderItem={({ item }) => (
-            <View ref={(el) => { if (el) itemRefs.current.set(item.id, el); }}>
+            <View
+              ref={(el) => {
+                if (el) itemRefs.current.set(item.id, el);
+              }}
+            >
               <ViewCards
                 data={item}
                 viewConfig={selectedView}
                 viewOptions={viewOptions}
-                selected={itemsSelected.some(i => i.id === item.id)}
+                selected={itemsSelected.some((i) => i.id === item.id)}
                 isRenaming={clickedItem?.id === item.id ? isRenaming : false}
                 onRename={handleRename}
                 onRenameCancel={() => setIsRenaming(false)}
-                onPress={() => { selectionMode ? toggleSelection(item) : handleElementPress(item); }}
-                onDoublePress={() => { setClickedItem(item); }}
+                onPress={() => {
+                  selectionMode
+                    ? toggleSelection(item)
+                    : handleElementPress(item);
+                }}
+                onDoublePress={() => {
+                  setClickedItem(item);
+                }}
                 onLongPress={() => toggleSelection(item)}
               />
             </View>
           )}
-          columnWrapperStyle={gridConfig.columns > 1 ? styles.gridRow : undefined}
+          columnWrapperStyle={
+            gridConfig.columns > 1 ? styles.gridRow : undefined
+          }
           contentContainerStyle={styles.flatListContent}
         />
       )}

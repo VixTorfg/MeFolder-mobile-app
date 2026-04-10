@@ -1,12 +1,12 @@
-import { 
-  Tag, 
-  CreateTagInput, 
+import {
+  Tag,
+  CreateTagInput,
   TagType,
-  TagPriority
-} from '../types/entities/tag';
-import { UUID } from '../types/common/base';
-import { ColorInfo } from '../types/common/colors';
-import { BaseModel, ValidationResult, ValidationUtils } from './base';
+  TagPriority,
+} from "../types/entities/tag";
+import { UUID } from "../types/common/base";
+import { ColorInfo } from "../types/common/colors";
+import { BaseModel, ValidationResult, ValidationUtils } from "./base";
 
 export class TagModel extends BaseModel<Tag> {
   constructor(data: Tag) {
@@ -37,6 +37,10 @@ export class TagModel extends BaseModel<Tag> {
     return this.data.isActive;
   }
 
+  get isFavorite(): boolean {
+    return this.data.isFavorite;
+  }
+
   get usageCount(): number {
     return this.data.usageCount;
   }
@@ -53,7 +57,7 @@ export class TagModel extends BaseModel<Tag> {
 
   /** Establece descripción de la etiqueta */
   setDescription(description: string | undefined): void {
-    if(description) {
+    if (description) {
       this.data.description = description.trim();
     } else {
       delete this.data.description;
@@ -93,31 +97,43 @@ export class TagModel extends BaseModel<Tag> {
   validate(): ValidationResult {
     const errors = [];
 
-    const nameError = ValidationUtils.required(this.data.name, 'name');
+    const nameError = ValidationUtils.required(this.data.name, "name");
     if (nameError) errors.push(nameError);
 
-    const nameLengthError = ValidationUtils.minLength(this.data.name, 1, 'name');
+    const nameLengthError = ValidationUtils.minLength(
+      this.data.name,
+      1,
+      "name",
+    );
     if (nameLengthError) errors.push(nameLengthError);
 
-    const nameMaxLengthError = ValidationUtils.maxLength(this.data.name, 50, 'name');
+    const nameMaxLengthError = ValidationUtils.maxLength(
+      this.data.name,
+      50,
+      "name",
+    );
     if (nameMaxLengthError) errors.push(nameMaxLengthError);
 
     if (this.data.description) {
-      const descMaxLengthError = ValidationUtils.maxLength(this.data.description, 200, 'description');
+      const descMaxLengthError = ValidationUtils.maxLength(
+        this.data.description,
+        200,
+        "description",
+      );
       if (descMaxLengthError) errors.push(descMaxLengthError);
     }
 
     if (!this.data.color || !this.data.color.hex) {
       errors.push({
-        field: 'color',
-        message: 'Color es requerido',
-        code: 'REQUIRED'
+        field: "color",
+        message: "Color es requerido",
+        code: "REQUIRED",
       });
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -128,22 +144,22 @@ export class TagModel extends BaseModel<Tag> {
 
   /** Verifica si es etiqueta del sistema */
   isSystemTag(): boolean {
-    return this.data.type === 'system';
+    return this.data.type === "system";
   }
 
   /** Verifica si tiene prioridad alta */
   isHighPriority(): boolean {
-    return this.data.priority === 'high' || this.data.priority === 'critical';
+    return this.data.priority === "high" || this.data.priority === "critical";
   }
 
   /** Verifica si es un álbum */
   isAlbum(): boolean {
-    return this.data.type === 'album';
+    return this.data.type === "album";
   }
 
   /** Verifica si puede eliminarse */
   canBeDeleted(): boolean {
-    return this.data.type !== 'system' && this.data.usageCount === 0;
+    return this.data.type !== "system" && this.data.usageCount === 0;
   }
 }
 
@@ -155,15 +171,16 @@ export class TagFactory {
       id: this.generateId(),
       name: input.name.trim(),
       color: input.color,
-      type: input.type || 'user',
-      priority: input.priority || 'normal',
+      type: input.type || "user",
+      priority: input.priority || "normal",
+      isFavorite: input.isFavorite || false,
       isActive: true,
       usageCount: 0,
       createdAt: now,
       updatedAt: now,
 
       ...(input.description && { description: input.description.trim() }),
-      ...(input.parentId && { parentId: input.parentId })
+      ...(input.parentId && { parentId: input.parentId }),
     };
 
     return new TagModel(tag);
