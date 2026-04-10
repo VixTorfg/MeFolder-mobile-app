@@ -6,12 +6,14 @@ import {
   TouchableOpacity,
   FlatList,
 } from "react-native";
-import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import {
   MultiActionButton,
   TagCreator,
   TagCard,
   PriorityTagCard,
+  AlbumCard,
+  AlbumEmptyState,
 } from "@/components";
 import { useTagsStyles } from "@/screenStyles/tagsStyle";
 import { useServices } from "@/providers";
@@ -19,61 +21,12 @@ import { useTagsActions } from "@/hooks/tags/useTagsActions";
 import { TagModel } from "@/models/tag";
 import { useTagsContent } from "@/hooks/tags/useTagsContent";
 
-type SampleAlbum = {
-  id: string;
-  name: string;
-  color: string;
-  count: number;
-  priority: "low" | "normal" | "high" | "critical";
-  favorite: boolean;
-  type: "album";
-};
-
-const SAMPLE_ALBUMS: SampleAlbum[] = [
-  {
-    id: "a1",
-    name: "Vacaciones 2026",
-    color: "#6FCF97",
-    count: 34,
-    priority: "normal",
-    favorite: false,
-    type: "album",
-  },
-  {
-    id: "a2",
-    name: "Familia",
-    color: "#F06292",
-    count: 89,
-    priority: "normal",
-    favorite: false,
-    type: "album",
-  },
-  {
-    id: "a3",
-    name: "Trabajo fotos",
-    color: "#9A9A90",
-    count: 12,
-    priority: "normal",
-    favorite: false,
-    type: "album",
-  },
-  {
-    id: "a4",
-    name: "Screenshots",
-    color: "#5DA9C7",
-    count: 56,
-    priority: "low",
-    favorite: false,
-    type: "album",
-  },
-];
-
 export default function TagsScreen() {
   const [showTagCreator, setShowTagCreator] = useState(false);
   const {
     services: { tagService },
   } = useServices();
-  const { items, loading } = useTagsContent();
+  const { items, albums, loading } = useTagsContent();
   const { handleSaveTag } = useTagsActions({
     tagService,
   });
@@ -126,26 +79,6 @@ export default function TagsScreen() {
     </TouchableOpacity>
   );
 
-  const renderAlbumCard = (album: SampleAlbum) => (
-    <TouchableOpacity
-      key={album.id}
-      style={[styles.albumCard, { backgroundColor: album.color }]}
-      activeOpacity={0.8}
-    >
-      <MaterialCommunityIcons
-        name="image-multiple"
-        size={20}
-        color="#FFFFFF"
-        opacity={0.5}
-        style={{ position: "absolute", top: 10, right: 10 }}
-      />
-      <Text style={styles.albumCardName} numberOfLines={1}>
-        {album.name}
-      </Text>
-      <Text style={styles.albumCardCount}>{album.count} archivos</Text>
-    </TouchableOpacity>
-  );
-
   const renderSectionHeader = (
     title: string,
     action?: string | React.ReactNode,
@@ -164,15 +97,21 @@ export default function TagsScreen() {
   );
 
   const renderAlbumsGrid = () => {
-    const rows: SampleAlbum[][] = [];
-    for (let i = 0; i < SAMPLE_ALBUMS.length; i += 2) {
-      rows.push(SAMPLE_ALBUMS.slice(i, i + 2));
+    if (albums.length === 0) {
+      return <AlbumEmptyState />;
+    }
+
+    const rows: TagModel[][] = [];
+    for (let i = 0; i < albums.length; i += 2) {
+      rows.push(albums.slice(i, i + 2));
     }
     return (
       <View style={styles.albumsGrid}>
         {rows.map((row, idx) => (
           <View key={idx} style={styles.albumsRow}>
-            {row.map(renderAlbumCard)}
+            {row.map((album) => (
+              <AlbumCard key={album.id} album={album} />
+            ))}
             {row.length === 1 && <View style={styles.albumCardPlaceholder} />}
           </View>
         ))}
@@ -214,12 +153,11 @@ export default function TagsScreen() {
             )}
 
             {/* Albums 2x2 grid */}
-            {SAMPLE_ALBUMS.length > 0 && (
-              <>
-                {renderSectionHeader("Álbumes", "Ver todos")}
-                {renderAlbumsGrid()}
-              </>
+            {renderSectionHeader(
+              "Álbumes",
+              albums.length > 0 ? "Ver todos" : undefined,
             )}
+            {renderAlbumsGrid()}
 
             {/* High priority */}
             {highPriorityTags.length > 0 && (

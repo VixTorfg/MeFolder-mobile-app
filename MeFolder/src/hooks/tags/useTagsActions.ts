@@ -10,7 +10,7 @@ interface UseTagsActionsParams {
 
 export const useTagsActions = ({ tagService }: UseTagsActionsParams) => {
   const { showAlert } = useAlert();
-  const { addItem } = useTagsStore();
+  const { addItem, addAlbum } = useTagsStore();
 
   const handleSaveTag = async (data: NewTag): Promise<void> => {
     if (!tagService) return;
@@ -26,12 +26,13 @@ export const useTagsActions = ({ tagService }: UseTagsActionsParams) => {
     };
 
     try {
-      const result =
-        type === "album"
-          ? await tagService.createAlbum(input)
-          : await tagService.createTag(input);
-
-      addItem(result);
+      if (type === "album") {
+        const result = await tagService.createAlbum(input);
+        addAlbum(result);
+      } else {
+        const result = await tagService.createTag(input);
+        addItem(result);
+      }
     } catch (error) {
       console.warn(`Error al guardar la etiqueta ${name}:`, error);
       showAlert({

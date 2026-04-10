@@ -9,7 +9,8 @@ export const useTagsContent = () => {
   const tagService = services?.tagService;
 
   const items = useTagsStore((state) => state.items);
-  const { setItems } = useTagsStore();
+  const albums = useTagsStore((state) => state.albums);
+  const { setItems, setAlbums } = useTagsStore();
   const { showAlert } = useAlert();
   const [loading, setLoading] = useState(true);
 
@@ -20,8 +21,12 @@ export const useTagsContent = () => {
       const loadContent = async () => {
         setLoading(true);
         try {
-          const tags = await tagService.getAllTagsWithoutAlbum();
+          const [tags, albumList] = await Promise.all([
+            tagService.getAllTagsWithoutAlbum(),
+            tagService.getAlbums(),
+          ]);
           setItems(tags);
+          setAlbums(albumList);
         } catch {
           showAlert({
             title: "Error",
@@ -38,6 +43,7 @@ export const useTagsContent = () => {
 
   return {
     items,
+    albums,
     loading,
   };
 };

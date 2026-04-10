@@ -13,3 +13,4 @@ export { PropertyMenu } from "./PropertyMenu";
 export { TagCreator } from "./TagCreator";
 export { TagCard } from "./TagCard";
 export { PriorityTagCard } from "./PriorityTagCard";
+export { AlbumCard, AlbumEmptyState } from "./AlbumCard";

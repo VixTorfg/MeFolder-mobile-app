@@ -300,8 +300,14 @@ export default function LibraryScreen() {
         visible={creatorVisible}
         onClose={() => setCreatorVisible(false)}
         currentFolderId={currentFolderId}
-        onSaveFile={handleSaveFile}
-        onSaveFolder={handleSaveFolder}
+        onSaveFile={(data) => {
+          handleSaveFile(data);
+          setCreatorVisible(false);
+        }}
+        onSaveFolder={(data) => {
+          handleSaveFolder(data);
+          setCreatorVisible(false);
+        }}
       />
       {loading ? (
         <View
