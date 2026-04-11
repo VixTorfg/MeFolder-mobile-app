@@ -11,8 +11,62 @@ import type {
   FileMetadata,
   FSFileInfo,
 } from "@/types";
+import { FILE_CATEGORY_MAP } from "@/types/common/file-extensions";
+import type { FileExtension } from "@/types/common/file-extensions";
 import type { NewFile } from "@/components/ItemCreator/FileCreator";
 import type { NewFolder } from "@/components/ItemCreator/FolderCreator";
+
+/**
+ * Casos donde la librería `mime` devuelve una extensión que no corresponde
+ * a la categoría real del tipo MIME (p.ej. audio/mp4 → "mp4" es vídeo).
+ */
+const MIME_EXT_OVERRIDES: Record<string, string> = {
+  "audio/mp4": "m4a",
+  "audio/x-m4a": "m4a",
+  "audio/m4a": "m4a",
+};
+
+/**
+ * Resuelve la extensión correcta para un archivo dado su mimeType y nombre.
+ * Prioridad:
+ *  1. Override manual (para casos que mime.js resuelve mal)
+ *  2. mime.getExtension si la categoría del resultado coincide con la del MIME
+ *  3. Extensión original del nombre del archivo
+ */
+function resolveExtension(
+  mimeType: string | undefined,
+  fileName: string,
+): string {
+  const nameExt =
+    fileName.lastIndexOf(".") > 0
+      ? fileName.slice(fileName.lastIndexOf(".") + 1).toLowerCase()
+      : "";
+
+  if (!mimeType) return nameExt;
+
+  const mimeNorm = mimeType.toLowerCase();
+
+  // 1. Override manual
+  if (MIME_EXT_OVERRIDES[mimeNorm]) return MIME_EXT_OVERRIDES[mimeNorm];
+
+  // 2. mime.getExtension — verificar que su categoría coincida con el prefijo del MIME
+  const extFromMime = mime.getExtension(mimeType) ?? "";
+  if (extFromMime) {
+    const catFromMime = FILE_CATEGORY_MAP[extFromMime as FileExtension];
+    const mimePrefix = mimeNorm.split("/")[0] + "/";
+    const expectedCat: Record<string, FileCategory> = {
+      "image/": "image",
+      "video/": "video",
+      "audio/": "audio",
+    };
+    const expected = expectedCat[mimePrefix];
+    // Si la categoría concuerda (o no hay prefijo conocido), usar la extensión del mime
+    if (!expected || catFromMime === expected) return extFromMime;
+  }
+
+  // 3. Fallback: extensión original del nombre
+  return nameExt;
+}
 
 interface UseLibraryActionsParams {
   folderService: any;
@@ -183,20 +237,27 @@ export const useLibraryActions = ({
       let copiedUri: string | null = null;
 
       try {
-        const resolvedExt =
-          (file.mimeType && mime.getExtension(file.mimeType)) || "";
-        const fileNameWithExt =
-          resolvedExt && !file.name.endsWith(`.${resolvedExt}`)
-            ? `${file.name}.${resolvedExt}`
-            : file.name;
+        const resolvedExt = resolveExtension(file.mimeType, file.name);
+        const dotIndex = file.name.lastIndexOf(".");
+        const baseName =
+          dotIndex > 0 ? file.name.slice(0, dotIndex) : file.name;
+        const fileNameWithExt = resolvedExt
+          ? `${baseName}.${resolvedExt}`
+          : file.name;
+
+        const targetDirUri = fs.resolveUri(targetPath);
+        fs.ensureDirectory(targetDirUri);
 
         const destinationUri = fs.resolveUri(
           `${targetPath}/${fileNameWithExt}`,
         );
         const copyResult = fs.copyFile(file.uri, destinationUri);
 
-        if (!copyResult.toUri) {
-          failed.push({ name: file.name, error: "Error al copiar el archivo" });
+        if (!copyResult.success || !copyResult.toUri) {
+          failed.push({
+            name: file.name,
+            error: copyResult.error ?? "Error al copiar el archivo",
+          });
           continue;
         }
 

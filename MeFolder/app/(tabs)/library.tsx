@@ -7,6 +7,8 @@ import {
   Breadcrumb,
   OptionDropDown,
   PropertyMenu,
+  ImageViewer,
+  AudioPlayer,
 } from "@/components";
 import React, { useMemo, useRef, useState } from "react";
 import {
@@ -19,6 +21,7 @@ import {
 import { useNavigationStore } from "@/stores";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FileModel, FolderModel } from "@/models";
+import type { MediaSource } from "@/types/media/viewers";
 import { useLibraryStyles } from "@/screenStyles/libraryStyle";
 import EmptyFolder from "@/components/svgIcons/emptyFolder";
 import { SortDropDown } from "@/components/SortDropDown";
@@ -27,6 +30,7 @@ import {
   useLibrarySelection,
   useLibraryActions,
 } from "@/hooks/library";
+import { useFileSystem } from "@/hooks";
 
 export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
@@ -42,6 +46,11 @@ export default function LibraryScreen() {
   });
   const [showPropertyMenu, setShowPropertyMenu] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
+  const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
+  const [audioPlayerSource, setAudioPlayerSource] =
+    useState<MediaSource | null>(null);
   const itemRefs = useRef<Map<string, View>>(new Map());
 
   const {
@@ -89,6 +98,7 @@ export default function LibraryScreen() {
   const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
     useNavigationStore();
   const styles = useLibraryStyles();
+  const fs = useFileSystem();
 
   const handleElementPress = (item: FileModel | FolderModel) => {
     if (item instanceof FolderModel) {
@@ -104,12 +114,55 @@ export default function LibraryScreen() {
     }
   };
 
+  const handleOpenItem = (item: FileModel | FolderModel) => {
+    if (item instanceof FolderModel) {
+      navigateTo(item.id, item.name);
+    } else {
+      const uri = item.storageUrl ?? item.path;
+
+      if (!fs.fileExists(uri)) {
+        console.error("[handleOpenItem] File not found:", uri);
+        console.error("[handleOpenItem] storageUrl:", item.storageUrl);
+        console.error("[handleOpenItem] path:", item.path);
+        return;
+      }
+
+      const source: MediaSource = {
+        uri,
+        fileId: item.id,
+        ...(item.metadata.mimeType != null && {
+          mimeType: item.metadata.mimeType,
+        }),
+        displayName: item.name,
+      };
+
+      switch (item.category) {
+        case "image":
+          setViewerSource(source);
+          setViewerVisible(true);
+          break;
+        case "video":
+          // TODO: abrir VideoPlayer
+          break;
+        case "audio":
+          setAudioPlayerSource(source);
+          setAudioPlayerVisible(true);
+          break;
+        default:
+          break;
+      }
+    }
+  };
+
   const menuOptions = useMemo(
     () => [
       {
         hierarchy: "1",
         label: "Abrir",
-        onPress: () => {},
+        onPress: () => {
+          handleOpenItem(clickedItem!);
+          setShowMenu(false);
+        },
         disabled: false,
         icon: (
           <MaterialCommunityIcons name="open-in-app" size={20} color="black" />
@@ -389,6 +442,28 @@ export default function LibraryScreen() {
           item={clickedItem}
           visible={showPropertyMenu}
           onClose={() => setShowPropertyMenu(false)}
+        />
+      )}
+
+      {viewerSource && (
+        <ImageViewer
+          source={viewerSource}
+          visible={viewerVisible}
+          onClose={() => {
+            setViewerVisible(false);
+            setViewerSource(null);
+          }}
+        />
+      )}
+
+      {audioPlayerSource && (
+        <AudioPlayer
+          source={audioPlayerSource}
+          visible={audioPlayerVisible}
+          onClose={() => {
+            setAudioPlayerVisible(false);
+            setAudioPlayerSource(null);
+          }}
         />
       )}
     </View>
