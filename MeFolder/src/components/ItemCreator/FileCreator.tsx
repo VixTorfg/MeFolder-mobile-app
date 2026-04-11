@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { View, Text, TouchableOpacity, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/providers";
+import { useAlert, useTheme } from "@/providers";
 import { useFileCreatorStyles } from "./styles";
+import { useCameraPermissions, useMicrophonePermissions } from "expo-camera";
 import { getDocumentAsync } from "expo-document-picker";
 import { formatFileSize } from "@/utils/format/bytes";
 import {
@@ -11,6 +12,9 @@ import {
   MIME_TO_CATEGORY_MAP,
 } from "@/types/common/file-extensions";
 import { useTagsContent } from "@/hooks/tags/useTagsContent";
+import { router } from "expo-router";
+import { useCaptureStore } from "@/stores/useCaptureStore";
+import { useFileSystem } from "@/hooks";
 
 type FileSource = "gallery" | "document" | "camera";
 
@@ -40,12 +44,21 @@ export default function FileCreator({
   currentFolderId,
 }: FileCreatorProps) {
   const { theme } = useTheme();
-  const { items: tags, loading } = useTagsContent();
+  const { showAlert } = useAlert();
+  const fs = useFileSystem();
+  const { uri, type, clear } = useCaptureStore();
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [microphonePermission, requestMicrophonePermission] =
+    useMicrophonePermissions();
+  const { items: tags } = useTagsContent();
   const styles = useFileCreatorStyles();
 
   const [selectedSource, setSelectedSource] = useState<FileSource | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+
+  const isCameraSourceLocked =
+    selectedSource === "camera" && selectedFiles.length > 0;
 
   const getFileCategoryFromMime = (mimeType?: string): FileCategory => {
     if (!mimeType) return "other";
@@ -114,23 +127,28 @@ export default function FileCreator({
     setSelectedFiles(pickedFiles);
   };
 
-  /**
-   * Simula la captura desde cámara.
-   * En el futuro se conectará con expo-camera o expo-image-picker (launchCameraAsync).
-   */
   const handleCaptureFromCamera = async (): Promise<void> => {
-    // TODO: Conectar con expo-camera / expo-image-picker
-    const captureName = `Captura_${Date.now()}.jpg`;
-    const mockFile: SelectedFile = {
-      id: `file_${Date.now()}`,
-      name: captureName,
-      originalName: captureName,
-      uri: "mock://camera/capture.jpg",
-      size: 2345678,
-      mimeType: "image/jpeg",
-      type: "image",
-    };
-    setSelectedFiles([mockFile]);
+    let cameraStatus: boolean = cameraPermission?.granted || false;
+    let microphoneStatus: boolean = microphonePermission?.granted || false;
+
+    if (!cameraPermission?.granted) {
+      cameraStatus = (await requestCameraPermission()).granted;
+    }
+
+    if (!microphonePermission?.granted) {
+      microphoneStatus = (await requestMicrophonePermission()).granted;
+    }
+
+    if (!cameraStatus || !microphoneStatus) {
+      showAlert({
+        title: "Permiso denegado",
+        message:
+          "No se puede acceder a la cámara o al micrófono sin permiso. Por favor, otorga los permisos necesarios para usar esta función.",
+      });
+      return;
+    }
+
+    router.push("/camera");
   };
 
   const handleSourceSelect = async (source: FileSource): Promise<void> => {
@@ -196,6 +214,36 @@ export default function FileCreator({
   };
 
   const canSave = selectedFiles.length > 0;
+
+  useEffect(() => {
+    const loadCameraData = async () => {
+      if (selectedSource !== "camera" || !uri || !type) return;
+
+      const fileInfo = fs.getFileInfo(uri);
+      const fileName =
+        fileInfo?.name ?? uri.split("/").pop() ?? `captura_${Date.now()}`;
+
+      setSelectedFiles([
+        {
+          id: `camera_${Date.now()}`,
+          name: fileName,
+          originalName: fileName,
+          uri,
+          ...(fileInfo?.size != null && { size: fileInfo.size }),
+          ...(fileInfo?.mimeType != null && { mimeType: fileInfo.mimeType }),
+          type:
+            fileInfo?.mimeType != null
+              ? getFileCategoryFromMime(fileInfo.mimeType)
+              : type === "photo"
+                ? "image"
+                : "video",
+        },
+      ]);
+
+      clear();
+    };
+    loadCameraData();
+  }, [selectedSource, uri, type, clear]);
 
   const handleSave = async (): Promise<void> => {
     if (!canSave) return;
@@ -286,8 +334,10 @@ export default function FileCreator({
           style={[
             styles.sourceOption,
             selectedSource === "camera" && styles.sourceOptionActive,
+            isCameraSourceLocked && { opacity: 0.55 },
           ]}
           onPress={() => handleSourceSelect("camera")}
+          disabled={isCameraSourceLocked}
           activeOpacity={0.7}
         >
           <View
@@ -300,9 +350,11 @@ export default function FileCreator({
               name="camera-outline"
               size={22}
               color={
-                selectedSource === "camera"
-                  ? theme.colors.textOnColor
-                  : theme.colors.textSecondary
+                isCameraSourceLocked
+                  ? theme.colors.textMuted
+                  : selectedSource === "camera"
+                    ? theme.colors.textOnColor
+                    : theme.colors.textSecondary
               }
             />
           </View>
@@ -310,6 +362,7 @@ export default function FileCreator({
             style={[
               styles.sourceOptionText,
               selectedSource === "camera" && styles.sourceOptionTextActive,
+              isCameraSourceLocked && { color: theme.colors.textMuted },
             ]}
           >
             Cámara
