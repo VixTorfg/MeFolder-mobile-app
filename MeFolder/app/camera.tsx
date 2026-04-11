@@ -2,8 +2,8 @@ import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import { useRef, useState, useCallback } from "react";
 import {
   Animated,
+  Dimensions,
   Easing,
-  Image,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -11,10 +11,10 @@ import {
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Image } from "expo-image";
 import { File } from "expo-file-system";
 import { useCaptureStore } from "@/stores/useCaptureStore";
 import { useTimer } from "@/hooks/useTimer";
-import { useTheme } from "@/providers";
 import lightTheme from "@/constants/themes";
 
 const FLASH_MODES = [
@@ -40,6 +40,7 @@ export default function CameraScreen() {
   const [blurOverlayUri, setBlurOverlayUri] = useState<string | null>(null);
   const [cameraMount, setCameraMount] = useState(true);
   const [cameraActive, setCameraActive] = useState(true);
+  const [isOverlayLandscape, setIsOverlayLandscape] = useState(false);
   const pendingRecordRef = useRef(false);
   const overlayLoadedRef = useRef<(() => void) | null>(null);
   const discardRef = useRef(false);
@@ -52,11 +53,11 @@ export default function CameraScreen() {
     if (!cameraRef.current) return;
     try {
       const photo = await cameraRef.current.takePictureAsync({
-        quality: 1,
-        skipProcessing: true,
+        quality: 0.3,
         shutterSound: false,
       });
       if (photo?.uri) {
+        setIsOverlayLandscape(photo.width > photo.height);
         const loaded = new Promise<void>((resolve) => {
           overlayLoadedRef.current = resolve;
         });
@@ -215,6 +216,7 @@ export default function CameraScreen() {
           onCameraReady={onCameraReady}
           animateShutter={false}
           active={cameraActive}
+          responsiveOrientationWhenOrientationLocked={true}
         />
       )}
 
@@ -229,9 +231,16 @@ export default function CameraScreen() {
                 overlayLoadedRef.current = null;
               }
             }}
-            style={styles.blurOverlayImage}
+            style={[
+              styles.blurOverlayImage,
+              isOverlayLandscape && {
+                width: Dimensions.get("window").height,
+                height: Dimensions.get("window").width,
+                transform: [{ rotate: "90deg" }],
+              },
+            ]}
             blurRadius={10}
-            resizeMode="cover"
+            contentFit="cover"
           />
         </View>
       )}
@@ -315,6 +324,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
     elevation: 10,
+    overflow: "hidden",
+    alignItems: "center",
+    justifyContent: "center",
   },
   blurOverlayImage: {
     width: "100%",
