@@ -262,7 +262,7 @@ export const useLibraryActions = ({
         }
 
         copiedUri = copyResult.toUri;
-        const metadata = fs.getFileInfo(file.uri);
+        const metadata = fs.getFileInfo(copiedUri);
 
         if (!metadata) {
           throw new Error("No se pudo obtener información del archivo");
@@ -270,7 +270,7 @@ export const useLibraryActions = ({
 
         const fileMetadata = await buildFileMetadata(
           file.type,
-          file.uri,
+          copiedUri,
           metadata,
           file.mimeType,
         );

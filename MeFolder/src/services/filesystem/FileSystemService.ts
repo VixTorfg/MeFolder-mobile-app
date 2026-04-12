@@ -72,6 +72,15 @@ export class FileSystemService {
 
       const mimeType = file.type ?? '';
 
+      // md5 es un getter síncrono que lee el archivo completo.
+      // Para archivos grandes puede lanzar OOM, así que lo intentamos por separado.
+      let md5: string | null = null;
+      try {
+        md5 = file.md5 ?? null;
+      } catch {
+        // Ignorar — el checksum es opcional
+      }
+
       return {
         success: true,
         uri,
@@ -83,7 +92,7 @@ export class FileSystemService {
           size: file.size ?? 0,
           modificationTime: file.modificationTime ?? null,
           creationTime: file.creationTime ?? null,
-          md5: file.md5 ?? null,
+          md5,
           mimeType,
         },
       };
