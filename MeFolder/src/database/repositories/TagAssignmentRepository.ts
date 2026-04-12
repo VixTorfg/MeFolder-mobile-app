@@ -1,5 +1,16 @@
 import { Database } from "../sqlite/Database";
 import { Tag, TagType, TagPriority } from "../../types/entities/tag";
+import {
+  File,
+  FileStatus,
+  FileVisibility,
+  FileMetadata,
+} from "../../types/entities/file";
+import {
+  FileExtension,
+  FileCategory,
+} from "../../types/common/file-extensions";
+import { ColorInfo } from "../../types/common/colors";
 import { UUID } from "../../types/common/base";
 import {
   TagAssignmentRepository,
@@ -110,6 +121,32 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
       return rows.map((row) => row.file_id);
     } catch (error) {
       console.error("Error getting tagged files:", error);
+      throw new Error(`Error al obtener archivos con etiqueta: ${error}`);
+    }
+  }
+
+  /**
+   * Obtener archivos que tienen una etiqueta específica paginados
+   */
+  async getTaggedFilesPaginated(
+    tagId: UUID,
+    page: number,
+    pageSize: number,
+  ): Promise<File[]> {
+    try {
+      const offset = (page - 1) * pageSize;
+      const rows = await this.db.query<any>(
+        `SELECT f.* FROM files f
+         INNER JOIN file_tags ft ON f.id = ft.file_id
+         WHERE ft.tag_id = ?
+         ORDER BY f.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [tagId, pageSize, offset],
+      );
+
+      return rows.map((row) => this.mapRowToFile(row));
+    } catch (error) {
+      console.error("Error getting tagged files paginated:", error);
       throw new Error(`Error al obtener archivos con etiqueta: ${error}`);
     }
   }
@@ -249,6 +286,77 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
       console.error("Error getting popular tags:", error);
       throw new Error(`Error al obtener etiquetas populares: ${error}`);
     }
+  }
+
+  /**
+   * Mapear fila de base de datos a objeto File
+   */
+  private mapRowToFile(row: any): File {
+    const metadata: FileMetadata = {
+      size: row.metadata_size,
+      ...(row.metadata_mime_type && { mimeType: row.metadata_mime_type }),
+      ...(row.metadata_checksum && { checksum: row.metadata_checksum }),
+      ...(row.metadata_image_width && {
+        imageMetadata: {
+          width: row.metadata_image_width,
+          height: row.metadata_image_height,
+          ...(row.metadata_image_orientation && {
+            orientation: row.metadata_image_orientation,
+          }),
+        },
+      }),
+      ...(row.metadata_video_duration && {
+        videoMetadata: {
+          duration: row.metadata_video_duration,
+          width: row.metadata_video_width,
+          height: row.metadata_video_height,
+          ...(row.metadata_video_framerate && {
+            framerate: row.metadata_video_framerate,
+          }),
+        },
+      }),
+      ...(row.metadata_audio_duration && {
+        audioMetadata: {
+          duration: row.metadata_audio_duration,
+          ...(row.metadata_audio_bitrate && {
+            bitrate: row.metadata_audio_bitrate,
+          }),
+          ...(row.metadata_audio_sample_rate && {
+            sampleRate: row.metadata_audio_sample_rate,
+          }),
+        },
+      }),
+    };
+
+    return {
+      id: row.id,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+      name: row.name,
+      originalName: row.original_name,
+      extension: row.extension as FileExtension,
+      category: row.category as FileCategory,
+      path: row.path,
+      status: row.status as FileStatus,
+      visibility: row.visibility as FileVisibility,
+      metadata,
+      tagIds: [],
+      ...(row.folder_id && { folderId: row.folder_id }),
+      ...(row.color_hex && {
+        color: {
+          hex: row.color_hex,
+          rgb: { r: row.color_rgb_r, g: row.color_rgb_g, b: row.color_rgb_b },
+          isSystem: false,
+          isFavorite: false,
+        } as ColorInfo,
+      }),
+      ...(row.last_accessed_at && {
+        lastAccessedAt: new Date(row.last_accessed_at),
+      }),
+      ...(row.archived_at && { archivedAt: new Date(row.archived_at) }),
+      ...(row.storage_url && { storageUrl: row.storage_url }),
+      ...(row.thumbnail_url && { thumbnailUrl: row.thumbnail_url }),
+    };
   }
 
   /**

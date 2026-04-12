@@ -88,6 +88,10 @@ export class FileModel extends BaseModel<File> {
     return this.data.archivedAt;
   }
 
+  get thumbnailUrl(): string | undefined {
+    return this.data.thumbnailUrl;
+  }
+
   /** Establece nuevo nombre de archivo */
   setName(name: string): void {
     const cleanName = name.trim();

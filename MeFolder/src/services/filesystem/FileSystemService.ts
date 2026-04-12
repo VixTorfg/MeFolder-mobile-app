@@ -2,8 +2,8 @@ import {
   File as FSFile,
   Directory as FSDirectory,
   Paths,
-} from 'expo-file-system';
-import mime from 'mime';
+} from "expo-file-system";
+import mime from "mime";
 import type {
   FSFileInfo,
   FSDirectoryInfo,
@@ -16,13 +16,13 @@ import type {
   FSTransferResult,
   FSBatchResult,
   FSWriteOptions,
-} from '@/types/filesystem';
+} from "@/types/filesystem";
 
 /**
  * FileSystemService — Servicio puro para operaciones sobre el sistema de archivos.
- * 
+ *
  * Encapsula expo-file-system v19 (API basada en clases: File, Directory, Paths).
- * 
+ *
  * Proporciona:
  * - API consistente con resultados tipados (FSOperationResult / FSTransferResult)
  * - Manejo de errores unificado (nunca lanza, siempre retorna { success, error })
@@ -51,7 +51,7 @@ export class FileSystemService {
   getFileInfo(uri: string): FSOperationResult<FSFileInfo> {
     try {
       const file = new FSFile(uri);
-      
+
       if (!file.exists) {
         return {
           success: true,
@@ -65,12 +65,12 @@ export class FileSystemService {
             modificationTime: null,
             creationTime: null,
             md5: null,
-            mimeType: '',
+            mimeType: "",
           },
         };
       }
 
-      const mimeType = file.type ?? '';
+      const mimeType = file.type ?? "";
 
       // md5 es un getter síncrono que lee el archivo completo.
       // Para archivos grandes puede lanzar OOM, así que lo intentamos por separado.
@@ -97,7 +97,7 @@ export class FileSystemService {
         },
       };
     } catch (error) {
-      return this.failResult(uri, error, 'obtener información del archivo');
+      return this.failResult(uri, error, "obtener información del archivo");
     }
   }
 
@@ -136,7 +136,7 @@ export class FileSystemService {
         },
       };
     } catch (error) {
-      return this.failResult(uri, error, 'obtener información del directorio');
+      return this.failResult(uri, error, "obtener información del directorio");
     }
   }
 
@@ -169,7 +169,7 @@ export class FileSystemService {
     try {
       const dir = new FSDirectory(uri);
       if (!dir.exists) {
-        return { success: false, uri, error: 'El directorio no existe' };
+        return { success: false, uri, error: "El directorio no existe" };
       }
 
       const contents = dir.list();
@@ -185,7 +185,7 @@ export class FileSystemService {
 
       return { success: true, uri, data: entries };
     } catch (error) {
-      return this.failResult(uri, error, 'listar directorio');
+      return this.failResult(uri, error, "listar directorio");
     }
   }
 
@@ -201,7 +201,7 @@ export class FileSystemService {
       });
       return { success: true, uri: options.uri };
     } catch (error) {
-      return this.failResult(options.uri, error, 'crear directorio');
+      return this.failResult(options.uri, error, "crear directorio");
     }
   }
 
@@ -217,7 +217,7 @@ export class FileSystemService {
       dir.create({ intermediates: true, idempotent: true });
       return { success: true, uri };
     } catch (error) {
-      return this.failResult(uri, error, 'asegurar directorio');
+      return this.failResult(uri, error, "asegurar directorio");
     }
   }
 
@@ -229,16 +229,21 @@ export class FileSystemService {
     try {
       const source = new FSFile(options.from);
       if (!source.exists) {
-        return this.failTransfer(options.from, options.to, 'Archivo origen no existe');
+        return this.failTransfer(
+          options.from,
+          options.to,
+          "Archivo origen no existe",
+        );
       }
 
       // Determinar si el destino es directorio o archivo
       const destination = this.resolveDestination(options.to);
       source.copy(destination);
 
-      const finalUri = destination instanceof FSDirectory
-        ? `${destination.uri}/${source.name}`
-        : destination.uri;
+      const finalUri =
+        destination instanceof FSDirectory
+          ? `${destination.uri}/${source.name}`
+          : destination.uri;
 
       return { success: true, fromUri: options.from, toUri: finalUri };
     } catch (error) {
@@ -246,7 +251,7 @@ export class FileSystemService {
         success: false,
         fromUri: options.from,
         toUri: options.to,
-        error: this.extractErrorMessage(error, 'copiar archivo'),
+        error: this.extractErrorMessage(error, "copiar archivo"),
       };
     }
   }
@@ -258,7 +263,11 @@ export class FileSystemService {
     try {
       const source = new FSDirectory(options.from);
       if (!source.exists) {
-        return this.failTransfer(options.from, options.to, 'Directorio origen no existe');
+        return this.failTransfer(
+          options.from,
+          options.to,
+          "Directorio origen no existe",
+        );
       }
 
       const destination = new FSDirectory(options.to);
@@ -270,7 +279,7 @@ export class FileSystemService {
         success: false,
         fromUri: options.from,
         toUri: options.to,
-        error: this.extractErrorMessage(error, 'copiar directorio'),
+        error: this.extractErrorMessage(error, "copiar directorio"),
       };
     }
   }
@@ -290,7 +299,11 @@ export class FileSystemService {
     try {
       const source = new FSFile(options.from);
       if (!source.exists) {
-        return this.failTransfer(options.from, options.to, 'Archivo origen no existe');
+        return this.failTransfer(
+          options.from,
+          options.to,
+          "Archivo origen no existe",
+        );
       }
 
       const destination = this.resolveDestination(options.to);
@@ -302,7 +315,7 @@ export class FileSystemService {
         success: false,
         fromUri: options.from,
         toUri: options.to,
-        error: this.extractErrorMessage(error, 'mover archivo'),
+        error: this.extractErrorMessage(error, "mover archivo"),
       };
     }
   }
@@ -314,7 +327,11 @@ export class FileSystemService {
     try {
       const source = new FSDirectory(options.from);
       if (!source.exists) {
-        return this.failTransfer(options.from, options.to, 'Directorio origen no existe');
+        return this.failTransfer(
+          options.from,
+          options.to,
+          "Directorio origen no existe",
+        );
       }
 
       const destination = new FSDirectory(options.to);
@@ -326,7 +343,7 @@ export class FileSystemService {
         success: false,
         fromUri: options.from,
         toUri: options.to,
-        error: this.extractErrorMessage(error, 'mover directorio'),
+        error: this.extractErrorMessage(error, "mover directorio"),
       };
     }
   }
@@ -345,12 +362,12 @@ export class FileSystemService {
     try {
       const file = new FSFile(uri);
       if (!file.exists) {
-        return { success: true, uri }; 
+        return { success: true, uri };
       }
       file.delete();
       return { success: true, uri };
     } catch (error) {
-      return this.failResult(uri, error, 'eliminar archivo');
+      return this.failResult(uri, error, "eliminar archivo");
     }
   }
 
@@ -361,12 +378,12 @@ export class FileSystemService {
     try {
       const dir = new FSDirectory(uri);
       if (!dir.exists) {
-        return { success: true, uri }; 
+        return { success: true, uri };
       }
       dir.delete();
       return { success: true, uri };
     } catch (error) {
-      return this.failResult(uri, error, 'eliminar directorio');
+      return this.failResult(uri, error, "eliminar directorio");
     }
   }
 
@@ -385,7 +402,7 @@ export class FileSystemService {
     try {
       const file = new FSFile(options.uri);
       if (!file.exists) {
-        return this.failTransfer(options.uri, options.uri, 'Archivo no existe');
+        return this.failTransfer(options.uri, options.uri, "Archivo no existe");
       }
       file.rename(options.newName);
       return { success: true, fromUri: options.uri, toUri: file.uri };
@@ -394,7 +411,7 @@ export class FileSystemService {
         success: false,
         fromUri: options.uri,
         toUri: options.uri,
-        error: this.extractErrorMessage(error, 'renombrar archivo'),
+        error: this.extractErrorMessage(error, "renombrar archivo"),
       };
     }
   }
@@ -406,7 +423,11 @@ export class FileSystemService {
     try {
       const dir = new FSDirectory(options.uri);
       if (!dir.exists) {
-        return this.failTransfer(options.uri, options.uri, 'Directorio no existe');
+        return this.failTransfer(
+          options.uri,
+          options.uri,
+          "Directorio no existe",
+        );
       }
       dir.rename(options.newName);
       return { success: true, fromUri: options.uri, toUri: dir.uri };
@@ -415,7 +436,7 @@ export class FileSystemService {
         success: false,
         fromUri: options.uri,
         toUri: options.uri,
-        error: this.extractErrorMessage(error, 'renombrar directorio'),
+        error: this.extractErrorMessage(error, "renombrar directorio"),
       };
     }
   }
@@ -427,12 +448,12 @@ export class FileSystemService {
     try {
       const file = new FSFile(uri);
       if (!file.exists) {
-        return { success: false, uri, error: 'Archivo no existe' };
+        return { success: false, uri, error: "Archivo no existe" };
       }
       const content = await file.text();
       return { success: true, uri, data: content };
     } catch (error) {
-      return this.failResult(uri, error, 'leer archivo como texto');
+      return this.failResult(uri, error, "leer archivo como texto");
     }
   }
 
@@ -443,12 +464,12 @@ export class FileSystemService {
     try {
       const file = new FSFile(uri);
       if (!file.exists) {
-        return { success: false, uri, error: 'Archivo no existe' };
+        return { success: false, uri, error: "Archivo no existe" };
       }
       const content = await file.base64();
       return { success: true, uri, data: content };
     } catch (error) {
-      return this.failResult(uri, error, 'leer archivo como base64');
+      return this.failResult(uri, error, "leer archivo como base64");
     }
   }
 
@@ -468,12 +489,15 @@ export class FileSystemService {
         file.create({ intermediates: true, overwrite: true });
       }
 
-      const encodingOpt = options.encoding === 'base64' ? { encoding: 'base64' as const } : undefined;
+      const encodingOpt =
+        options.encoding === "base64"
+          ? { encoding: "base64" as const }
+          : undefined;
       file.write(options.content, encodingOpt);
 
       return { success: true, uri: options.uri };
     } catch (error) {
-      return this.failResult(options.uri, error, 'escribir archivo');
+      return this.failResult(options.uri, error, "escribir archivo");
     }
   }
 
@@ -491,13 +515,20 @@ export class FileSystemService {
       this.ensureDirectory(parentUri);
 
       const destination = new FSFile(destinationUri);
-      const downloadOpts: { headers?: { [key: string]: string }; idempotent?: boolean } = {
+      const downloadOpts: {
+        headers?: { [key: string]: string };
+        idempotent?: boolean;
+      } = {
         idempotent: options?.overwrite ?? false,
       };
       if (options?.headers) {
         downloadOpts.headers = options.headers;
       }
-      const file = await FSFile.downloadFileAsync(url, destination, downloadOpts);
+      const file = await FSFile.downloadFileAsync(
+        url,
+        destination,
+        downloadOpts,
+      );
 
       const info = this.getFileInfo(file.uri);
       if (info.success && info.data) {
@@ -505,7 +536,7 @@ export class FileSystemService {
       }
       return { success: true, uri: file.uri };
     } catch (error) {
-      return this.failResult(destinationUri, error, 'descargar archivo');
+      return this.failResult(destinationUri, error, "descargar archivo");
     }
   }
 
@@ -514,7 +545,10 @@ export class FileSystemService {
    * @example resolveUri('images/photo.jpg') → '{documentDirectory}/images/photo.jpg'
    */
   resolveUri(relativePath: string): string {
-    if (relativePath.startsWith('file://') || relativePath.startsWith('content://')) {
+    if (
+      relativePath.startsWith("file://") ||
+      relativePath.startsWith("content://")
+    ) {
       return relativePath;
     }
     return this.joinPath(this.baseUri, relativePath);
@@ -528,14 +562,14 @@ export class FileSystemService {
       .map((s, i) => {
         let segment = s;
         if (i < segments.length - 1) {
-          segment = segment.replace(/\/+$/, '');
+          segment = segment.replace(/\/+$/, "");
         }
         if (i > 0) {
-          segment = segment.replace(/^\/+/, '');
+          segment = segment.replace(/^\/+/, "");
         }
         return segment;
       })
-      .join('/');
+      .join("/");
   }
 
   /**
@@ -543,9 +577,9 @@ export class FileSystemService {
    * @example getFileName('file:///data/images/photo.jpg') → 'photo.jpg'
    */
   getFileName(uri: string): string {
-    const clean = uri.replace(/\/+$/, '');
-    const parts = clean.split('/');
-    return parts[parts.length - 1] || '';
+    const clean = uri.replace(/\/+$/, "");
+    const parts = clean.split("/");
+    return parts[parts.length - 1] || "";
   }
 
   /**
@@ -561,8 +595,8 @@ export class FileSystemService {
       if (ext) return ext;
     }
     const name = this.getFileName(uri);
-    const dotIndex = name.lastIndexOf('.');
-    return dotIndex > 0 ? name.substring(dotIndex + 1).toLowerCase() : '';
+    const dotIndex = name.lastIndexOf(".");
+    return dotIndex > 0 ? name.substring(dotIndex + 1).toLowerCase() : "";
   }
 
   /**
@@ -570,8 +604,8 @@ export class FileSystemService {
    * @example getParentUri('file:///data/images/photo.jpg') → 'file:///data/images'
    */
   getParentUri(uri: string): string {
-    const clean = uri.replace(/\/+$/, '');
-    const lastSlash = clean.lastIndexOf('/');
+    const clean = uri.replace(/\/+$/, "");
+    const lastSlash = clean.lastIndexOf("/");
     return lastSlash > 0 ? clean.substring(0, lastSlash) : clean;
   }
 
@@ -584,8 +618,10 @@ export class FileSystemService {
     const parentUri = this.getParentUri(baseUri);
     const suffix = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    const baseName = ext ? name.replace(`.${ext}`, '') : name;
-    const uniqueName = ext ? `${baseName}_${suffix}.${ext}` : `${baseName}_${suffix}`;
+    const baseName = ext ? name.replace(`.${ext}`, "") : name;
+    const uniqueName = ext
+      ? `${baseName}_${suffix}.${ext}`
+      : `${baseName}_${suffix}`;
 
     return this.joinPath(parentUri, uniqueName);
   }
@@ -609,17 +645,17 @@ export class FileSystemService {
    * Si el destino parece un directorio (sin extensión o termina en /), retorna Directory.
    */
   private resolveDestination(toUri: string): FSFile | FSDirectory {
-    if (toUri.endsWith('/') || !this.getExtension(toUri)) {
+    if (toUri.endsWith("/") || !this.getExtension(toUri)) {
       return new FSDirectory(toUri);
     }
     return new FSFile(toUri);
   }
 
   /** Ejecuta operaciones batch y recopila resultados */
-  private executeBatch<TInput, TResult extends { success: boolean; error?: string | undefined }>(
-    items: TInput[],
-    operation: (item: TInput) => TResult,
-  ): FSBatchResult {
+  private executeBatch<
+    TInput,
+    TResult extends { success: boolean; error?: string | undefined },
+  >(items: TInput[], operation: (item: TInput) => TResult): FSBatchResult {
     const result: FSBatchResult = {
       total: items.length,
       succeeded: 0,
@@ -634,8 +670,8 @@ export class FileSystemService {
       } else {
         result.failed++;
         result.errors.push({
-          uri: (item as any).from ?? (item as any).uri ?? 'unknown',
-          error: opResult.error ?? 'Error desconocido',
+          uri: (item as any).from ?? (item as any).uri ?? "unknown",
+          error: opResult.error ?? "Error desconocido",
         });
       }
     }
@@ -644,7 +680,11 @@ export class FileSystemService {
   }
 
   /** Crea un resultado de error estandarizado */
-  private failResult<T = void>(uri: string, error: unknown, operation: string): FSOperationResult<T> {
+  private failResult<T = void>(
+    uri: string,
+    error: unknown,
+    operation: string,
+  ): FSOperationResult<T> {
     return {
       success: false,
       uri,
@@ -653,7 +693,11 @@ export class FileSystemService {
   }
 
   /** Crea un resultado de transferencia fallida */
-  private failTransfer(from: string, to: string, message: string): FSTransferResult {
+  private failTransfer(
+    from: string,
+    to: string,
+    message: string,
+  ): FSTransferResult {
     return { success: false, fromUri: from, toUri: to, error: message };
   }
 

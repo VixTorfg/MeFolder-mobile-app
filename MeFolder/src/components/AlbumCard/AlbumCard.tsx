@@ -2,6 +2,7 @@ import { TagModel } from "@/models/tag";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { TouchableOpacity, View, Text } from "react-native";
 import { useAlbumCardStyles } from "./styles";
+import { router } from "expo-router";
 
 export const AlbumCard = ({ album }: { album: TagModel }) => {
   const styles = useAlbumCardStyles();
@@ -9,6 +10,9 @@ export const AlbumCard = ({ album }: { album: TagModel }) => {
   return (
     <TouchableOpacity
       style={[styles.albumCard, { backgroundColor: album.color.hex }]}
+      onPress={() =>
+        router.push(`/gallery?tagId=${album.id}&albumName=${album.name}`)
+      }
       activeOpacity={0.8}
     >
       <MaterialCommunityIcons

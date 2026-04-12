@@ -23,7 +23,7 @@ export const useTagsContent = () => {
         try {
           const [tags, albumList] = await Promise.all([
             tagService.getAllTagsWithoutAlbum(),
-            tagService.getAlbums(),
+            tagService.getAllAlbums(),
           ]);
           setItems(tags);
           setAlbums(albumList);

@@ -5,7 +5,12 @@ export { MultiActionButton } from "./MultiActionButton";
 export { SearchBox } from "./SearchBox";
 export { ViewDropDown } from "./ViewDropDown";
 export { ViewCards } from "./ViewCards";
-export { ItemCreator, FileCreator, FolderCreator } from "./ItemCreator";
+export {
+  ItemCreator,
+  FileCreator,
+  FolderCreator,
+  AlbumAdder,
+} from "./ItemCreator";
 export { OptionDropDown } from "./OptionDropDown";
 export { CustomAlert } from "./CustomAlert";
 export { ContextMenu } from "./ContextMenu";

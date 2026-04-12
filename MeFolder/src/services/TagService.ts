@@ -4,6 +4,7 @@ import { UUID } from "../types/common/base";
 import { ColorInfo } from "../types/common/colors";
 import { TagModel, TagFactory } from "../models/tag";
 import { SYSTEM_ALBUM_TAG_ID } from "../database/seeds/systemTags";
+import { FileModel } from "@/models";
 
 /**
  * TagService MVP - Funcionalidades básicas para desarrollo inicial
@@ -186,6 +187,27 @@ export class TagService extends BaseService {
   }
 
   /**
+   *  Obtener files de un tag específico con paginación
+   */
+  async getFilesInTagPaginated(
+    tagId: UUID,
+    page: number,
+    pageSize: number,
+  ): Promise<FileModel[]> {
+    try {
+      this.ensureDbInitialized();
+      const files = await this.tagAssignmentRepo.getTaggedFilesPaginated(
+        tagId,
+        page,
+        pageSize,
+      );
+      return files.map((f) => new FileModel(f));
+    } catch (error) {
+      return this.handleError(error, "obtener archivos en tag paginados");
+    }
+  }
+
+  /**
    * Obtener tags más utilizados
    */
   async getPopularTags(limit: number = 10): Promise<TagModel[]> {
@@ -288,7 +310,7 @@ export class TagService extends BaseService {
   /**
    * Obtener todos los álbumes (hijos de sys_album)
    */
-  async getAlbums(): Promise<TagModel[]> {
+  async getAllAlbums(): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 

@@ -15,6 +15,7 @@ import { useTagsContent } from "@/hooks/tags/useTagsContent";
 import { router } from "expo-router";
 import { useCaptureStore } from "@/stores/useCaptureStore";
 import { useFileSystem } from "@/hooks";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 type FileSource = "gallery" | "document" | "camera";
 
@@ -50,12 +51,17 @@ export default function FileCreator({
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, requestMicrophonePermission] =
     useMicrophonePermissions();
-  const { items: tags } = useTagsContent();
+  const { items: tags, albums } = useTagsContent();
   const styles = useFileCreatorStyles();
 
   const [selectedSource, setSelectedSource] = useState<FileSource | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<SelectedFile[]>([]);
   const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+  const [selectedAlbums, setSelectedAlbums] = useState<Set<string>>(new Set());
+
+  const hasMediaFiles = selectedFiles.some(
+    (f) => f.type === "image" || f.type === "video",
+  );
 
   const isCameraSourceLocked =
     selectedSource === "camera" && selectedFiles.length > 0;
@@ -190,6 +196,18 @@ export default function FileCreator({
     });
   };
 
+  const toggleAlbum = (albumId: string): void => {
+    setSelectedAlbums((prev) => {
+      const next = new Set(prev);
+      if (next.has(albumId)) {
+        next.delete(albumId);
+      } else {
+        next.add(albumId);
+      }
+      return next;
+    });
+  };
+
   const getFileIcon = (
     type: SelectedFile["type"],
   ): keyof typeof Ionicons.glyphMap => {
@@ -249,7 +267,7 @@ export default function FileCreator({
     if (!canSave) return;
     await onSave({
       files: selectedFiles,
-      tags: Array.from(selectedTags),
+      tags: [...Array.from(selectedTags), ...Array.from(selectedAlbums)],
       folderId: currentFolderId,
     });
   };
@@ -451,6 +469,44 @@ export default function FileCreator({
                   ]}
                 >
                   {tag.name}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      )}
+
+      {selectedFiles.length > 0 && hasMediaFiles && albums.length > 0 && (
+        <View style={styles.tagSection}>
+          <Text style={styles.sectionTitle}>Álbumes</Text>
+          <View style={styles.tagList}>
+            {albums.map((album) => (
+              <TouchableOpacity
+                key={album.id}
+                style={[
+                  styles.albumChip,
+                  selectedAlbums.has(album.id) && styles.albumChipSelected,
+                ]}
+                onPress={() => toggleAlbum(album.id)}
+                activeOpacity={0.7}
+              >
+                <MaterialCommunityIcons
+                  name="image-multiple"
+                  size={14}
+                  color={
+                    selectedAlbums.has(album.id)
+                      ? theme.colors.secondary
+                      : album.color.hex
+                  }
+                />
+                <Text
+                  style={[
+                    styles.tagChipText,
+                    selectedAlbums.has(album.id) &&
+                      styles.albumChipTextSelected,
+                  ]}
+                >
+                  {album.name}
                 </Text>
               </TouchableOpacity>
             ))}

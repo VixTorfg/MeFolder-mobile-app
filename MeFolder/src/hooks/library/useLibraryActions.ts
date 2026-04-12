@@ -2,7 +2,8 @@ import { FileModel, FolderModel } from "@/models";
 import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useClipboardStore, useNavigationStore } from "@/stores";
 import { useAlert } from "@/providers";
-import { useFileSystem, useMedia } from "@/hooks";
+import { useFileSystem } from "@/hooks/useFileSystem";
+import { useMedia } from "@/hooks/useMedia";
 import * as Sharing from "expo-sharing";
 import mime from "mime";
 import type {

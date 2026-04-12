@@ -6,6 +6,7 @@ import {
   TagPriority,
   TagType,
 } from "../entities/tag";
+import { File } from "../entities/file";
 import { BaseRepository } from "./base";
 
 /**
@@ -55,6 +56,11 @@ export interface TagAssignmentRepository {
 
   // Consultas
   getTaggedFiles(tagId: UUID): Promise<UUID[]>;
+  getTaggedFilesPaginated(
+    tagId: UUID,
+    page: number,
+    pageSize: number,
+  ): Promise<File[]>;
   getTagUsageInFiles(tagId: UUID): Promise<number>;
 
   // Operaciones de limpieza

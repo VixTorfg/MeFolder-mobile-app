@@ -5,7 +5,6 @@ import { TouchableOpacity, View, Text } from "react-native";
 import { useTagCardStyles } from "./styles";
 
 export const TagCard = ({ tag }: { tag: TagModel }) => {
-  console.log("Rendering TagCard for:", tag);
   const styles = useTagCardStyles();
   const priorityCfg = PRIORITY_CONFIG[tag.priority];
   return (

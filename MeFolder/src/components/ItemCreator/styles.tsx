@@ -188,6 +188,24 @@ export const useFileCreatorStyles = () => {
     tagChipTextSelected: {
       color: theme.colors.primary,
     },
+    albumChip: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      paddingHorizontal: theme.spacing.sm,
+      borderRadius: theme.effects.radius.lg,
+      backgroundColor: theme.colors.subCard,
+      borderWidth: theme.effects.borderWidth.xs,
+      borderColor: theme.colors.borderSoft,
+    },
+    albumChipSelected: {
+      backgroundColor: theme.colors.secondarySoft,
+      borderColor: theme.colors.secondary,
+    },
+    albumChipTextSelected: {
+      color: theme.colors.secondary,
+    },
     saveButton: {
       marginTop: theme.spacing.xl,
       paddingVertical: theme.spacing.md,
@@ -290,6 +308,98 @@ export const useFolderCreatorStyles = () => {
       fontSize: theme.typography.fontSize.lg,
       fontFamily: theme.typography.fontFamily.primary.bold,
       color: theme.colors.textOnColor,
+    },
+  }));
+};
+
+export const useAlbumAdderStyles = () => {
+  return useStyles((theme) => ({
+    container: {
+      flex: 1,
+    },
+    sectionTitle: {
+      fontSize: theme.typography.fontSize.md,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing.sm,
+    },
+    grid: {
+      paddingVertical: theme.spacing.sm,
+    },
+    gridRow: {
+      gap: theme.spacing.xs,
+      marginBottom: theme.spacing.xs,
+    },
+    fileItem: {
+      flex: 1,
+      borderRadius: theme.effects.radius.sm,
+      overflow: "hidden",
+      borderWidth: theme.effects.borderWidth.md,
+      borderColor: "transparent",
+    },
+    fileItemSelected: {
+      borderColor: theme.colors.primary,
+    },
+    fileThumbnail: {
+      width: "100%",
+      aspectRatio: 1,
+      borderRadius: theme.effects.radius.xs,
+    },
+    filePlaceholder: {
+      width: "100%",
+      aspectRatio: 1,
+      borderRadius: theme.effects.radius.xs,
+      backgroundColor: theme.colors.subCard,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    selectedOverlay: {
+      position: "absolute",
+      top: 4,
+      right: 4,
+      backgroundColor: theme.colors.surface,
+      borderRadius: 14,
+    },
+    fileName: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      color: theme.colors.textSecondary,
+      marginTop: theme.spacing.xs,
+      paddingHorizontal: 2,
+    },
+    selectionCount: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      color: theme.colors.textSecondary,
+      textAlign: "center",
+      marginTop: theme.spacing.sm,
+    },
+    saveButton: {
+      marginTop: theme.spacing.md,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.effects.radius.md,
+      backgroundColor: theme.colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    saveButtonDisabled: {
+      backgroundColor: theme.colors.borderSoft,
+    },
+    saveButtonText: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.primary.bold,
+      color: theme.colors.textOnColor,
+    },
+    emptyState: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: theme.spacing.xxl,
+    },
+    emptyStateText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      color: theme.colors.textMuted,
+      marginTop: theme.spacing.sm,
     },
   }));
 };

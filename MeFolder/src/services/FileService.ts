@@ -1,17 +1,13 @@
-import { BaseService } from './base/BaseService';
-import { 
-  File, 
-  CreateFileInput,
-  FileStatus
-} from '../types/entities/file';
-import { UUID } from '../types/common/base';
-import { FileModel, FileFactory } from '../models/file';
-import { ROOT_FOLDER_ID } from '../database/seeds/systemFolders';
-import { FileSystemService } from './filesystem/FileSystemService';
+import { BaseService } from "./base/BaseService";
+import { File, CreateFileInput, FileStatus } from "../types/entities/file";
+import { UUID } from "../types/common/base";
+import { FileModel, FileFactory } from "../models/file";
+import { ROOT_FOLDER_ID } from "../database/seeds/systemFolders";
+import { FileSystemService } from "./filesystem/FileSystemService";
 
 /**
  * FileService MVP - Funcionalidades básicas para desarrollo inicial
- * 
+ *
  * Funciones incluidas:
  * - Crear archivo simple
  * - Obtener archivo por ID
@@ -19,7 +15,7 @@ import { FileSystemService } from './filesystem/FileSystemService';
  * - Mover archivo entre carpetas
  * - Eliminar archivo (soft delete)
  * - Gestionar tags básico (añadir/remover)
- * 
+ *
  * Perfecta para construir MVP y entender la arquitectura
  */
 export class FileService extends BaseService {
@@ -31,17 +27,19 @@ export class FileService extends BaseService {
   async createFile(input: CreateFileInput): Promise<FileModel> {
     try {
       this.ensureDbInitialized();
-      
+
       // Si no se especifica carpeta, usa root
       const folderId = input.folderId || ROOT_FOLDER_ID;
       const folder = await this.validateTargetFolder(folderId);
 
       // Crear archivo pasando el path completo de la carpeta
-      const file = await this.fileRepo.create({ ...input, folderId }, folder.path);
+      const file = await this.fileRepo.create(
+        { ...input, folderId },
+        folder.path,
+      );
       return FileFactory.fromJSON(file);
-      
     } catch (error) {
-      return this.handleError(error, 'crear archivo');
+      return this.handleError(error, "crear archivo");
     }
   }
 
@@ -54,31 +52,32 @@ export class FileService extends BaseService {
 
       const file = await this.fileRepo.findById(fileId);
       if (!file) {
-        throw new Error('Archivo no encontrado');
+        throw new Error("Archivo no encontrado");
       }
 
       return FileFactory.fromJSON(file);
-      
     } catch (error) {
-      return this.handleError(error, 'obtener archivo');
+      return this.handleError(error, "obtener archivo");
     }
   }
 
   /**
    * Obtener todos los archivos de una carpeta
    */
-  async getFilesInFolder(folderId: UUID = ROOT_FOLDER_ID): Promise<FileModel[]> {
+  async getFilesInFolder(
+    folderId: UUID = ROOT_FOLDER_ID,
+  ): Promise<FileModel[]> {
     try {
       this.ensureDbInitialized();
 
-      const files = folderId === ROOT_FOLDER_ID
-        ? await this.fileRepo.findRootFiles()
-        : await this.fileRepo.findByFolderId(folderId);
+      const files =
+        folderId === ROOT_FOLDER_ID
+          ? await this.fileRepo.findRootFiles()
+          : await this.fileRepo.findByFolderId(folderId);
 
-      return files.map(f => FileFactory.fromJSON(f));
-      
+      return files.map((f) => FileFactory.fromJSON(f));
     } catch (error) {
-      return this.handleError(error, 'obtener archivos de carpeta');
+      return this.handleError(error, "obtener archivos de carpeta");
     }
   }
 
@@ -91,23 +90,22 @@ export class FileService extends BaseService {
 
       const [file, targetFolder] = await Promise.all([
         this.fileRepo.findById(fileId),
-        this.folderRepo.findById(targetFolderId)
+        this.folderRepo.findById(targetFolderId),
       ]);
 
-      if (!file) throw new Error('Archivo no encontrado');
-      if (!targetFolder) throw new Error('Carpeta destino no encontrada');
+      if (!file) throw new Error("Archivo no encontrado");
+      if (!targetFolder) throw new Error("Carpeta destino no encontrada");
 
       this.validateFileMove(file, targetFolder);
-      
+
       await this.validateUniqueFileName(file.name, targetFolderId, fileId);
 
       const updated = await this.fileRepo.update(fileId, {
-        folderId: targetFolderId
+        folderId: targetFolderId,
       });
       return FileFactory.fromJSON(updated);
-      
     } catch (error) {
-      return this.handleError(error, 'mover archivo');
+      return this.handleError(error, "mover archivo");
     }
   }
 
@@ -119,15 +117,14 @@ export class FileService extends BaseService {
       this.ensureDbInitialized();
 
       const file = await this.fileRepo.findById(fileId);
-      if (!file) throw new Error('Archivo no encontrado');
+      if (!file) throw new Error("Archivo no encontrado");
 
       // Cambiar status a eliminado
       await this.fileRepo.delete(fileId);
-      
+
       return true;
-      
     } catch (error) {
-      return this.handleError(error, 'eliminar archivo');
+      return this.handleError(error, "eliminar archivo");
     }
   }
 
@@ -139,19 +136,20 @@ export class FileService extends BaseService {
       this.ensureDbInitialized();
 
       const file = await this.fileRepo.findById(fileId);
-      if (!file) throw new Error('Archivo no encontrado');
-    
+      if (!file) throw new Error("Archivo no encontrado");
+
       await this.fileRepo.permanentDelete(fileId);
 
       const fsResult = this.fs.deleteFile(file.path);
       if (!fsResult.success) {
-        console.warn(`No se pudo eliminar archivo del disco: ${fsResult.error}`);
+        console.warn(
+          `No se pudo eliminar archivo del disco: ${fsResult.error}`,
+        );
       }
 
       return true;
-      
     } catch (error) {
-      return this.handleError(error, 'eliminar archivo');
+      return this.handleError(error, "eliminar archivo");
     }
   }
 
@@ -163,7 +161,7 @@ export class FileService extends BaseService {
       this.ensureDbInitialized();
 
       const file = await this.fileRepo.findById(fileId);
-      if (!file) throw new Error('Archivo no encontrado');
+      if (!file) throw new Error("Archivo no encontrado");
 
       // Validar que los tags existen
       await this.validateTagsExist(tagIds);
@@ -173,9 +171,8 @@ export class FileService extends BaseService {
 
       // Retornar archivo actualizado
       return await this.getFile(fileId);
-      
     } catch (error) {
-      return this.handleError(error, 'asignar tags al archivo');
+      return this.handleError(error, "asignar tags al archivo");
     }
   }
 
@@ -188,32 +185,35 @@ export class FileService extends BaseService {
 
       const [file, targetFolder] = await Promise.all([
         this.fileRepo.findById(fileId),
-        this.folderRepo.findById(targetFolderId)
+        this.folderRepo.findById(targetFolderId),
       ]);
 
-      if (!file) throw new Error('Archivo no encontrado');
-      if (!targetFolder) throw new Error('Carpeta destino no encontrada');
+      if (!file) throw new Error("Archivo no encontrado");
+      if (!targetFolder) throw new Error("Carpeta destino no encontrada");
 
       await this.validateUniqueFileName(file.name, targetFolderId);
       this.fs.copyFile({ from: file.path, to: targetFolder.path });
 
-      const newFile = await this.fileRepo.create({
-        name: file.name,
-        originalName: file.originalName,
-        extension: file.extension,
-        folderId: targetFolderId,
-        visibility: file.visibility,
-        metadata: file.metadata,
-        storageUrl: targetFolder.path + '/' + file.name, 
+      const newFile = await this.fileRepo.create(
+        {
+          name: file.name,
+          originalName: file.originalName,
+          extension: file.extension,
+          folderId: targetFolderId,
+          visibility: file.visibility,
+          metadata: file.metadata,
+          storageUrl: targetFolder.path + "/" + file.name,
 
-        ...(file.color && {color: file.color}),
-        ...(file.tagIds.length > 0 && {tagIds: file.tagIds}),
-        ...(file.thumbnailUrl && {thumbnailUrl: file.thumbnailUrl}) // hay resorver esto, ya que ahora coge el thumbnail del archivo antiguo.
-      }, targetFolder.path);
+          ...(file.color && { color: file.color }),
+          ...(file.tagIds.length > 0 && { tagIds: file.tagIds }),
+          ...(file.thumbnailUrl && { thumbnailUrl: file.thumbnailUrl }), // hay resorver esto, ya que ahora coge el thumbnail del archivo antiguo.
+        },
+        targetFolder.path,
+      );
 
       return FileFactory.fromJSON(newFile);
-    } catch (error){
-      return this.handleError(error, 'copiar archivo');
+    } catch (error) {
+      return this.handleError(error, "copiar archivo");
     }
   }
 
@@ -225,16 +225,15 @@ export class FileService extends BaseService {
       this.ensureDbInitialized();
 
       const file = await this.fileRepo.findById(fileId);
-      if (!file) throw new Error('Archivo no encontrado');
+      if (!file) throw new Error("Archivo no encontrado");
 
       // Remover tags
       await this.tagAssignmentRepo.removeTagsFromFile(fileId, tagIds);
 
       // Retornar archivo actualizado
       return await this.getFile(fileId);
-      
     } catch (error) {
-      return this.handleError(error, 'remover tags del archivo');
+      return this.handleError(error, "remover tags del archivo");
     }
   }
 
@@ -246,12 +245,25 @@ export class FileService extends BaseService {
       this.ensureDbInitialized();
 
       const file = await this.fileRepo.findById(fileId);
-      if (!file) throw new Error('Archivo no encontrado');
+      if (!file) throw new Error("Archivo no encontrado");
 
       return await this.tagAssignmentRepo.getFileTagIds(fileId);
-      
     } catch (error) {
-      return this.handleError(error, 'obtener tags del archivo');
+      return this.handleError(error, "obtener tags del archivo");
+    }
+  }
+
+  /**
+   * Obtener archivos por categoría
+   */
+  async getFilesByCategory(category: string): Promise<FileModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      const files = await this.fileRepo.findByCategory(category);
+      return files.map((f) => FileFactory.fromJSON(f));
+    } catch (error) {
+      return this.handleError(error, "obtener archivos por categoría");
     }
   }
 
@@ -263,41 +275,43 @@ export class FileService extends BaseService {
       this.ensureDbInitialized();
 
       const deletedFiles = await this.fileRepo.findDeletedFiles();
-      const deletedFileModels = deletedFiles.map(f => FileFactory.fromJSON(f)); 
-    
+      const deletedFileModels = deletedFiles.map((f) =>
+        FileFactory.fromJSON(f),
+      );
+
       return deletedFileModels;
-      
     } catch (error) {
-      return this.handleError(error, 'obtener archivos eliminados');
+      return this.handleError(error, "obtener archivos eliminados");
     }
   }
 
-    /**
-     * Devuelve la lista de archivos dentro de una carpeta eliminadas dado un parentId.
-     */
+  /**
+   * Devuelve la lista de archivos dentro de una carpeta eliminadas dado un parentId.
+   */
   async getDeletedInFolder(parentId: UUID): Promise<FileModel[]> {
     try {
       this.ensureDbInitialized();
-  
+
       const filter = {
         parentId,
-        status: 'deleted' as FileStatus
+        status: "deleted" as FileStatus,
       };
 
-      const deletedFiles = await this.fileRepo.findAll(filter); 
-      const deletedFileModels = deletedFiles.map(f => FileFactory.fromJSON(f)); 
-      
+      const deletedFiles = await this.fileRepo.findAll(filter);
+      const deletedFileModels = deletedFiles.map((f) =>
+        FileFactory.fromJSON(f),
+      );
+
       return deletedFileModels;
-        
     } catch (error) {
-      return this.handleError(error, 'obtener archivos eliminados');
+      return this.handleError(error, "obtener archivos eliminados");
     }
   }
 
   /**
    * Actualiza el nombre de un archivo.
-   * @param fileId 
-   * @param newName 
+   * @param fileId
+   * @param newName
    * @returns El archivo actualizado con el nuevo nombre
    */
   async renameFile(fileId: UUID, newName: string): Promise<FileModel> {
@@ -306,20 +320,19 @@ export class FileService extends BaseService {
 
       const file = await this.fileRepo.findById(fileId);
 
-      if (!file) throw new Error('Archivo no encontrado');
+      if (!file) throw new Error("Archivo no encontrado");
 
-      const folderId = file.folderId || ROOT_FOLDER_ID; 
+      const folderId = file.folderId || ROOT_FOLDER_ID;
 
       await this.validateUniqueFileName(newName, folderId, fileId);
 
       const newPath = `${this.removeLastPathSegment(file.path)}/${newName}`;
-      
-      await this.fileRepo.renameFile(fileId, newName, newPath);
-      
-      return await this.getFile(fileId);
 
+      await this.fileRepo.renameFile(fileId, newName, newPath);
+
+      return await this.getFile(fileId);
     } catch (error) {
-      return this.handleError(error, 'renombrar archivo');
+      return this.handleError(error, "renombrar archivo");
     }
   }
 
@@ -331,29 +344,35 @@ export class FileService extends BaseService {
     try {
       this.ensureDbInitialized();
       const file = await this.fileRepo.findById(fileId);
-      if (!file) throw new Error('Archivo no encontrado');
-      if (file.status !== 'deleted') throw new Error('El archivo no está eliminado');
+      if (!file) throw new Error("Archivo no encontrado");
+      if (file.status !== "deleted")
+        throw new Error("El archivo no está eliminado");
 
       const restoredIds: UUID[] = [];
 
-      await this.restoreParentChain(file.folderId || ROOT_FOLDER_ID, restoredIds);
+      await this.restoreParentChain(
+        file.folderId || ROOT_FOLDER_ID,
+        restoredIds,
+      );
 
       await this.fileRepo.restore(fileId);
       restoredIds.push(fileId);
 
       return restoredIds;
-
-    }catch (error) {
-      return this.handleError(error, 'restaurar archivo');
+    } catch (error) {
+      return this.handleError(error, "restaurar archivo");
     }
   }
 
   /**
    * Restaura recursivamente la cadena de carpetas padre eliminadas
    */
-  private async restoreParentChain(folderId: UUID, restoredIds: UUID[]): Promise<void> {
+  private async restoreParentChain(
+    folderId: UUID,
+    restoredIds: UUID[],
+  ): Promise<void> {
     const folder = await this.folderRepo.findById(folderId);
-    if (!folder || folder.status !== 'deleted') return;
+    if (!folder || folder.status !== "deleted") return;
 
     if (folder.parentId) {
       await this.restoreParentChain(folder.parentId, restoredIds);
@@ -369,18 +388,20 @@ export class FileService extends BaseService {
   async resolveStoragePath(folderId: UUID = ROOT_FOLDER_ID): Promise<string> {
     this.ensureDbInitialized();
     const folder = await this.folderRepo.findById(folderId);
-    if (!folder) throw new Error('Carpeta no encontrada');
+    if (!folder) throw new Error("Carpeta no encontrada");
     return folder.path;
   }
 
   /** Validar que la carpeta destino existe y acepta archivos. Retorna la carpeta. */
-  private async validateTargetFolder(folderId: UUID): Promise<import('../types/entities/folder').Folder> {
+  private async validateTargetFolder(
+    folderId: UUID,
+  ): Promise<import("../types/entities/folder").Folder> {
     const folder = await this.folderRepo.findById(folderId);
     if (!folder) {
-      throw new Error('Carpeta destino no encontrada');
+      throw new Error("Carpeta destino no encontrada");
     }
-    if (folder.status === 'deleted') {
-      throw new Error('No se puede crear archivo en carpeta eliminada');
+    if (folder.status === "deleted") {
+      throw new Error("No se puede crear archivo en carpeta eliminada");
     }
     return folder;
   }
@@ -388,23 +409,29 @@ export class FileService extends BaseService {
   /** Validar que el movimiento de archivo es permitido */
   private validateFileMove(file: File, targetFolder: any): void {
     if (file.folderId === targetFolder.id) {
-      throw new Error('El archivo ya está en esa carpeta');
+      throw new Error("El archivo ya está en esa carpeta");
     }
-    
-    if (targetFolder.status === 'deleted') {
-      throw new Error('No se puede mover a carpeta eliminada');
+
+    if (targetFolder.status === "deleted") {
+      throw new Error("No se puede mover a carpeta eliminada");
     }
   }
 
   /** Validar que no existe otro archivo con el mismo nombre en la carpeta */
-  private async validateUniqueFileName(fileName: string, folderId: UUID, excludeFileId?: UUID): Promise<void> {
+  private async validateUniqueFileName(
+    fileName: string,
+    folderId: UUID,
+    excludeFileId?: UUID,
+  ): Promise<void> {
     const filesInFolder = await this.fileRepo.findByFolderId(folderId);
-    const conflictingFile = filesInFolder.find((f: File) => 
-      f.name === fileName && f.id !== excludeFileId
+    const conflictingFile = filesInFolder.find(
+      (f: File) => f.name === fileName && f.id !== excludeFileId,
     );
-    
+
     if (conflictingFile) {
-      throw new Error(`Ya existe un archivo con el nombre "${fileName}" en esta carpeta`);
+      throw new Error(
+        `Ya existe un archivo con el nombre "${fileName}" en esta carpeta`,
+      );
     }
   }
 
@@ -420,9 +447,9 @@ export class FileService extends BaseService {
 
   /** Elimina el último nivel en el path */
   private removeLastPathSegment(path: string): string {
-    const normalizedPath = path.endsWith('/') ? path.slice(0, -1) : path;
-    const segments = normalizedPath.split('/');
+    const normalizedPath = path.endsWith("/") ? path.slice(0, -1) : path;
+    const segments = normalizedPath.split("/");
     segments.pop();
-    return segments.join('/');
+    return segments.join("/");
   }
 }

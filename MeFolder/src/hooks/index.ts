@@ -7,3 +7,6 @@ export * from "./useFileSystem";
 export * from "./useMedia";
 export * from "./useColors";
 export * from "./useDeviceOrientation";
+export * from "./gallery";
+export * from "./tags";
+export * from "./library";

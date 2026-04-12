@@ -1,5 +1,5 @@
 import { NewTag } from "@/components/TagCreator";
-import { useAlert } from "@/hooks";
+import { useAlert } from "@/providers";
 import { TagService } from "@/services";
 import { CreateTagInput } from "@/types/entities/tag";
 import { useTagsStore } from "@/stores/useTagsStore";

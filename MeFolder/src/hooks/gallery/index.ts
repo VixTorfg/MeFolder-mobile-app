@@ -1,0 +1,1 @@
+export { useGalleryContent } from "./useGalleryContent";
