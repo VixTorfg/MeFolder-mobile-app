@@ -7,14 +7,17 @@ import React, { useCallback, useState } from "react";
 import { View, Text, Pressable } from "react-native";
 import { Image } from "expo-image";
 import { MediaSource } from "@/types/media/viewers";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { formatVideoDuration } from "@/utils/format/date";
 
 export default function GalleryScreen() {
   const { tagId, albumName } = useLocalSearchParams();
   const styles = useGalleryStyles();
+  const insets = useSafeAreaInsets();
 
-  const items = useGalleryContent({
+  const { items, loadMore } = useGalleryContent({
     tagId: tagId as string,
-    page: 1,
     pageSize: 100,
   });
 
@@ -24,22 +27,38 @@ export default function GalleryScreen() {
   const [videoPlayerSource, setVideoPlayerSource] =
     useState<MediaSource | null>(null);
 
-  const handleOpenImage = useCallback((file: FileModel) => {
+  const handleOpenItem = useCallback((file: FileModel) => {
     if (!file.storageUrl) return;
 
-    setViewerSource({
-      uri: file.storageUrl,
-      fileId: file.id,
-      ...(file.metadata.mimeType && { mimeType: file.metadata.mimeType }),
-      displayName: file.name,
-    });
-    setViewerVisible(true);
+    switch (file.category) {
+      case "image":
+        setViewerSource({
+          uri: file.storageUrl,
+          fileId: file.id,
+          ...(file.metadata.mimeType && { mimeType: file.metadata.mimeType }),
+          displayName: file.name,
+        });
+        setViewerVisible(true);
+        break;
+
+      case "video":
+        setVideoPlayerSource({
+          uri: file.storageUrl,
+          fileId: file.id,
+          ...(file.metadata.mimeType && { mimeType: file.metadata.mimeType }),
+          displayName: file.name,
+        });
+        setVideoPlayerVisible(true);
+        break;
+      default:
+        break;
+    }
   }, []);
 
   const renderItem = useCallback(
     (file: FileModel) => (
       <Pressable
-        onPress={() => handleOpenImage(file)}
+        onPress={() => handleOpenItem(file)}
         style={styles.thumbContainer}
       >
         {file.thumbnailUrl && (
@@ -52,37 +71,48 @@ export default function GalleryScreen() {
           />
         )}
 
-        {file.category === "video" && <View style={styles.videoIcon} />}
+        {file.category === "video" && (
+          <View style={styles.videoInfo}>
+            <MaterialCommunityIcons
+              name="play-circle"
+              size={16}
+              color={"#FFFFFF"}
+            />
+
+            <Text style={styles.videoDurationText}>
+              {formatVideoDuration(file.metadata.videoMetadata?.duration)}
+            </Text>
+          </View>
+        )}
       </Pressable>
     ),
-    [handleOpenImage, styles],
+    [handleOpenItem, styles],
   );
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <MultiActionButton
-            icon="chevron-back"
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => router.back()}
-          />
+        <MultiActionButton
+          icon="chevron-back"
+          backgroundColor="transparent"
+          iconColor={styles.iconColor.color}
+          size={42}
+          onPress={() => router.back()}
+        />
+        <View style={styles.headerTitle}>
+          <Text style={styles.headerTitleText}>
+            {(albumName as string) ?? "Galería"}
+          </Text>
         </View>
-      </View>
-
-      <View style={styles.headerTitle}>
-        <Text style={styles.headerTitleText}>
-          {(albumName as string) ?? "Galería"}
-        </Text>
       </View>
 
       <FlashList
         data={items}
         renderItem={({ item }) => renderItem(item)}
         keyExtractor={(item) => item.id}
-        numColumns={3}
+        onEndReachedThreshold={0.7}
+        onEndReached={loadMore}
+        numColumns={4}
         contentContainerStyle={{ padding: 8 }}
       />
 
@@ -118,23 +148,17 @@ const useGalleryStyles = () => {
       backgroundColor: theme.colors.background,
     },
     header: {
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      justifyContent: "space-between" as const,
-      paddingHorizontal: 8,
-      paddingVertical: 24,
-    },
-    headerLeft: {
-      flexDirection: "row" as const,
-      alignItems: "center" as const,
-      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 30,
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
     },
     headerTitle: {
-      paddingHorizontal: 16,
-      paddingBottom: 8,
+      alignItems: "center",
     },
     headerTitleText: {
-      fontSize: 34,
+      fontSize: 28,
       fontFamily: theme.typography.fontFamily.title.semiBold,
       color: theme.colors.textPrimary,
     },
@@ -146,14 +170,23 @@ const useGalleryStyles = () => {
       margin: 2,
     },
     thumb: {
-      width: "100%" as const,
+      width: "100%",
       aspectRatio: 1,
       borderRadius: 4,
     },
-    videoIcon: {
-      position: "absolute" as const,
-      top: 8,
-      right: 8,
+    videoInfo: {
+      position: "absolute",
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+      gap: 4,
+      bottom: 4,
+      left: 8,
+    },
+    videoDurationText: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      fontSize: theme.typography.fontSize.sm,
+      color: "#FFFFFF",
     },
   }));
 };

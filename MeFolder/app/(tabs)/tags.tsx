@@ -121,7 +121,6 @@ export default function TagsScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header: title + buttons in same row */}
       <View style={styles.header}>
         <View style={styles.headerLeft}>
           <Text style={styles.headerTitleText}>Etiquetas</Text>

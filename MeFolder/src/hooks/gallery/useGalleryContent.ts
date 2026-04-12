@@ -1,42 +1,72 @@
 import { FileModel } from "@/models";
 import { useAlert, useServices } from "@/providers";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 interface GalleryContentProps {
   tagId: string;
-  page: number;
-  pageSize: number;
+  pageSize?: number;
 }
 
 export const useGalleryContent = ({
   tagId,
-  page,
-  pageSize,
+  pageSize = 100,
 }: GalleryContentProps) => {
   const [items, setItems] = useState<FileModel[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const hasMore = useRef(true);
+  const currentPage = useRef(1);
   const { showAlert } = useAlert();
   const { services } = useServices();
   const tagService = services?.tagService;
 
-  useEffect(() => {
-    const loadGalleryContent = async () => {
+  const loadPage = useCallback(
+    async (page: number) => {
+      if (isLoading || !hasMore.current) return;
+      setIsLoading(true);
       try {
         const files = await tagService.getFilesInTagPaginated(
           tagId,
           page,
           pageSize,
         );
-        setItems(files);
+
+        if (files.length < pageSize) {
+          hasMore.current = false;
+        }
+
+        const maxItems = pageSize * 2;
+        setItems((prev) => {
+          if (page === 1) return files;
+          const merged = [...prev, ...files];
+          if (merged.length <= maxItems) return merged;
+          return merged.slice(merged.length - maxItems);
+        });
+        currentPage.current = page;
       } catch (error) {
         console.error("Error loading gallery content:", error);
         showAlert({
           title: "Error",
           message: "No se pudo cargar el contenido de la galería.",
         });
+      } finally {
+        setIsLoading(false);
       }
-    };
-    loadGalleryContent();
-  }, [tagId, page, pageSize]);
+    },
+    [tagId, pageSize, isLoading],
+  );
 
-  return items;
+  useEffect(() => {
+    hasMore.current = true;
+    currentPage.current = 1;
+    setItems([]);
+    loadPage(1);
+  }, [tagId, pageSize]);
+
+  const loadMore = useCallback(() => {
+    if (!isLoading && hasMore.current) {
+      loadPage(currentPage.current + 1);
+    }
+  }, [isLoading, loadPage]);
+
+  return { items, loadMore, isLoading, hasMore: hasMore.current };
 };

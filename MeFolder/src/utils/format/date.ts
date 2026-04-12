@@ -30,7 +30,14 @@ export const formatVideoDuration = (
   const hours = Math.floor(durationInSeconds / 3600);
   const minutes = Math.floor((durationInSeconds % 3600) / 60);
   const seconds = Math.floor(durationInSeconds % 60);
-  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+
+  const basicTime = `${minutes}:${seconds.toString().padStart(2, "0")}`;
+
+  if (hours > 0) {
+    return `${hours}:${basicTime}`;
+  }
+
+  return `${basicTime}`;
 };
 
 export function formatAudioDuration(durationInSeconds: number): string {
