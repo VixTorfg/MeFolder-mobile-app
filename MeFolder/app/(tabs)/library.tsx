@@ -9,6 +9,7 @@ import {
   PropertyMenu,
   ImageViewer,
   AudioPlayer,
+  VideoPlayer,
 } from "@/components";
 import React, { useMemo, useRef, useState } from "react";
 import {
@@ -51,6 +52,9 @@ export default function LibraryScreen() {
   const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
   const [audioPlayerSource, setAudioPlayerSource] =
     useState<MediaSource | null>(null);
+  const [videoPlayerSource, setVideoPlayerSource] =
+    useState<MediaSource | null>(null);
+  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
   const itemRefs = useRef<Map<string, View>>(new Map());
 
   const {
@@ -142,7 +146,8 @@ export default function LibraryScreen() {
           setViewerVisible(true);
           break;
         case "video":
-          // TODO: abrir VideoPlayer
+          setVideoPlayerSource(source);
+          setVideoPlayerVisible(true);
           break;
         case "audio":
           setAudioPlayerSource(source);
@@ -463,6 +468,17 @@ export default function LibraryScreen() {
           onClose={() => {
             setAudioPlayerVisible(false);
             setAudioPlayerSource(null);
+          }}
+        />
+      )}
+
+      {videoPlayerSource && (
+        <VideoPlayer
+          source={videoPlayerSource}
+          visible={videoPlayerVisible}
+          onClose={() => {
+            setVideoPlayerVisible(false);
+            setVideoPlayerSource(null);
           }}
         />
       )}

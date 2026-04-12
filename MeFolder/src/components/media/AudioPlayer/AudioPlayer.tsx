@@ -11,15 +11,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import type { AudioPlayerProps } from "@/types/media/viewers";
 import { useAudioPlayerStyles } from "./styles";
-
-function formatTime(totalSeconds: number): string {
-  if (!isFinite(totalSeconds) || isNaN(totalSeconds) || totalSeconds < 0) {
-    return "0:00";
-  }
-  const mins = Math.floor(totalSeconds / 60);
-  const secs = Math.floor(totalSeconds % 60);
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
-}
+import { formatAudioDuration } from "@/utils/format/date";
 
 export default function AudioPlayer({
   source,
@@ -41,7 +33,6 @@ export default function AudioPlayer({
   const durationSec = status.duration ?? 0;
   const playbackRatio = durationSec > 0 ? positionSec / durationSec : 0;
 
-  // El ratio mostrado: si el usuario está arrastrando, se "desconecta" del playback
   const displayedRatio = isScrubbing ? scrubRatio : playbackRatio;
   const displayedPosition = displayedRatio * durationSec;
 
@@ -49,14 +40,12 @@ export default function AudioPlayer({
     return Math.min(Math.max(locationX / trackWidthRef.current, 0), 1);
   }, []);
 
-  // Reproducción automática al abrirse
   useEffect(() => {
     if (visible && isLoaded && autoPlay) {
       player.play();
     }
   }, [visible, isLoaded, autoPlay]);
 
-  // Pausar al cerrar el modal
   useEffect(() => {
     if (!visible && isPlaying) {
       player.pause();
@@ -118,12 +107,7 @@ export default function AudioPlayer({
             <ActivityIndicator size="large" color="#FFFFFF" />
           ) : (
             <View style={styles.iconCircle}>
-              <Ionicons
-                name="musical-notes"
-                size={72}
-                color="#FFFFFF"
-                style={styles.iconGlyph}
-              />
+              <Ionicons name="musical-notes" size={72} color="#FFFFFF" />
             </View>
           )}
         </View>
@@ -174,9 +158,11 @@ export default function AudioPlayer({
             <Text
               style={[styles.timeText, isScrubbing && styles.timeTextScrubbing]}
             >
-              {formatTime(displayedPosition)}
+              {formatAudioDuration(displayedPosition)}
             </Text>
-            <Text style={styles.timeText}>{formatTime(durationSec)}</Text>
+            <Text style={styles.timeText}>
+              {formatAudioDuration(durationSec)}
+            </Text>
           </View>
 
           {/* Botones de control */}

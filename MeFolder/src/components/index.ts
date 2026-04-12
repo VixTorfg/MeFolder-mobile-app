@@ -14,5 +14,4 @@ export { TagCreator } from "./TagCreator";
 export { TagCard } from "./TagCard";
 export { PriorityTagCard } from "./PriorityTagCard";
 export { AlbumCard, AlbumEmptyState } from "./AlbumCard";
-export { ImageViewer } from "./ImageViewer";
-export { AudioPlayer } from "./AudioPlayer";
+export { ImageViewer, AudioPlayer, VideoPlayer } from "./media";

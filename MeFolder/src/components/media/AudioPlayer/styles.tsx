@@ -41,11 +41,6 @@ export const useAudioPlayerStyles = () => {
       alignItems: "center" as const,
       justifyContent: "center" as const,
     },
-    iconGlyph: {
-      lineHeight: 72,
-      includeFontPadding: false,
-      textAlignVertical: "center" as const,
-    } as any,
     controlsContainer: {
       paddingHorizontal: theme.spacing.lg,
       paddingBottom: theme.spacing.xxl,
