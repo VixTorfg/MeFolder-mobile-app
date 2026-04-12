@@ -1,10 +1,10 @@
-import { useCallback, useRef, useState } from 'react';
-import { MediaService } from '@/services';
+import { useCallback, useRef, useState } from "react";
+import { MediaService } from "@/services";
 import type {
   MediaVideoMetadata,
   MediaAudioMetadata,
   MediaImageMetadata,
-} from '@/types/media';
+} from "@/types/media";
 
 interface UseMediaReturn {
   /** True mientras se extraen metadatos */
@@ -20,6 +20,12 @@ interface UseMediaReturn {
   getAudioMetadata: (uri: string) => Promise<MediaAudioMetadata | null>;
   /** Extrae metadatos de una imagen (ancho, alto) */
   getImageMetadata: (uri: string) => Promise<MediaImageMetadata | null>;
+  /** Genera un thumbnail para imagen o video, devuelve su URI */
+  generateThumbnail: (
+    sourceUri: string,
+    fileId: string,
+    category: "image" | "video",
+  ) => Promise<string | null>;
 }
 
 /**
@@ -32,50 +38,78 @@ export function useMedia(): UseMediaReturn {
 
   const clearError = useCallback(() => setError(null), []);
 
-  const getVideoMetadata = useCallback(async (uri: string): Promise<MediaVideoMetadata | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await serviceRef.current.getVideoMetadata(uri);
-      if (!result.success) {
-        setError(result.error ?? 'Error al obtener metadatos de video');
-        return null;
+  const getVideoMetadata = useCallback(
+    async (uri: string): Promise<MediaVideoMetadata | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await serviceRef.current.getVideoMetadata(uri);
+        if (!result.success) {
+          setError(result.error ?? "Error al obtener metadatos de video");
+          return null;
+        }
+        return result.data ?? null;
+      } finally {
+        setLoading(false);
       }
-      return result.data ?? null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
-  const getAudioMetadata = useCallback(async (uri: string): Promise<MediaAudioMetadata | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await serviceRef.current.getAudioMetadata(uri);
-      if (!result.success) {
-        setError(result.error ?? 'Error al obtener metadatos de audio');
-        return null;
+  const getAudioMetadata = useCallback(
+    async (uri: string): Promise<MediaAudioMetadata | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await serviceRef.current.getAudioMetadata(uri);
+        if (!result.success) {
+          setError(result.error ?? "Error al obtener metadatos de audio");
+          return null;
+        }
+        return result.data ?? null;
+      } finally {
+        setLoading(false);
       }
-      return result.data ?? null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
-  const getImageMetadata = useCallback(async (uri: string): Promise<MediaImageMetadata | null> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const result = await serviceRef.current.getImageMetadata(uri);
-      if (!result.success) {
-        setError(result.error ?? 'Error al obtener metadatos de imagen');
+  const getImageMetadata = useCallback(
+    async (uri: string): Promise<MediaImageMetadata | null> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const result = await serviceRef.current.getImageMetadata(uri);
+        if (!result.success) {
+          setError(result.error ?? "Error al obtener metadatos de imagen");
+          return null;
+        }
+        return result.data ?? null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [],
+  );
+
+  const generateThumbnail = useCallback(
+    async (
+      sourceUri: string,
+      fileId: string,
+      category: "image" | "video",
+    ): Promise<string | null> => {
+      try {
+        return await serviceRef.current.generateThumbnail(
+          sourceUri,
+          fileId,
+          category,
+        );
+      } catch {
         return null;
       }
-      return result.data ?? null;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+    },
+    [],
+  );
 
   return {
     loading,
@@ -84,5 +118,6 @@ export function useMedia(): UseMediaReturn {
     getVideoMetadata,
     getAudioMetadata,
     getImageMetadata,
+    generateThumbnail,
   };
 }

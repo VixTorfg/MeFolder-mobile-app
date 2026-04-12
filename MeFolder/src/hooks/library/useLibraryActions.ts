@@ -276,6 +276,20 @@ export const useLibraryActions = ({
           file.mimeType,
         );
 
+        // Generar thumbnail para imágenes y videos
+        let thumbnailUrl: string | undefined;
+        if (file.type === "image" || file.type === "video") {
+          const thumbId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+          const thumbUri = await media.generateThumbnail(
+            copiedUri,
+            thumbId,
+            file.type,
+          );
+          if (thumbUri) {
+            thumbnailUrl = thumbUri;
+          }
+        }
+
         const fileResult = await fileService?.createFile({
           name: file.name,
           originalName: file.originalName,
@@ -287,6 +301,7 @@ export const useLibraryActions = ({
           metadata: fileMetadata,
           tagIds: tags,
           storageUrl: copiedUri,
+          ...(thumbnailUrl && { thumbnailUrl }),
         } as CreateFileInput);
 
         addItem(fileResult);

@@ -1,12 +1,19 @@
-import { createAudioPlayer } from 'expo-audio';
-import { createVideoPlayer } from 'expo-video';
-import { Image } from 'react-native';
+import { createAudioPlayer } from "expo-audio";
+import { createVideoPlayer } from "expo-video";
+import * as VideoThumbnails from "expo-video-thumbnails";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
+import { Image } from "react-native";
+import {
+  File as FSFile,
+  Directory as FSDirectory,
+  Paths,
+} from "expo-file-system";
 import type {
   MediaOperationResult,
   MediaVideoMetadata,
   MediaAudioMetadata,
   MediaImageMetadata,
-} from '@/types/media';
+} from "@/types/media";
 
 /**
  * MediaService — Servicio para obtener metadatos de archivos multimedia.
@@ -31,16 +38,18 @@ export class MediaService {
    * Crea un VideoPlayer temporal, espera a que esté listo, lee duración
    * y dimensiones del track de video, y luego libera el recurso.
    */
-  async getVideoMetadata(uri: string): Promise<MediaOperationResult<MediaVideoMetadata>> {
+  async getVideoMetadata(
+    uri: string,
+  ): Promise<MediaOperationResult<MediaVideoMetadata>> {
     try {
       const player = createVideoPlayer(uri);
 
       // Esperar a que el player esté listo o falle
       await this.waitForVideoReady(player);
 
-      if (player.status === 'error') {
+      if (player.status === "error") {
         player.release();
-        return this.failResult(uri, 'No se pudo cargar el video');
+        return this.failResult(uri, "No se pudo cargar el video");
       }
 
       const duration = player.duration;
@@ -55,7 +64,7 @@ export class MediaService {
       player.release();
       return { success: true, uri, data };
     } catch (error) {
-      return this.failResult(uri, error, 'obtener metadatos de video');
+      return this.failResult(uri, error, "obtener metadatos de video");
     }
   }
 
@@ -65,7 +74,9 @@ export class MediaService {
    * Crea un AudioPlayer temporal, espera a que cargue,
    * lee la duración y luego libera el recurso.
    */
-  async getAudioMetadata(uri: string): Promise<MediaOperationResult<MediaAudioMetadata>> {
+  async getAudioMetadata(
+    uri: string,
+  ): Promise<MediaOperationResult<MediaAudioMetadata>> {
     try {
       const player = createAudioPlayer(uri);
 
@@ -74,7 +85,7 @@ export class MediaService {
 
       if (!player.isLoaded) {
         player.remove();
-        return this.failResult(uri, 'No se pudo cargar el audio');
+        return this.failResult(uri, "No se pudo cargar el audio");
       }
 
       const duration = player.duration;
@@ -86,7 +97,7 @@ export class MediaService {
         data: { duration: Math.round(duration) },
       };
     } catch (error) {
-      return this.failResult(uri, error, 'obtener metadatos de audio');
+      return this.failResult(uri, error, "obtener metadatos de audio");
     }
   }
 
@@ -95,7 +106,9 @@ export class MediaService {
    *
    * Usa `Image.getSize` de React Native.
    */
-  getImageMetadata(uri: string): Promise<MediaOperationResult<MediaImageMetadata>> {
+  getImageMetadata(
+    uri: string,
+  ): Promise<MediaOperationResult<MediaImageMetadata>> {
     return new Promise((resolve) => {
       Image.getSize(
         uri,
@@ -117,6 +130,125 @@ export class MediaService {
     });
   }
 
+  /** Directorio dedicado para thumbnails */
+  private static readonly THUMBNAILS_DIR = ".thumbnails";
+  private static readonly THUMBNAIL_SIZE = 300;
+
+  /**
+   * Genera un thumbnail para una imagen redimensionándola.
+   * @param sourceUri URI de la imagen original
+   * @param fileId ID del archivo para nombrar el thumbnail
+   * @returns URI del thumbnail generado o null si falla
+   */
+  async generateImageThumbnail(
+    sourceUri: string,
+    fileId: string,
+  ): Promise<MediaOperationResult<string>> {
+    try {
+      this.ensureThumbnailsDir();
+
+      const image = ImageManipulator.manipulate(sourceUri);
+      const resized = image.resize({ width: MediaService.THUMBNAIL_SIZE });
+      const result = await resized.renderAsync();
+      const saved = await result.saveAsync({
+        format: SaveFormat.JPEG,
+        compress: 0.7,
+      });
+
+      const destUri = this.getThumbnailUri(fileId);
+      const destFile = new FSFile(destUri);
+      const sourceFile = new FSFile(saved.uri);
+
+      if (destFile.exists) destFile.delete();
+      sourceFile.move(destFile);
+
+      return { success: true, uri: destUri, data: destUri };
+    } catch (error) {
+      return this.failResult(sourceUri, error, "generar thumbnail de imagen");
+    }
+  }
+
+  /**
+   * Genera un thumbnail extrayendo un frame de un video.
+   * @param sourceUri URI del video original
+   * @param fileId ID del archivo para nombrar el thumbnail
+   * @param timeMs Posición del frame en ms (default: 1000)
+   * @returns URI del thumbnail generado o null si falla
+   */
+  async generateVideoThumbnail(
+    sourceUri: string,
+    fileId: string,
+    timeMs: number = 1000,
+  ): Promise<MediaOperationResult<string>> {
+    try {
+      this.ensureThumbnailsDir();
+
+      const { uri: frameUri } = await VideoThumbnails.getThumbnailAsync(
+        sourceUri,
+        {
+          time: timeMs,
+        },
+      );
+
+      // Redimensionar el frame extraído
+      const image = ImageManipulator.manipulate(frameUri);
+      const resized = image.resize({ width: MediaService.THUMBNAIL_SIZE });
+      const result = await resized.renderAsync();
+      const saved = await result.saveAsync({
+        format: SaveFormat.JPEG,
+        compress: 0.7,
+      });
+
+      const destUri = this.getThumbnailUri(fileId);
+      const destFile = new FSFile(destUri);
+      const sourceFile = new FSFile(saved.uri);
+
+      if (destFile.exists) destFile.delete();
+      sourceFile.move(destFile);
+
+      return { success: true, uri: destUri, data: destUri };
+    } catch (error) {
+      return this.failResult(sourceUri, error, "generar thumbnail de video");
+    }
+  }
+
+  /**
+   * Genera un thumbnail según la categoría del archivo.
+   * Solo soporta 'image' y 'video'.
+   */
+  async generateThumbnail(
+    sourceUri: string,
+    fileId: string,
+    category: "image" | "video",
+  ): Promise<string | null> {
+    const result =
+      category === "image"
+        ? await this.generateImageThumbnail(sourceUri, fileId)
+        : await this.generateVideoThumbnail(sourceUri, fileId);
+
+    return result.success && result.data ? result.data : null;
+  }
+
+  /**
+   * Obtiene la URI de un thumbnail dado un fileId.
+   */
+  getThumbnailUri(fileId: string): string {
+    const thumbDir = `${Paths.document.uri}/${MediaService.THUMBNAILS_DIR}`;
+    return `${thumbDir}/${fileId}.jpg`;
+  }
+
+  /**
+   * Asegura que el directorio de thumbnails exista.
+   */
+  private ensureThumbnailsDir(): void {
+    const dir = new FSDirectory(
+      `${Paths.document.uri}/${MediaService.THUMBNAILS_DIR}`,
+    );
+    if (!dir.exists) {
+      dir.create({ intermediates: true, idempotent: true });
+    }
+  }
+
   /** Timeout máximo para esperar la carga de un recurso (ms) */
   private static readonly LOAD_TIMEOUT_MS = 10_000;
 
@@ -128,7 +260,7 @@ export class MediaService {
     player: ReturnType<typeof createVideoPlayer>,
   ): Promise<void> {
     // Si ya está listo, resolver inmediatamente
-    if (player.status === 'readyToPlay' || player.status === 'error') {
+    if (player.status === "readyToPlay" || player.status === "error") {
       return Promise.resolve();
     }
 
@@ -138,8 +270,8 @@ export class MediaService {
         resolve();
       }, MediaService.LOAD_TIMEOUT_MS);
 
-      const subscription = player.addListener('statusChange', ({ status }) => {
-        if (status === 'readyToPlay' || status === 'error') {
+      const subscription = player.addListener("statusChange", ({ status }) => {
+        if (status === "readyToPlay" || status === "error") {
           clearTimeout(timeout);
           subscription.remove();
           resolve();
@@ -165,13 +297,16 @@ export class MediaService {
         resolve();
       }, MediaService.LOAD_TIMEOUT_MS);
 
-      const subscription = player.addListener('playbackStatusUpdate', (status) => {
-        if (status.isLoaded) {
-          clearTimeout(timeout);
-          subscription.remove();
-          resolve();
-        }
-      });
+      const subscription = player.addListener(
+        "playbackStatusUpdate",
+        (status) => {
+          if (status.isLoaded) {
+            clearTimeout(timeout);
+            subscription.remove();
+            resolve();
+          }
+        },
+      );
     });
   }
 
@@ -182,7 +317,7 @@ export class MediaService {
     operation?: string,
   ): MediaOperationResult<T> {
     const message =
-      typeof error === 'string'
+      typeof error === "string"
         ? error
         : error instanceof Error
           ? `Error al ${operation}: ${error.message}`
