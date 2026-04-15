@@ -1,0 +1,30 @@
+TODOS
+
+Orden de prioridades:
+
+    1. Seccion de tags
+    2. Menu de propiedades de carpetas y pestaña de estilo
+    3. Reproductores
+
+
+
+Mejoras en general
+
+    Seccion de colores:
+
+        -Añadir paginacion a los colores
+        -Al mantener pulsado sobre ellos se pueda editar 
+        (sencillo, abrimos de nuevo el compoennete de color y actualizamos)
+        -Hay un bug raro al guardar un color el cual la pantalla popea. No es reproducible
+        Ocurre raras veces.
+        -Poner como maximo 30 colores
+
+    Seccion de TAGS:
+        -Poder buscar un tags
+        -Crear un tags
+        -Asociar Tags a otros tags, estructura de arbol, UN solo padre
+        -Asociar tags a archivos -> esto debe ir en el itemcreator
+        -poder editar un tag
+        -filtros combinados trabajo + urgente
+        -reglas de auto etiquetado
+        -compartir archivos por tags
