@@ -1,11 +1,16 @@
-import { View, TouchableOpacity, Text, TextInput } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useContentCardStyles } from './styles';
-import { CommunCardProps } from '@/types';
-import { FileModel } from '@/models/file';
-import { formatDate, formatFileSize, getIconByCategory, removeExtension } from '@/utils';
-import { useEffect, useRef, useState } from 'react';
-
+import { View, TouchableOpacity, Text, TextInput } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useContentCardStyles } from "./styles";
+import { CommunCardProps } from "@/types";
+import { FileModel } from "@/models/file";
+import {
+  formatDate,
+  formatFileSize,
+  getIconByCategory,
+  removeExtension,
+} from "@/utils";
+import { useEffect, useRef, useState } from "react";
+import { Image } from "expo-image";
 
 export default function ContentCard({
   viewOptions,
@@ -18,9 +23,8 @@ export default function ContentCard({
   disabled = false,
   data,
   showCard = true,
-  selected = false
+  selected = false,
 }: CommunCardProps) {
-  
   const styles = useContentCardStyles();
   const isFile = data instanceof FileModel;
   const lastTap = useRef(0);
@@ -29,20 +33,20 @@ export default function ContentCard({
   const [renameValue, setRenameValue] = useState(data.name);
 
   const showExtension = viewOptions?.showExtension;
-  const showHiddenFiles = true //viewOptions?.showHiddenFiles;
+  const showHiddenFiles = true; //viewOptions?.showHiddenFiles;
 
   useEffect(() => {
     if (isRenaming) {
       setRenameValue(data.name);
     }
   }, [isRenaming, data.name]);
-  
+
   /**
    * Maneja el evento de presión del botón
    */
-  const handlePress = async (): Promise<void> => { 
+  const handlePress = async (): Promise<void> => {
     if (disabled) return;
-    
+
     const now = Date.now();
     const isDoubleTap = now - lastTap.current < 200;
     lastTap.current = now;
@@ -66,65 +70,93 @@ export default function ContentCard({
       await onLongPress();
     }
   };
-  
+
+  const renderThumbnail = (file: FileModel) => {
+    const iconName = getIconByCategory(file.category);
+    const isImageOrVideo =
+      file.category === "image" || file.category === "video";
+    if (isImageOrVideo && file.thumbnailUrl) {
+      return (
+        <View style={styles.fileThumbnailContainer}>
+          <Image
+            source={{ uri: file.thumbnailUrl }}
+            style={styles.fileThumbnail}
+            contentFit="cover"
+            transition={150}
+          />
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.fileThumbnailContainer}>
+          <Ionicons
+            name={iconName}
+            size={32}
+            color={data.color?.hex || styles.iconColor.color}
+          />
+        </View>
+      );
+    }
+  };
+
   if (!showCard) return null;
-  if (!showHiddenFiles && data.visibility === 'private') return null;
+  if (!showHiddenFiles && data.visibility === "private") return null;
 
   return (
-    <TouchableOpacity 
-      style={selected ? styles.cardContainerSelected : styles.cardContainer} 
-      onPress={handlePress} 
+    <TouchableOpacity
+      style={selected ? styles.cardContainerSelected : styles.cardContainer}
+      onPress={handlePress}
       disabled={disabled}
       activeOpacity={0.8}
       onLongPress={handleLongPress}
     >
       <View style={styles.iconNameContainer}>
-          {isFile ? (
-            <View style={styles.fileThumbnail}>
-              <Ionicons 
-                name={getIconByCategory(data.category)} 
-                size={30} 
-                color={data.color?.hex || styles.iconColor.color}
-              />
-            </View>
-          ) : (
-            <View style={styles.folderContainer}>
-              <MaterialCommunityIcons 
-                  name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap} 
-                  size={32} 
-                  color={data.color?.hex || styles.iconColor.color}
-              />
-            </View>
-          )}
+        {isFile ? (
+          renderThumbnail(data)
+        ) : (
+          <View style={styles.folderContainer}>
+            <MaterialCommunityIcons
+              name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+              size={32}
+              color={data.color?.hex || styles.iconColor.color}
+            />
+          </View>
+        )}
 
         {isRenaming ? (
           <TextInput
-                  style={styles.fileNameInput}
-                  value={renameValue}
-                  onChangeText={setRenameValue}
-                  placeholder="Nombre del archivo"
-                  placeholderTextColor={styles.colors.color}
-                  selectTextOnFocus
-                  numberOfLines={1}
-                  scrollEnabled
-                  textAlignVertical="center"
-                  autoFocus
-                  onSubmitEditing={() => {
-                    if (renameValue.trim() && renameValue !== data.name) {
-                      onRename && onRename(renameValue.trim());
-                    }
-                  }}
-                  onBlur={() => {onRenameCancel?.()}}
-                  returnKeyType="done"
-                />
+            style={styles.fileNameInput}
+            value={renameValue}
+            onChangeText={setRenameValue}
+            placeholder="Nombre del archivo"
+            placeholderTextColor={styles.colors.color}
+            selectTextOnFocus
+            numberOfLines={1}
+            scrollEnabled
+            textAlignVertical="center"
+            autoFocus
+            onSubmitEditing={() => {
+              if (renameValue.trim() && renameValue !== data.name) {
+                onRename && onRename(renameValue.trim());
+              }
+            }}
+            onBlur={() => {
+              onRenameCancel?.();
+            }}
+            returnKeyType="done"
+          />
         ) : (
-           <Text style={styles.fileNameText} numberOfLines={2} ellipsizeMode='tail'>
-              {isFile 
-                ? (showExtension 
-                    ? data.name 
-                    : removeExtension(data.name, data.extension)) 
-                : data.name}
-          </Text>   
+          <Text
+            style={styles.fileNameText}
+            numberOfLines={2}
+            ellipsizeMode="tail"
+          >
+            {isFile
+              ? showExtension
+                ? data.name
+                : removeExtension(data.name, data.extension)
+              : data.name}
+          </Text>
         )}
       </View>
 
@@ -137,8 +169,6 @@ export default function ContentCard({
           {isFile ? formatFileSize(data.size) : null}
         </Text>
       </View>
-        
     </TouchableOpacity>
   );
 }
-

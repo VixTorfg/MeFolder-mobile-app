@@ -1,13 +1,17 @@
-import { View, TouchableOpacity, Text, TextInput } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useGridCardStyles } from './styles';
-import { EXTENSION_LABELS, CommunCardProps } from '@/types';
-import { FileModel } from '@/models/file';
-import { formatFileSize, formatVideoDuration, getIconByCategory, removeExtension } from '@/utils';
-import type { FileExtensionWithoutVideo } from '@/types/common/file-extensions';
-import { useEffect, useRef, useState } from 'react';
-
-
+import { View, TouchableOpacity, Text, TextInput } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useGridCardStyles } from "./styles";
+import { EXTENSION_LABELS, CommunCardProps } from "@/types";
+import { FileModel } from "@/models/file";
+import {
+  formatFileSize,
+  formatVideoDuration,
+  getIconByCategory,
+  removeExtension,
+} from "@/utils";
+import type { FileExtensionWithoutVideo } from "@/types/common/file-extensions";
+import { useEffect, useRef, useState } from "react";
+import { Image } from "expo-image";
 
 export default function GridCard({
   viewOptions,
@@ -20,31 +24,30 @@ export default function GridCard({
   disabled = false,
   data,
   showCard = true,
-  selected = false
+  selected = false,
 }: CommunCardProps) {
-
   const styles = useGridCardStyles();
   const isFile = data instanceof FileModel;
-  const lastTap = useRef(0); 
+  const lastTap = useRef(0);
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [renameValue, setRenameValue] = useState(data.name);
 
   const showExtension = viewOptions?.showExtension;
-  const showHiddenFiles = true //viewOptions?.showHiddenFiles;
-  
+  const showHiddenFiles = true; //viewOptions?.showHiddenFiles;
+
   useEffect(() => {
-      if (isRenaming) {
-        setRenameValue(data.name);
-      }
-    }, [isRenaming, data.name]);
-  
+    if (isRenaming) {
+      setRenameValue(data.name);
+    }
+  }, [isRenaming, data.name]);
+
   /**
    * Maneja el evento de presión del botón
-   */  
-  const handlePress = async (): Promise<void> => { 
+   */
+  const handlePress = async (): Promise<void> => {
     if (disabled) return;
-    
+
     const now = Date.now();
     const isDoubleTap = now - lastTap.current < 200;
     lastTap.current = now;
@@ -68,76 +71,109 @@ export default function GridCard({
       await onLongPress();
     }
   };
-  
+
+  const renderThumbnail = (file: FileModel) => {
+    const iconName = getIconByCategory(file.category);
+    const isImageOrVideo =
+      file.category === "image" || file.category === "video";
+    if (isImageOrVideo && file.thumbnailUrl) {
+      return (
+        <View style={styles.fileThumbnailContainer}>
+          <Image
+            source={{ uri: file.thumbnailUrl }}
+            style={styles.fileThumbnail}
+            contentFit="cover"
+            transition={150}
+          />
+        </View>
+      );
+    } else {
+      return (
+        <View style={styles.fileThumbnailContainer}>
+          <Ionicons
+            name={iconName}
+            size={32}
+            color={data.color?.hex || styles.iconColor.color}
+          />
+        </View>
+      );
+    }
+  };
+
   if (!showCard) return null;
-  if (!showHiddenFiles && data.visibility === 'private') return null;
-  
-  const renderExtensionLabel = (extension: FileExtensionWithoutVideo): string => {
-    return EXTENSION_LABELS[extension] ?? 'Archivo';
+  if (!showHiddenFiles && data.visibility === "private") return null;
+
+  const renderExtensionLabel = (
+    extension: FileExtensionWithoutVideo,
+  ): string => {
+    return EXTENSION_LABELS[extension] ?? "Archivo";
   };
 
   return (
-    <TouchableOpacity 
-      style={selected ? styles.cardContainerSelected : styles.cardContainer} 
-      onPress={handlePress} 
+    <TouchableOpacity
+      style={selected ? styles.cardContainerSelected : styles.cardContainer}
+      onPress={handlePress}
       disabled={disabled}
       activeOpacity={0.8}
       onLongPress={handleLongPress}
     >
       {isFile ? (
-        <View style={styles.fileThumbnail}>
-          <Ionicons 
-            name={getIconByCategory(data.category)} 
-            size={30} 
-            color={data.color?.hex || styles.iconColor.color}
-          />
-        </View>
+        renderThumbnail(data)
       ) : (
         <View style={styles.folderContainer}>
-          <MaterialCommunityIcons 
-                name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap} 
-                size={32} 
-                color={data.color?.hex || styles.iconColor.color}
-              />
+          <MaterialCommunityIcons
+            name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+            size={32}
+            color={data.color?.hex || styles.iconColor.color}
+          />
         </View>
       )}
 
       <View style={styles.fileDetails}>
         {isRenaming ? (
-            <TextInput
-                style={styles.fileNameInput}
-                value={renameValue}
-                onChangeText={setRenameValue}
-                placeholder="Nombre del archivo"
-                placeholderTextColor={styles.colors.color}
-                selectTextOnFocus
-                numberOfLines={1}
-                scrollEnabled
-                textAlignVertical="center"
-                autoFocus
-                onSubmitEditing={() => {
-                  if (renameValue.trim() && renameValue !== data.name) {
-                    onRename && onRename(renameValue.trim());
-                  }
-                }}
-                onBlur={() => {onRenameCancel?.()}}
-                returnKeyType="done"
-          />) : (
-        <Text style={styles.fileNameText} numberOfLines={isFile ? 2 : 1} ellipsizeMode='tail'>
-          {isFile 
-            ? (showExtension 
-                ? data.name 
-                : removeExtension(data.name, data.extension)) 
-            : data.name}
-        </Text>
-      )}
+          <TextInput
+            style={styles.fileNameInput}
+            value={renameValue}
+            onChangeText={setRenameValue}
+            placeholder="Nombre del archivo"
+            placeholderTextColor={styles.colors.color}
+            selectTextOnFocus
+            numberOfLines={1}
+            scrollEnabled
+            textAlignVertical="center"
+            autoFocus
+            onSubmitEditing={() => {
+              if (renameValue.trim() && renameValue !== data.name) {
+                onRename && onRename(renameValue.trim());
+              }
+            }}
+            onBlur={() => {
+              onRenameCancel?.();
+            }}
+            returnKeyType="done"
+          />
+        ) : (
+          <Text
+            style={styles.fileNameText}
+            numberOfLines={isFile ? 2 : 1}
+            ellipsizeMode="tail"
+          >
+            {isFile
+              ? showExtension
+                ? data.name
+                : removeExtension(data.name, data.extension)
+              : data.name}
+          </Text>
+        )}
 
         {isFile && (
           <View>
             <Text style={styles.fileDetailsText}>
-              {data.category === 'video'
+              {data.category === "video"
                 ? formatVideoDuration(data.metadata.videoMetadata?.duration)
-                : renderExtensionLabel(data.extension as FileExtensionWithoutVideo)}
+                : renderExtensionLabel(
+                    data.extension as FileExtensionWithoutVideo,
+                  )}
             </Text>
 
             <Text style={styles.fileDetailsText}>
@@ -145,8 +181,7 @@ export default function GridCard({
             </Text>
           </View>
         )}
-      </View>   
+      </View>
     </TouchableOpacity>
   );
 }
-
