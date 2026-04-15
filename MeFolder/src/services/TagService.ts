@@ -187,6 +187,27 @@ export class TagService extends BaseService {
   }
 
   /**
+   * Asignar tags a un archivo
+   */
+  async addTagsToFile(fileId: UUID, tagIds: UUID[]): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+      await this.tagAssignmentRepo.assignTagsToFile(fileId, tagIds);
+    } catch (error) {
+      return this.handleError(error, "asignar tags al archivo");
+    }
+  }
+
+  async bulkAddTagsToFiles(fileIds: UUID[], tagId: UUID): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+      await this.tagAssignmentRepo.bulkAssignTagToFiles(fileIds, tagId);
+    } catch (error) {
+      return this.handleError(error, "asignar tags a archivos");
+    }
+  }
+
+  /**
    *  Obtener files de un tag específico con paginación
    */
   async getFilesInTagPaginated(

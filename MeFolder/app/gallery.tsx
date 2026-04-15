@@ -104,6 +104,21 @@ export default function GalleryScreen() {
             {(albumName as string) ?? "Galería"}
           </Text>
         </View>
+        <MultiActionButton
+          icon="add"
+          backgroundColor="transparent"
+          iconColor={styles.iconColor.color}
+          size={42}
+          onPress={() =>
+            router.push({
+              pathname: "/album-adder",
+              params: {
+                albumId: tagId as string,
+                albumName: (albumName as string) ?? "",
+              },
+            })
+          }
+        />
       </View>
 
       <FlashList
@@ -150,15 +165,16 @@ const useGalleryStyles = () => {
     header: {
       flexDirection: "row",
       alignItems: "center",
-      gap: 30,
+      justifyContent: "space-between",
       paddingHorizontal: theme.spacing.md,
       paddingVertical: theme.spacing.sm,
     },
     headerTitle: {
+      flex: 1,
       alignItems: "center",
     },
     headerTitleText: {
-      fontSize: 28,
+      fontSize: 24,
       fontFamily: theme.typography.fontFamily.title.semiBold,
       color: theme.colors.textPrimary,
     },

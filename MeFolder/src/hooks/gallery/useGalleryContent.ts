@@ -1,6 +1,7 @@
 import { FileModel } from "@/models";
 import { useAlert, useServices } from "@/providers";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "expo-router";
 
 interface GalleryContentProps {
   tagId: string;
@@ -55,12 +56,22 @@ export const useGalleryContent = ({
     [tagId, pageSize, isLoading],
   );
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     hasMore.current = true;
     currentPage.current = 1;
     setItems([]);
     loadPage(1);
   }, [tagId, pageSize]);
+
+  useEffect(() => {
+    refresh();
+  }, [tagId, pageSize]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
 
   const loadMore = useCallback(() => {
     if (!isLoading && hasMore.current) {

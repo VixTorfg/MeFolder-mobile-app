@@ -1,18 +1,22 @@
-import type { FileExtension, UUID } from '../common';
-import { File, CreateFileInput, UpdateFileInput } from '../entities/file';
-import { BaseRepository } from './base';
+import type { FileExtension, UUID } from "../common";
+import { File, CreateFileInput, UpdateFileInput } from "../entities/file";
+import { BaseRepository } from "./base";
 
-export interface FileRepository extends BaseRepository<File, CreateFileInput, UpdateFileInput> {
+export interface FileRepository extends BaseRepository<
+  File,
+  CreateFileInput,
+  UpdateFileInput
+> {
   findByFolderId(folderId: UUID): Promise<File[]>;
   findByExtension(extension: FileExtension): Promise<File[]>;
   findChildren(folderId: UUID): Promise<File[]>;
   findByTagIds(tagIds: UUID[]): Promise<File[]>;
-  findByCategory(category: string): Promise<File[]>;
+  findByCategory(category: string, excludeTagId?: string): Promise<File[]>;
   findDeletedFiles(): Promise<File[]>;
-  findByStatus(status: string): Promise<File[]>; 
+  findByStatus(status: string): Promise<File[]>;
   findAll(filters?: any, includeDeleted?: boolean): Promise<File[]>;
-  search(query: string, filters?: any): Promise<File[]>; 
-  
+  search(query: string, filters?: any): Promise<File[]>;
+
   create(input: CreateFileInput, folderPath?: string): Promise<File>;
   update(id: UUID, input: UpdateFileInput): Promise<File>;
   updateTags(fileId: UUID, tagIds: UUID[]): Promise<void>;
@@ -24,7 +28,7 @@ export interface FileRepository extends BaseRepository<File, CreateFileInput, Up
   exists(id: UUID): Promise<boolean>;
 
   restore(fileId: UUID): Promise<void>;
-  
+
   //TODO
   /*markAsAccessed(fileId: UUID);
   move(fileId, folderId, newPath);

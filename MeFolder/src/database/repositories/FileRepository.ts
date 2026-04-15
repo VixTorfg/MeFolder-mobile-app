@@ -1,18 +1,21 @@
-import { Database } from '../sqlite/Database';
-import { FileFactory } from '../../models/file';
-import { 
-  File, 
-  CreateFileInput, 
-  UpdateFileInput, 
-  FileStatus, 
+import { Database } from "../sqlite/Database";
+import { FileFactory } from "../../models/file";
+import {
+  File,
+  CreateFileInput,
+  UpdateFileInput,
+  FileStatus,
   FileVisibility,
-  FileMetadata 
-} from '../../types/entities/file';
-import { FileExtension, FileCategory } from '../../types/common/file-extensions';
-import { UUID } from '../../types/common/base';
-import { FileRepository } from '../../types/repositories/file';
-import { ROOT_FOLDER_ID } from '../seeds/systemFolders';
-import { ColorInfo } from '@/types/common/colors';
+  FileMetadata,
+} from "../../types/entities/file";
+import {
+  FileExtension,
+  FileCategory,
+} from "../../types/common/file-extensions";
+import { UUID } from "../../types/common/base";
+import { FileRepository } from "../../types/repositories/file";
+import { ROOT_FOLDER_ID } from "../seeds/systemFolders";
+import { ColorInfo } from "@/types/common/colors";
 
 /**
  * Implementación del repositorio de archivos.
@@ -31,49 +34,52 @@ export class FileRepositoryImplementation implements FileRepository {
   async findById(id: UUID): Promise<File | null> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT * FROM files WHERE id = ?',
-        [id]
+        "SELECT * FROM files WHERE id = ?",
+        [id],
       );
 
       return row ? this.mapRowToFile(row) : null;
     } catch (error) {
-      console.error('Error finding file by id:', error);
+      console.error("Error finding file by id:", error);
       throw new Error(`Error al buscar archivo: ${error}`);
     }
   }
 
   /**
-     * Buscar archivos raíz (en sys_root, con fallback para folder_id NULL)
-     */
-    async findRootFiles(): Promise<File[]> {
-      try {
-        const rows = await this.db.query<any>(
-          'SELECT * FROM files WHERE (folder_id = ? OR folder_id IS NULL) AND status != ?',
-          [ROOT_FOLDER_ID, 'deleted']
-        );
-  
-        return rows.map(this.mapRowToFile);
-      } catch (error) {
-        console.error('Error finding root files:', error);
-        throw new Error(`Error al buscar archivos raíz: ${error}`);
-      }
+   * Buscar archivos raíz (en sys_root, con fallback para folder_id NULL)
+   */
+  async findRootFiles(): Promise<File[]> {
+    try {
+      const rows = await this.db.query<any>(
+        "SELECT * FROM files WHERE (folder_id = ? OR folder_id IS NULL) AND status != ?",
+        [ROOT_FOLDER_ID, "deleted"],
+      );
+
+      return rows.map(this.mapRowToFile);
+    } catch (error) {
+      console.error("Error finding root files:", error);
+      throw new Error(`Error al buscar archivos raíz: ${error}`);
     }
+  }
 
   /**
-     * Devuelve las carpetas hijas de una carpeta padre dada.
-     */
-    async findChildren(folderId: UUID): Promise<File[]> {
-       try {
-        const rows = await this.findAll({
+   * Devuelve las carpetas hijas de una carpeta padre dada.
+   */
+  async findChildren(folderId: UUID): Promise<File[]> {
+    try {
+      const rows = await this.findAll(
+        {
           folderId: folderId,
-          status: 'active'
-        }, false);
-      
-        return rows.map(this.mapRowToFile);
-      } catch (error) {
-        throw new Error(`Error al buscar archivos: ${error}`);
-      }
+          status: "active",
+        },
+        false,
+      );
+
+      return rows.map(this.mapRowToFile);
+    } catch (error) {
+      throw new Error(`Error al buscar archivos: ${error}`);
     }
+  }
 
   /**
    * Obtener todos los archivos con filtros opcionales
@@ -81,47 +87,52 @@ export class FileRepositoryImplementation implements FileRepository {
   async findAll(filters?: any, includeDeleted = false): Promise<File[]> {
     try {
       let sql = includeDeleted
-        ? 'SELECT * FROM files WHERE 1=1'
-        : 'SELECT * FROM files WHERE status != ?';
-      const params: any[] = includeDeleted ? [] : ['deleted'];
+        ? "SELECT * FROM files WHERE 1=1"
+        : "SELECT * FROM files WHERE status != ?";
+      const params: any[] = includeDeleted ? [] : ["deleted"];
 
       // Aplicar filtros si existen
       if (filters) {
         if (filters.folderId) {
-          sql += ' AND folder_id = ?';
+          sql += " AND folder_id = ?";
           params.push(filters.folderId);
         }
         if (filters.status) {
-          sql += ' AND status = ?';
+          sql += " AND status = ?";
           params.push(filters.status);
         }
         if (filters.extensions && filters.extensions.length > 0) {
-          const placeholders = filters.extensions.map(() => '?').join(',');
+          const placeholders = filters.extensions.map(() => "?").join(",");
           sql += ` AND extension IN (${placeholders})`;
           params.push(...filters.extensions);
         }
         if (filters.category) {
-          sql += ' AND category = ?';
+          sql += " AND category = ?";
           params.push(filters.category);
+        }
+        if (filters.excludeTagId) {
+          sql +=
+            " AND id NOT IN (SELECT file_id FROM file_tags WHERE tag_id = ?)";
+          params.push(filters.excludeTagId);
         }
       }
 
-      sql += ' ORDER BY created_at DESC';
+      sql += " ORDER BY created_at DESC";
 
       // Paginación si se especifica
       if (filters?.limit) {
-        sql += ' LIMIT ?';
+        sql += " LIMIT ?";
         params.push(filters.limit);
         if (filters?.offset) {
-          sql += ' OFFSET ?';
+          sql += " OFFSET ?";
           params.push(filters.offset);
         }
       }
 
       const rows = await this.db.query<any>(sql, params);
-      return rows.map(row => this.mapRowToFile(row));
+      return rows.map((row) => this.mapRowToFile(row));
     } catch (error) {
-      console.error('Error finding all files:', error);
+      console.error("Error finding all files:", error);
       throw new Error(`Error al buscar archivos: ${error}`);
     }
   }
@@ -139,7 +150,9 @@ export class FileRepositoryImplementation implements FileRepository {
       // Validar antes de insertar
       const validation = fileModel.validate();
       if (!validation.isValid) {
-        throw new Error(`Validación fallida: ${validation.errors.map(e => e.message).join(', ')}`);
+        throw new Error(
+          `Validación fallida: ${validation.errors.map((e) => e.message).join(", ")}`,
+        );
       }
 
       await this.db.transaction([
@@ -156,27 +169,51 @@ export class FileRepositoryImplementation implements FileRepository {
             last_accessed_at, archived_at, storage_url, thumbnail_url
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
-            file.id, file.createdAt.getTime(), file.updatedAt.getTime(),
-            file.name, file.originalName, file.extension, file.category,
-            file.folderId, file.path, file.status, file.visibility,
-            file.metadata.size, file.metadata.mimeType, file.metadata.checksum,
-            file.metadata.imageMetadata?.width, file.metadata.imageMetadata?.height, file.metadata.imageMetadata?.orientation,
-            file.metadata.videoMetadata?.duration, file.metadata.videoMetadata?.width, file.metadata.videoMetadata?.height, file.metadata.videoMetadata?.framerate,
-            file.metadata.audioMetadata?.duration, file.metadata.audioMetadata?.bitrate, file.metadata.audioMetadata?.sampleRate,
-            file.color?.hex, file.color?.rgb.r, file.color?.rgb.g, file.color?.rgb.b,
-            file.lastAccessedAt, file.archivedAt, file.storageUrl, file.thumbnailUrl
-          ]
+            file.id,
+            file.createdAt.getTime(),
+            file.updatedAt.getTime(),
+            file.name,
+            file.originalName,
+            file.extension,
+            file.category,
+            file.folderId,
+            file.path,
+            file.status,
+            file.visibility,
+            file.metadata.size,
+            file.metadata.mimeType,
+            file.metadata.checksum,
+            file.metadata.imageMetadata?.width,
+            file.metadata.imageMetadata?.height,
+            file.metadata.imageMetadata?.orientation,
+            file.metadata.videoMetadata?.duration,
+            file.metadata.videoMetadata?.width,
+            file.metadata.videoMetadata?.height,
+            file.metadata.videoMetadata?.framerate,
+            file.metadata.audioMetadata?.duration,
+            file.metadata.audioMetadata?.bitrate,
+            file.metadata.audioMetadata?.sampleRate,
+            file.color?.hex,
+            file.color?.rgb.r,
+            file.color?.rgb.g,
+            file.color?.rgb.b,
+            file.lastAccessedAt,
+            file.archivedAt,
+            file.storageUrl,
+            file.thumbnailUrl,
+          ],
         },
         // Insertar tags si existen
-        ...(file.tagIds?.map(tagId => ({
-          sql: 'INSERT INTO file_tags (file_id, tag_id) VALUES (?, ?)',
-          params: [file.id, tagId]
-        })) || [])
+        ...(file.tagIds?.map((tagId) => ({
+          sql: "INSERT INTO file_tags (file_id, tag_id) VALUES (?, ?)",
+          params: [file.id, tagId],
+        })) || []),
       ]);
 
       return file;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       throw new Error(`Error al crear archivo: ${errorMessage}`);
     }
   }
@@ -188,7 +225,7 @@ export class FileRepositoryImplementation implements FileRepository {
     try {
       const existingFile = await this.findById(id);
       if (!existingFile) {
-        throw new Error('Archivo no encontrado');
+        throw new Error("Archivo no encontrado");
       }
 
       const fileModel = FileFactory.fromJSON(existingFile);
@@ -196,12 +233,15 @@ export class FileRepositoryImplementation implements FileRepository {
 
       const validation = fileModel.validate();
       if (!validation.isValid) {
-        throw new Error(`Validación fallida: ${validation.errors.map(e => e.message).join(', ')}`);
+        throw new Error(
+          `Validación fallida: ${validation.errors.map((e) => e.message).join(", ")}`,
+        );
       }
 
       const file = fileModel.toJSON();
 
-      await this.db.execute(`
+      await this.db.execute(
+        `
         UPDATE files SET 
           updated_at = ?,
           name = ?, 
@@ -216,49 +256,63 @@ export class FileRepositoryImplementation implements FileRepository {
           last_accessed_at = ?,
           archived_at = ?
         WHERE id = ?
-      `, [
-        file.updatedAt.getTime(),
-        file.name, file.folderId, file.path, file.status, file.visibility,
-        file.color?.hex, file.color?.rgb.r, file.color?.rgb.g, file.color?.rgb.b,
-        file.lastAccessedAt, file.archivedAt,
-        id
-      ]);
+      `,
+        [
+          file.updatedAt.getTime(),
+          file.name,
+          file.folderId,
+          file.path,
+          file.status,
+          file.visibility,
+          file.color?.hex,
+          file.color?.rgb.r,
+          file.color?.rgb.g,
+          file.color?.rgb.b,
+          file.lastAccessedAt,
+          file.archivedAt,
+          id,
+        ],
+      );
 
       return file;
     } catch (error) {
-      console.error('Error updating file:', error);
+      console.error("Error updating file:", error);
       throw new Error(`Error al actualizar archivo: ${error}`);
     }
   }
 
-  /** 
-  * Actualizar estado del archivo 
-  */
+  /**
+   * Actualizar estado del archivo
+   */
   async updateStatus(fileId: UUID, status: string): Promise<void> {
-      try {
-        await this.db.execute(
-          'UPDATE files SET status = ?, updated_at = ? WHERE id = ?',
-          [status, new Date().getTime(), fileId]
-        );
-      } catch (error) {
-        console.error('Error updating file status:', error);
-        throw new Error(`Error al actualizar estado del archivo: ${error}`);
-      }
+    try {
+      await this.db.execute(
+        "UPDATE files SET status = ?, updated_at = ? WHERE id = ?",
+        [status, new Date().getTime(), fileId],
+      );
+    } catch (error) {
+      console.error("Error updating file status:", error);
+      throw new Error(`Error al actualizar estado del archivo: ${error}`);
+    }
   }
 
-  /** 
-  * Actualizar nombre del archivo 
-  */
-  async renameFile(fileId: UUID, newName: string, newPath: string): Promise<void> {
-      try {
-        await this.db.execute(
-          'UPDATE files SET name = ?, path = ?, updated_at = ? WHERE id = ?',
-          [newName, newPath, new Date().getTime(), fileId]
-        );
-      } catch (error) {
-        console.error('Error updating file name:', error);
-        throw new Error(`Error al actualizar nombre del archivo: ${error}`);
-      }
+  /**
+   * Actualizar nombre del archivo
+   */
+  async renameFile(
+    fileId: UUID,
+    newName: string,
+    newPath: string,
+  ): Promise<void> {
+    try {
+      await this.db.execute(
+        "UPDATE files SET name = ?, path = ?, updated_at = ? WHERE id = ?",
+        [newName, newPath, new Date().getTime(), fileId],
+      );
+    } catch (error) {
+      console.error("Error updating file name:", error);
+      throw new Error(`Error al actualizar nombre del archivo: ${error}`);
+    }
   }
 
   /**
@@ -267,13 +321,13 @@ export class FileRepositoryImplementation implements FileRepository {
   async delete(id: UUID): Promise<boolean> {
     try {
       const result = await this.db.execute(
-        'UPDATE files SET status = ?, updated_at = ? WHERE id = ?',
-        ['deleted', new Date().getTime(), id]
+        "UPDATE files SET status = ?, updated_at = ? WHERE id = ?",
+        ["deleted", new Date().getTime(), id],
       );
 
       return result.changes > 0;
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error("Error deleting file:", error);
       throw new Error(`Error al eliminar archivo: ${error}`);
     }
   }
@@ -283,14 +337,13 @@ export class FileRepositoryImplementation implements FileRepository {
    */
   async permanentDelete(id: UUID): Promise<boolean> {
     try {
-      const result = await this.db.execute(
-        'DELETE FROM files WHERE id = ?',
-        [id]
-      );
+      const result = await this.db.execute("DELETE FROM files WHERE id = ?", [
+        id,
+      ]);
 
       return result.changes > 0;
     } catch (error) {
-      console.error('Error deleting file:', error);
+      console.error("Error deleting file:", error);
       throw new Error(`Error al eliminar archivo: ${error}`);
     }
   }
@@ -300,18 +353,18 @@ export class FileRepositoryImplementation implements FileRepository {
    */
   async count(filters?: any): Promise<number> {
     try {
-      let sql = 'SELECT COUNT(*) as total FROM files WHERE status != ?';
-      const params: any[] = ['deleted'];
+      let sql = "SELECT COUNT(*) as total FROM files WHERE status != ?";
+      const params: any[] = ["deleted"];
 
       if (filters?.folderId) {
-        sql += ' AND folder_id = ?';
+        sql += " AND folder_id = ?";
         params.push(filters.folderId);
       }
 
       const [result] = await this.db.query<{ total: number }>(sql, params);
       return result?.total || 0;
     } catch (error) {
-      console.error('Error counting files:', error);
+      console.error("Error counting files:", error);
       throw new Error(`Error al contar archivos: ${error}`);
     }
   }
@@ -322,12 +375,12 @@ export class FileRepositoryImplementation implements FileRepository {
   async exists(id: UUID): Promise<boolean> {
     try {
       const [result] = await this.db.query<{ count: number }>(
-        'SELECT COUNT(*) as count FROM files WHERE id = ? AND status != ?',
-        [id, 'deleted']
+        "SELECT COUNT(*) as count FROM files WHERE id = ? AND status != ?",
+        [id, "deleted"],
       );
       return (result?.count || 0) > 0;
     } catch (error) {
-      console.error('Error checking file existence:', error);
+      console.error("Error checking file existence:", error);
       return false;
     }
   }
@@ -340,7 +393,7 @@ export class FileRepositoryImplementation implements FileRepository {
   }
 
   /**
-   * Buscar archivos por extensión  
+   * Buscar archivos por extensión
    */
   async findByExtension(extension: FileExtension): Promise<File[]> {
     return this.findAll({ extensions: [extension] });
@@ -349,8 +402,11 @@ export class FileRepositoryImplementation implements FileRepository {
   /**
    * Buscar archivos por categoría
    */
-  async findByCategory(category: string): Promise<File[]> {
-    return this.findAll({ category });
+  async findByCategory(
+    category: string,
+    excludeTagId?: string,
+  ): Promise<File[]> {
+    return this.findAll({ category, excludeTagId });
   }
 
   /**
@@ -361,10 +417,10 @@ export class FileRepositoryImplementation implements FileRepository {
   }
 
   /**
-  * Buscar archivos eliminados (status = 'deleted')
-  */
+   * Buscar archivos eliminados (status = 'deleted')
+   */
   async findDeletedFiles(): Promise<File[]> {
-    return this.findAll({ status: 'deleted' }, true);
+    return this.findAll({ status: "deleted" }, true);
   }
 
   /**
@@ -374,7 +430,7 @@ export class FileRepositoryImplementation implements FileRepository {
     try {
       if (tagIds.length === 0) return [];
 
-      const placeholders = tagIds.map(() => '?').join(',');
+      const placeholders = tagIds.map(() => "?").join(",");
       const sql = `
         SELECT DISTINCT f.* FROM files f
         INNER JOIN file_tags ft ON f.id = ft.file_id
@@ -384,24 +440,24 @@ export class FileRepositoryImplementation implements FileRepository {
       `;
 
       const rows = await this.db.query<any>(sql, tagIds);
-      return rows.map(row => this.mapRowToFile(row));
+      return rows.map((row) => this.mapRowToFile(row));
     } catch (error) {
-      console.error('Error finding files by tags:', error);
+      console.error("Error finding files by tags:", error);
       throw new Error(`Error al buscar archivos por tags: ${error}`);
     }
   }
 
   /**
-   * Restaurar archivo eliminado 
+   * Restaurar archivo eliminado
    */
   async restore(fileId: UUID): Promise<void> {
     try {
       await this.db.execute(
-        'UPDATE files SET status = ?, updated_at = ? WHERE id = ?',
-        ['active', new Date().getTime(), fileId]
+        "UPDATE files SET status = ?, updated_at = ? WHERE id = ?",
+        ["active", new Date().getTime(), fileId],
       );
     } catch (error) {
-      console.error('Error restoring file:', error);
+      console.error("Error restoring file:", error);
       throw new Error(`Error al restaurar archivo: ${error}`);
     }
   }
@@ -414,17 +470,17 @@ export class FileRepositoryImplementation implements FileRepository {
       await this.db.transaction([
         // Eliminar tags existentes
         {
-          sql: 'DELETE FROM file_tags WHERE file_id = ?',
-          params: [fileId]
+          sql: "DELETE FROM file_tags WHERE file_id = ?",
+          params: [fileId],
         },
         // Insertar nuevos tags
-        ...tagIds.map(tagId => ({
-          sql: 'INSERT INTO file_tags (file_id, tag_id) VALUES (?, ?)',
-          params: [fileId, tagId]
-        }))
+        ...tagIds.map((tagId) => ({
+          sql: "INSERT INTO file_tags (file_id, tag_id) VALUES (?, ?)",
+          params: [fileId, tagId],
+        })),
       ]);
     } catch (error) {
-      console.error('Error updating file tags:', error);
+      console.error("Error updating file tags:", error);
       throw new Error(`Error al actualizar tags del archivo: ${error}`);
     }
   }
@@ -443,21 +499,21 @@ export class FileRepositoryImplementation implements FileRepository {
 
       if (filters) {
         if (filters.folderId) {
-          sql += ' AND folder_id = ?';
+          sql += " AND folder_id = ?";
           params.push(filters.folderId);
         }
         if (filters.category) {
-          sql += ' AND category = ?';
+          sql += " AND category = ?";
           params.push(filters.category);
         }
       }
 
-      sql += ' ORDER BY name ASC';
+      sql += " ORDER BY name ASC";
 
       const rows = await this.db.query<any>(sql, params);
-      return rows.map(row => this.mapRowToFile(row));
+      return rows.map((row) => this.mapRowToFile(row));
     } catch (error) {
-      console.error('Error searching files:', error);
+      console.error("Error searching files:", error);
       throw new Error(`Error al buscar archivos: ${error}`);
     }
   }
@@ -466,7 +522,6 @@ export class FileRepositoryImplementation implements FileRepository {
    * Mapear fila de base de datos a objeto File
    */
   private mapRowToFile(row: any): File {
-    
     const baseFile = {
       id: row.id,
       createdAt: new Date(row.created_at),
@@ -478,7 +533,7 @@ export class FileRepositoryImplementation implements FileRepository {
       path: row.path,
       status: row.status as FileStatus,
       visibility: row.visibility as FileVisibility,
-      tagIds: [], 
+      tagIds: [],
     };
 
     const metadata: FileMetadata = {
@@ -489,7 +544,9 @@ export class FileRepositoryImplementation implements FileRepository {
         imageMetadata: {
           width: row.metadata_image_width,
           height: row.metadata_image_height,
-          ...(row.metadata_image_orientation && { orientation: row.metadata_image_orientation }),
+          ...(row.metadata_image_orientation && {
+            orientation: row.metadata_image_orientation,
+          }),
         },
       }),
       ...(row.metadata_video_duration && {
@@ -497,14 +554,20 @@ export class FileRepositoryImplementation implements FileRepository {
           duration: row.metadata_video_duration,
           width: row.metadata_video_width,
           height: row.metadata_video_height,
-          ...(row.metadata_video_framerate && { framerate: row.metadata_video_framerate }),
+          ...(row.metadata_video_framerate && {
+            framerate: row.metadata_video_framerate,
+          }),
         },
       }),
       ...(row.metadata_audio_duration && {
         audioMetadata: {
           duration: row.metadata_audio_duration,
-          ...(row.metadata_audio_bitrate && { bitrate: row.metadata_audio_bitrate }),
-          ...(row.metadata_audio_sample_rate && { sampleRate: row.metadata_audio_sample_rate }),
+          ...(row.metadata_audio_bitrate && {
+            bitrate: row.metadata_audio_bitrate,
+          }),
+          ...(row.metadata_audio_sample_rate && {
+            sampleRate: row.metadata_audio_sample_rate,
+          }),
         },
       }),
     };
@@ -512,7 +575,7 @@ export class FileRepositoryImplementation implements FileRepository {
     return {
       ...baseFile,
       metadata,
-      
+
       ...(row.description && { description: row.description }),
       ...(row.folder_id && { folderId: row.folder_id }),
       ...(row.color_hex && {
@@ -527,7 +590,9 @@ export class FileRepositoryImplementation implements FileRepository {
           isFavorite: false,
         } as ColorInfo,
       }),
-      ...(row.last_accessed_at && { lastAccessedAt: new Date(row.last_accessed_at) }),
+      ...(row.last_accessed_at && {
+        lastAccessedAt: new Date(row.last_accessed_at),
+      }),
       ...(row.archived_at && { archivedAt: new Date(row.archived_at) }),
       ...(row.storage_url && { storageUrl: row.storage_url }),
       ...(row.thumbnail_url && { thumbnailUrl: row.thumbnail_url }),

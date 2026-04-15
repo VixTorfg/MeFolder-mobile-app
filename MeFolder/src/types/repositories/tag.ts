@@ -53,6 +53,7 @@ export interface TagAssignmentRepository {
   removeTagsFromFile(fileId: UUID, tagIds: UUID[]): Promise<void>;
   getFileTagIds(fileId: UUID): Promise<UUID[]>;
   getFileTags(fileId: UUID): Promise<Tag[]>;
+  bulkAssignTagToFiles(fileIds: UUID[], tagId: UUID): Promise<void>;
 
   // Consultas
   getTaggedFiles(tagId: UUID): Promise<UUID[]>;

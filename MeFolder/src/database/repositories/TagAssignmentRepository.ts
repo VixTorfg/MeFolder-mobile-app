@@ -54,6 +54,37 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
   }
 
   /**
+   * Asignar etiquetas a archivos bulk
+   */
+  async bulkAssignTagToFiles(fileIds: UUID[], tagId: UUID): Promise<void> {
+    try {
+      if (fileIds.length === 0) return;
+
+      const now = new Date();
+      const CHUNK_SIZE = 300; // ~900 params, bajo el límite de 999
+
+      for (let i = 0; i < fileIds.length; i += CHUNK_SIZE) {
+        const chunk = fileIds.slice(i, i + CHUNK_SIZE);
+        const params: any[] = [];
+        const placeholders: string[] = [];
+
+        for (const fileId of chunk) {
+          params.push(fileId, tagId, now);
+          placeholders.push("(?, ?, ?)");
+        }
+
+        await this.db.execute(
+          `INSERT OR IGNORE INTO file_tags (file_id, tag_id, created_at) VALUES ${placeholders.join(",")}`,
+          params,
+        );
+      }
+    } catch (error) {
+      console.error("Error bulk assigning tags to files:", error);
+      throw new Error(`Error al asignar etiquetas a archivos: ${error}`);
+    }
+  }
+
+  /**
    * Remover etiquetas de un archivo
    */
   async removeTagsFromFile(fileId: UUID, tagIds: UUID[]): Promise<void> {

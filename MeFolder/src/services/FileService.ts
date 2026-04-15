@@ -256,11 +256,14 @@ export class FileService extends BaseService {
   /**
    * Obtener archivos por categoría
    */
-  async getFilesByCategory(category: string): Promise<FileModel[]> {
+  async getFilesByCategory(
+    category: string,
+    excludeTagId?: string,
+  ): Promise<FileModel[]> {
     try {
       this.ensureDbInitialized();
 
-      const files = await this.fileRepo.findByCategory(category);
+      const files = await this.fileRepo.findByCategory(category, excludeTagId);
       return files.map((f) => FileFactory.fromJSON(f));
     } catch (error) {
       return this.handleError(error, "obtener archivos por categoría");
