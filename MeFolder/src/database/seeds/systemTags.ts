@@ -7,9 +7,10 @@ import { SYSTEM_COLORS } from "@/constants/themes/colors";
 const SYSTEM_TAGS = [
   {
     id: "sys_album",
-    name: "Álbumes",
+    name: "Álbum del sistema",
     priority: "low",
     isFavourite: false,
+    type: "album",
     color: SYSTEM_COLORS.green,
   },
   {
@@ -17,6 +18,7 @@ const SYSTEM_TAGS = [
     name: "Importante",
     priority: "high",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.red,
   },
   {
@@ -24,6 +26,7 @@ const SYSTEM_TAGS = [
     name: "Tareas",
     priority: "normal",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.blue,
   },
   {
@@ -31,6 +34,7 @@ const SYSTEM_TAGS = [
     name: "Imágenes",
     priority: "low",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.green,
   },
   {
@@ -38,6 +42,7 @@ const SYSTEM_TAGS = [
     name: "Música",
     priority: "low",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.purple,
   },
   {
@@ -45,6 +50,7 @@ const SYSTEM_TAGS = [
     name: "Audio",
     priority: "low",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.orange,
   },
   {
@@ -52,6 +58,7 @@ const SYSTEM_TAGS = [
     name: "Videos",
     priority: "low",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.cyan,
   },
   {
@@ -59,6 +66,7 @@ const SYSTEM_TAGS = [
     name: "Trabajo",
     priority: "normal",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.gray,
   },
   {
@@ -66,6 +74,7 @@ const SYSTEM_TAGS = [
     name: "Personal",
     priority: "normal",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.pink,
   },
   {
@@ -73,6 +82,7 @@ const SYSTEM_TAGS = [
     name: "Urgente",
     priority: "high",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.red,
   },
   {
@@ -80,6 +90,7 @@ const SYSTEM_TAGS = [
     name: "Para después",
     priority: "low",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.orange,
   },
   {
@@ -87,6 +98,7 @@ const SYSTEM_TAGS = [
     name: "Documentos",
     priority: "low",
     isFavourite: false,
+    type: "system",
     color: SYSTEM_COLORS.blue,
   },
   {
@@ -94,6 +106,7 @@ const SYSTEM_TAGS = [
     name: "Favoritos",
     priority: "normal",
     isFavourite: true,
+    type: "system",
     color: SYSTEM_COLORS.yellow,
   },
 ] as const;
@@ -105,9 +118,10 @@ export const seedSystemTags = async (): Promise<void> => {
   const tagsQueries = SYSTEM_TAGS.map((tag) => ({
     sql: `INSERT OR IGNORE INTO tags (
       id, created_at, updated_at,
-      name, description, type, priority, is_active, is_favourite,
+      name, description, type, priority, is_active, is_favourite, type,
       color_hex, color_rgb_r, color_rgb_g, color_rgb_b, parent_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+
     params: [
       tag.id,
       now,
@@ -123,6 +137,7 @@ export const seedSystemTags = async (): Promise<void> => {
       tag.color.rgb.g,
       tag.color.rgb.b,
       null,
+      tag.type,
     ],
   }));
 
@@ -139,8 +154,22 @@ export const seedSystemTags = async (): Promise<void> => {
 /** ID del tag padre de álbumes del sistema */
 export const SYSTEM_ALBUM_TAG_ID = "sys_album" as const;
 
-/** IDs de las etiquetas del sistema, útil para validaciones */
-export const SYSTEM_TAG_IDS = [...SYSTEM_TAGS.map((f) => f.id)];
+/** Diccionario de IDs de etiquetas del sistema accesibles por nombre semántico */
+export const SYSTEM_TAG_IDS = {
+  album: "sys_album",
+  important: "sys_important",
+  todos: "sys_todos",
+  photo: "sys_photo",
+  music: "sys_music",
+  audio: "sys_audio",
+  video: "sys_video",
+  work: "sys_work",
+  personal: "sys_personal",
+  urgent: "sys_urgent",
+  later: "sys_later",
+  document: "sys_document",
+  favorite: "sys_favorite",
+} as const;
 
 /** Tipo unión de IDs de etiquetas del sistema */
 export type SystemTagId = (typeof SYSTEM_TAGS)[number]["id"];

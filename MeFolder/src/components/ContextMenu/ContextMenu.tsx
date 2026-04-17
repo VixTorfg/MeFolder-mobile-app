@@ -11,6 +11,8 @@ type MenuOption = {
   icon?: React.ReactNode;
   /** Action to perform when the option is pressed */
   onPress: () => void;
+  /** Whether the option is currently visible*/
+  visible?: boolean;
   /** Whether the option is disabled */
   disabled?: boolean;
 };
@@ -91,19 +93,23 @@ export const ContextMenu = ({
         ]}
       >
         {options.map((option) => (
-          <TouchableOpacity
-            key={option.hierarchy}
-            onPress={option.onPress}
-            disabled={option.disabled}
-            style={[
-              ["Propiedades", "Renombrar"].includes(option.label)
-                ? styles.menuItemsBorder
-                : styles.menuItems,
-              option.disabled && { opacity: 0.5 },
-            ]}
-          >
-            {renderRow(option)}
-          </TouchableOpacity>
+          <>
+            {option.visible !== false && (
+              <TouchableOpacity
+                key={option.hierarchy}
+                onPress={option.onPress}
+                disabled={option.disabled}
+                style={[
+                  ["Propiedades", "Renombrar"].includes(option.label)
+                    ? styles.menuItemsBorder
+                    : styles.menuItems,
+                  option.disabled && { opacity: 0.5 },
+                ]}
+              >
+                {renderRow(option)}
+              </TouchableOpacity>
+            )}
+          </>
         ))}
       </Animated.View>
     </View>

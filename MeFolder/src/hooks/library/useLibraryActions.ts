@@ -16,6 +16,8 @@ import { FILE_CATEGORY_MAP } from "@/types/common/file-extensions";
 import type { FileExtension } from "@/types/common/file-extensions";
 import type { NewFile } from "@/components/ItemCreator/FileCreator";
 import type { NewFolder } from "@/components/ItemCreator/FolderCreator";
+import { FileService, FolderService } from "@/services";
+import { SYSTEM_TAG_IDS } from "@/database/seeds/systemTags";
 
 /**
  * Casos donde la librería `mime` devuelve una extensión que no corresponde
@@ -70,8 +72,8 @@ function resolveExtension(
 }
 
 interface UseLibraryActionsParams {
-  folderService: any;
-  fileService: any;
+  folderService: FolderService;
+  fileService: FileService;
   clickedItem: FileModel | FolderModel | null;
   itemsSelected: (FileModel | FolderModel)[];
   clearSelection: () => void;
@@ -228,6 +230,35 @@ export const useLibraryActions = ({
     });
   };
 
+  const handleMakeFavorite = async (item: FileModel) => {
+    if (!item) return;
+
+    showAlert({
+      title: "Marcar como favorito",
+      message: `¿Estás seguro de que quieres marcar "${item.name}" como favorito?`,
+      buttons: [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Marcar",
+          onPress: async () => {
+            try {
+              await fileService.markAsFavorite(item.id);
+              showAlert({
+                title: "Éxito",
+                message: `"${item.name}" ha sido marcado como favorito.`,
+              });
+            } catch (error) {
+              showAlert({
+                title: "Error",
+                message: `No se pudo marcar "${item.name}" como favorito: ${error}`,
+              });
+            }
+          },
+        },
+      ],
+    });
+  };
+
   const handleSaveFile = async (data: NewFile): Promise<void> => {
     const { files, tags, folderId } = data;
     const resolvedFolderId = folderId ?? currentFolderId;
@@ -290,6 +321,27 @@ export const useLibraryActions = ({
           }
         }
 
+        const allTags = [...tags];
+
+        switch (file.type) {
+          case "image":
+            allTags.push(SYSTEM_TAG_IDS.photo);
+            allTags.push(SYSTEM_TAG_IDS.album);
+            break;
+          case "video":
+            allTags.push(SYSTEM_TAG_IDS.video);
+            allTags.push(SYSTEM_TAG_IDS.album);
+            break;
+          case "audio":
+            allTags.push(SYSTEM_TAG_IDS.audio);
+            break;
+          case "document":
+            allTags.push(SYSTEM_TAG_IDS.document);
+            break;
+          default:
+            break;
+        }
+
         const fileResult = await fileService?.createFile({
           name: file.name,
           originalName: file.originalName,
@@ -299,7 +351,7 @@ export const useLibraryActions = ({
           folderId: resolvedFolderId,
           visibility: "public",
           metadata: fileMetadata,
-          tagIds: tags,
+          tagIds: allTags,
           storageUrl: copiedUri,
           ...(thumbnailUrl && { thumbnailUrl }),
         } as CreateFileInput);
@@ -448,5 +500,6 @@ export const useLibraryActions = ({
     handleCopy,
     handleCut,
     handlePaste,
+    handleMakeFavorite,
   };
 };

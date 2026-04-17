@@ -80,6 +80,7 @@ export default function LibraryScreen() {
     handleCopy,
     handleCut,
     handlePaste,
+    handleMakeFavorite,
   } = useLibraryActions({
     folderService,
     fileService,
@@ -145,6 +146,7 @@ export default function LibraryScreen() {
           setShowMenu(false);
         },
         disabled: false,
+        visible: true,
         icon: (
           <MaterialCommunityIcons name="open-in-app" size={20} color="black" />
         ),
@@ -154,6 +156,7 @@ export default function LibraryScreen() {
         label: "Abrir con",
         onPress: () => {},
         disabled: false,
+        visible: true,
         icon: <MaterialCommunityIcons name="folder" size={20} color="black" />,
       },
       {
@@ -163,13 +166,18 @@ export default function LibraryScreen() {
           clickedItem && handleShare(clickedItem);
         },
         disabled: false,
+        visible: true,
         icon: <MaterialCommunityIcons name="share" size={20} color="black" />,
       },
       {
         hierarchy: "4",
         label: "Agregar a favoritos",
-        onPress: () => {},
+        onPress: () => {
+          setShowMenu(false);
+          clickedItem && handleMakeFavorite(clickedItem as FileModel);
+        },
         disabled: false,
+        visible: clickedItem instanceof FileModel,
         icon: <MaterialCommunityIcons name="star" size={20} color="black" />,
       },
       {
@@ -180,6 +188,7 @@ export default function LibraryScreen() {
           setIsRenaming(true);
         },
         disabled: false,
+        visible: true,
         icon: <MaterialCommunityIcons name="pencil" size={20} color="black" />,
       },
       {
@@ -189,6 +198,7 @@ export default function LibraryScreen() {
           clickedItem && handleCopy([clickedItem]);
         },
         disabled: false,
+        visible: true,
         icon: (
           <MaterialCommunityIcons name="content-copy" size={20} color="black" />
         ),
@@ -200,6 +210,7 @@ export default function LibraryScreen() {
           clickedItem && handleCut([clickedItem]);
         },
         disabled: false,
+        visible: true,
         icon: (
           <MaterialCommunityIcons name="content-cut" size={20} color="black" />
         ),
@@ -211,6 +222,7 @@ export default function LibraryScreen() {
           handlePaste();
         },
         disabled: false,
+        visible: true,
         icon: (
           <MaterialCommunityIcons
             name="content-paste"
@@ -226,6 +238,7 @@ export default function LibraryScreen() {
           clickedItem && handleDeleteElements([clickedItem]);
         },
         disabled: false,
+        visible: true,
         icon: <MaterialCommunityIcons name="delete" size={20} color="black" />,
       },
       {
@@ -236,6 +249,7 @@ export default function LibraryScreen() {
           setShowMenu(false);
         },
         disabled: false,
+        visible: true,
         icon: (
           <MaterialCommunityIcons name="information" size={20} color="black" />
         ),

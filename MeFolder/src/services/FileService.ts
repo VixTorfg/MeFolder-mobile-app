@@ -4,6 +4,7 @@ import { UUID } from "../types/common/base";
 import { FileModel, FileFactory } from "../models/file";
 import { ROOT_FOLDER_ID } from "../database/seeds/systemFolders";
 import { FileSystemService } from "./filesystem/FileSystemService";
+import { SYSTEM_TAG_IDS } from "@/database/seeds/systemTags";
 
 /**
  * FileService MVP - Funcionalidades básicas para desarrollo inicial
@@ -125,6 +126,21 @@ export class FileService extends BaseService {
       return true;
     } catch (error) {
       return this.handleError(error, "eliminar archivo");
+    }
+  }
+
+  /**
+   *  Marca un archivo como favorito
+   */
+  async markAsFavorite(fileId: UUID): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+
+      await this.tagAssignmentRepo.assignTagsToFile(fileId, [
+        SYSTEM_TAG_IDS.favorite,
+      ]);
+    } catch (error) {
+      return this.handleError(error, "marcar archivo como favorito");
     }
   }
 
