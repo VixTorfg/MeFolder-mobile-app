@@ -16,20 +16,15 @@ import {
   AlbumEmptyState,
 } from "@/components";
 import { useTagsStyles } from "@/screenStyles/tagsStyle";
-import { useServices } from "@/providers";
 import { useTagsActions } from "@/hooks/tags/useTagsActions";
 import { TagModel } from "@/models/tag";
 import { useTagsContent } from "@/hooks/tags/useTagsContent";
+import { router } from "expo-router";
 
 export default function TagsScreen() {
   const [showTagCreator, setShowTagCreator] = useState(false);
-  const {
-    services: { tagService },
-  } = useServices();
   const { items, albums, loading } = useTagsContent();
-  const { handleSaveTag } = useTagsActions({
-    tagService,
-  });
+  const { handleSaveTag } = useTagsActions();
   const styles = useTagsStyles();
 
   const favoriteTags = items.filter((t) => t.isFavorite);
@@ -132,7 +127,14 @@ export default function TagsScreen() {
       <FlatList
         data={allTags}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <TagCard tag={item} />}
+        renderItem={({ item }) => (
+          <TagCard
+            tag={item}
+            onPress={() =>
+              router.push(`/tags-content?tagId=${item.id}&tagName=${item.name}`)
+            }
+          />
+        )}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <>

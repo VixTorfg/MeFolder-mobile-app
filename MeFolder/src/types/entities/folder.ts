@@ -22,12 +22,15 @@ export interface ViewOptions {
   showHiddenFiles: boolean;
 }
 
-export interface FolderViewSettings {
+export interface ViewSettings {
   sortBy: FolderSortBy;
   sortOrder: FolderSortOrder;
   viewMode: FolderViewMode;
   options: ViewOptions;
 }
+
+/** @deprecated Use ViewSettings instead */
+export type FolderViewSettings = ViewSettings;
 
 export interface FolderStats {
   totalFiles: number;

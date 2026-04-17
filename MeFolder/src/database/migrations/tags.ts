@@ -20,6 +20,15 @@ export const createTagsTable = async (): Promise<void> => {
         CHECK (type IN ('system', 'user', 'automatic', 'album')),
       priority TEXT NOT NULL DEFAULT 'normal' 
         CHECK (priority IN ('low', 'normal', 'high', 'critical')),
+
+      view_settings_sort_by TEXT NOT NULL DEFAULT 'name'
+        CHECK (view_settings_sort_by IN ('name', 'date', 'size', 'type')),
+      view_settings_sort_order TEXT NOT NULL DEFAULT 'asc'
+        CHECK (view_settings_sort_order IN ('asc', 'desc')),
+      view_settings_view_mode TEXT NOT NULL DEFAULT 'list'
+        CHECK (view_settings_view_mode IN ('grid', 'list', 'details', 'big_icon', 'medium_icon', 'small_icon', 'content')),
+      view_settings_show_hidden_files BOOLEAN NOT NULL DEFAULT FALSE,
+      view_settings_show_extension BOOLEAN NOT NULL DEFAULT TRUE,
       
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
       

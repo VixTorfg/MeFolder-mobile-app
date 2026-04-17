@@ -1,35 +1,30 @@
+import { VideoPlayer, AudioPlayer, ImageViewer } from "@/components/media";
+import { MediaSource } from "@/types/media/viewers";
+import { useStyles, useSelection, useFileSystem, useAlert } from "@/hooks";
+import { router, useLocalSearchParams } from "expo-router";
+import { useMemo, useRef, useState } from "react";
+import { ActivityIndicator, TouchableOpacity, View, Text } from "react-native";
 import {
-  ViewDropDown,
-  ViewCards,
-  ItemCreator,
-  MultiActionButton,
   ContextMenu,
-  Breadcrumb,
+  MultiActionButton,
   OptionDropDown,
-  PropertyMenu,
-  ImageViewer,
-  AudioPlayer,
-  VideoPlayer,
+  SortDropDown,
+  ViewCards,
+  ViewDropDown,
 } from "@/components";
-import React, { useMemo, useState } from "react";
-import { View, TouchableOpacity, Text, ActivityIndicator } from "react-native";
-import { useNavigationStore } from "@/stores";
+import { FileModel } from "@/models/file";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { FileModel, FolderModel } from "@/models";
-import type { MediaSource } from "@/types/media/viewers";
-import { useLibraryStyles } from "@/screenStyles/libraryStyle";
-import EmptyFolder from "@/components/svgIcons/emptyFolder";
-import { SortDropDown } from "@/components/SortDropDown";
-import { useLibraryContent, useLibraryActions } from "@/hooks/library";
-import { useFileSystem, useSelection } from "@/hooks";
 import { FlashList } from "@shopify/flash-list";
+import { cardShadow } from "@/constants/styles/shadows";
+import EmptyFolder from "@/components/svgIcons/emptyFolder";
+import { useFilesInTag } from "@/hooks/tags/useFilesInTag";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useContentTagActions } from "@/hooks/tags/useContentTagActions";
+import { useTagContentStore } from "@/stores/useTagContentStore";
 
-export default function LibraryScreen() {
-  const [creatorVisible, setCreatorVisible] = useState(false);
+export default function tagsContent() {
   const [showMenu, setShowMenu] = useState(false);
-  const [clickedItem, setClickedItem] = useState<
-    FileModel | FolderModel | null
-  >(null);
+  const [clickedItem, setClickedItem] = useState<FileModel | null>(null);
   const [menuPosition, setMenuPosition] = useState({
     x: 0,
     y: 0,
@@ -40,15 +35,23 @@ export default function LibraryScreen() {
   const [isRenaming, setIsRenaming] = useState(false);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
+  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+  const [videoPlayerSource, setVideoPlayerSource] =
+    useState<MediaSource | null>(null);
   const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
   const [audioPlayerSource, setAudioPlayerSource] =
     useState<MediaSource | null>(null);
-  const [videoPlayerSource, setVideoPlayerSource] =
-    useState<MediaSource | null>(null);
-  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+  const itemRefs = useRef<Map<string, View>>(new Map());
+
+  const { tagId, tagName } = useLocalSearchParams();
+  const { showAlert } = useAlert();
+  const insets = useSafeAreaInsets();
+  const styles = useTagsContentStyles();
+
+  const storeItems = useTagContentStore((s) => s.items);
 
   const {
-    items,
+    loadMore,
     sortedItems,
     loading,
     selectedView,
@@ -56,12 +59,10 @@ export default function LibraryScreen() {
     sortValue,
     viewOptions,
     gridConfig,
-    folderService,
-    fileService,
     handleSortItems,
     handleViewModeChange,
     handleViewOptionsChange,
-  } = useLibraryContent();
+  } = useFilesInTag({ tagId: tagId as string });
 
   const {
     itemsSelected,
@@ -69,71 +70,18 @@ export default function LibraryScreen() {
     toggleSelection,
     clearSelection,
     handleOnSelectOption,
-  } = useSelection(items);
+  } = useSelection(storeItems);
 
-  const {
-    handleShare,
-    handleDeleteElements,
-    handleSaveFile,
-    handleSaveFolder,
-    handleRename,
-    handleCopy,
-    handleCut,
-    handlePaste,
-  } = useLibraryActions({
-    folderService,
-    fileService,
-    clickedItem,
-    itemsSelected,
-    clearSelection,
-    setIsRenaming,
-  });
+  const { handleRename, handleShare, handleDeleteElements } =
+    useContentTagActions({
+      tagId: tagId as string,
+      clickedItem,
+      itemsSelected,
+      clearSelection,
+      setIsRenaming,
+    });
 
-  const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
-    useNavigationStore();
-  const styles = useLibraryStyles();
   const fs = useFileSystem();
-
-  const handleOpenItem = (item: FileModel | FolderModel) => {
-    if (item instanceof FolderModel) {
-      navigateTo(item.id, item.name);
-    } else {
-      const uri = item.storageUrl ?? item.path;
-
-      if (!fs.fileExists(uri)) {
-        console.error("[handleOpenItem] File not found:", uri);
-        console.error("[handleOpenItem] storageUrl:", item.storageUrl);
-        console.error("[handleOpenItem] path:", item.path);
-        return;
-      }
-
-      const source: MediaSource = {
-        uri,
-        fileId: item.id,
-        ...(item.metadata.mimeType != null && {
-          mimeType: item.metadata.mimeType,
-        }),
-        displayName: item.name,
-      };
-
-      switch (item.category) {
-        case "image":
-          setViewerSource(source);
-          setViewerVisible(true);
-          break;
-        case "video":
-          setVideoPlayerSource(source);
-          setVideoPlayerVisible(true);
-          break;
-        case "audio":
-          setAudioPlayerSource(source);
-          setAudioPlayerVisible(true);
-          break;
-        default:
-          break;
-      }
-    }
-  };
 
   const menuOptions = useMemo(
     () => [
@@ -182,54 +130,19 @@ export default function LibraryScreen() {
         disabled: false,
         icon: <MaterialCommunityIcons name="pencil" size={20} color="black" />,
       },
+
       {
         hierarchy: "6",
-        label: "Copiar",
-        onPress: () => {
-          clickedItem && handleCopy([clickedItem]);
-        },
-        disabled: false,
-        icon: (
-          <MaterialCommunityIcons name="content-copy" size={20} color="black" />
-        ),
-      },
-      {
-        hierarchy: "7",
-        label: "Cortar",
-        onPress: () => {
-          clickedItem && handleCut([clickedItem]);
-        },
-        disabled: false,
-        icon: (
-          <MaterialCommunityIcons name="content-cut" size={20} color="black" />
-        ),
-      },
-      {
-        hierarchy: "8",
-        label: "Pegar",
-        onPress: () => {
-          handlePaste();
-        },
-        disabled: false,
-        icon: (
-          <MaterialCommunityIcons
-            name="content-paste"
-            size={20}
-            color="black"
-          />
-        ),
-      },
-      {
-        hierarchy: "9",
         label: "Eliminar",
         onPress: () => {
           clickedItem && handleDeleteElements([clickedItem]);
+          setShowMenu(false);
         },
         disabled: false,
         icon: <MaterialCommunityIcons name="delete" size={20} color="black" />,
       },
       {
-        hierarchy: "10",
+        hierarchy: "7",
         label: "Propiedades",
         onPress: () => {
           setShowPropertyMenu(true);
@@ -243,6 +156,58 @@ export default function LibraryScreen() {
     ],
     [clickedItem],
   );
+
+  const handleElementPress = (item: FileModel) => {
+    setClickedItem(item);
+    const ref = itemRefs.current.get(item.id);
+    ref?.measureInWindow((x, y, width, height) => {
+      setMenuPosition({ x, y, width, height });
+      setShowMenu(true);
+    });
+  };
+
+  const handleOpenItem = (item: FileModel) => {
+    const uri = item.storageUrl ?? item.path;
+
+    if (!fs.fileExists(uri)) {
+      console.error("[handleOpenItem] File not found:", uri);
+      console.error("[handleOpenItem] storageUrl:", item.storageUrl);
+      console.error("[handleOpenItem] path:", item.path);
+
+      showAlert({
+        title: "Error",
+        message:
+          "No se pudo abrir el archivo porque no se encontró en el dispositivo.",
+      });
+      return;
+    }
+
+    const source: MediaSource = {
+      uri,
+      fileId: item.id,
+      ...(item.metadata.mimeType != null && {
+        mimeType: item.metadata.mimeType,
+      }),
+      displayName: item.name,
+    };
+
+    switch (item.category) {
+      case "image":
+        setViewerSource(source);
+        setViewerVisible(true);
+        break;
+      case "video":
+        setVideoPlayerSource(source);
+        setVideoPlayerVisible(true);
+        break;
+      case "audio":
+        setAudioPlayerSource(source);
+        setAudioPlayerVisible(true);
+        break;
+      default:
+        break;
+    }
+  };
 
   const renderGroupButtons = () => {
     if (selectionMode) {
@@ -273,14 +238,7 @@ export default function LibraryScreen() {
             backgroundColor="transparent"
             iconColor={styles.iconColor.color}
             size={42}
-            onPress={() => handlePaste()}
-          />
-          <MultiActionButton
-            icon={"add"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => setCreatorVisible(true)}
+            onPress={() => /*handlePaste()*/ {}}
           />
           <SortDropDown
             size={42}
@@ -305,44 +263,28 @@ export default function LibraryScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <View style={styles.header}>
         <View style={styles.headerLeft}>
-          {currentFolderId !== "sys_root" && (
-            <MultiActionButton
-              icon={"chevron-back"}
-              backgroundColor="transparent"
-              iconColor={styles.iconColor.color}
-              size={42}
-              onPress={() => {
-                clearSelection();
-                navigateBack();
-              }}
-            />
-          )}
+          <MultiActionButton
+            icon={"chevron-back"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => {
+              clearSelection();
+              router.back();
+            }}
+          />
         </View>
 
         <View style={styles.buttonsGroup}>{renderGroupButtons()}</View>
       </View>
 
       <View style={styles.headerBreadcrumb}>
-        <Text style={styles.headerBreadcrumbText}>{currentFolderName}</Text>
-        <Breadcrumb />
+        <Text style={styles.headerBreadcrumbText}>{tagName}</Text>
       </View>
 
-      <ItemCreator
-        visible={creatorVisible}
-        onClose={() => setCreatorVisible(false)}
-        currentFolderId={currentFolderId}
-        onSaveFile={(data) => {
-          handleSaveFile(data);
-          setCreatorVisible(false);
-        }}
-        onSaveFolder={(data) => {
-          handleSaveFolder(data);
-          setCreatorVisible(false);
-        }}
-      />
       {loading ? (
         <View
           style={[styles.footerEmptyContainer, { justifyContent: "center" }]}
@@ -362,11 +304,11 @@ export default function LibraryScreen() {
               folderColor={styles.iconColor.color}
               crossColor={styles.iconColor.primaryColor}
             />
-            <Text style={styles.emptyFolderText}>La carpeta está vacía</Text>
+            <Text style={styles.emptyFolderText}>La etiqueta está vacía</Text>
           </View>
           <TouchableOpacity
             style={styles.volverButton}
-            onPress={() => navigateBack()}
+            onPress={() => router.back()}
           >
             <Text style={styles.volverText}>Volver</Text>
           </TouchableOpacity>
@@ -378,8 +320,15 @@ export default function LibraryScreen() {
           key={`${selectedView}-${gridConfig.columns}`}
           numColumns={gridConfig.columns}
           onScroll={() => setShowMenu(false)}
+          onEndReachedThreshold={0.7}
+          onEndReached={loadMore}
           renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
+            <View
+              style={styles.cardWrapper}
+              ref={(el) => {
+                if (el) itemRefs.current.set(item.id, el);
+              }}
+            >
               <ViewCards
                 data={item}
                 viewConfig={selectedView}
@@ -392,10 +341,13 @@ export default function LibraryScreen() {
                 onPress={() => {
                   selectionMode ? toggleSelection(item) : handleOpenItem(item);
                 }}
-                onDoublePress={(position) => {
+                onDoublePress={() => {
                   setClickedItem(item);
-                  setMenuPosition(position);
-                  setShowMenu(true);
+                  const ref = itemRefs.current.get(item.id);
+                  ref?.measureInWindow((x, y, width, height) => {
+                    setMenuPosition({ x, y, width, height });
+                    setShowMenu(true);
+                  });
                 }}
                 onLongPress={() => toggleSelection(item)}
               />
@@ -411,14 +363,6 @@ export default function LibraryScreen() {
         onDismiss={() => setShowMenu(false)}
         position={menuPosition}
       />
-
-      {clickedItem && (
-        <PropertyMenu
-          item={clickedItem}
-          visible={showPropertyMenu}
-          onClose={() => setShowPropertyMenu(false)}
-        />
-      )}
 
       {viewerSource && (
         <ImageViewer
@@ -455,3 +399,82 @@ export default function LibraryScreen() {
     </View>
   );
 }
+
+const useTagsContentStyles = () => {
+  return useStyles((theme) => ({
+    container: {
+      flex: 1,
+      backgroundColor: theme.colors.background,
+    },
+    header: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      paddingHorizontal: 8,
+      paddingVertical: 24,
+    },
+    headerLeft: {
+      flexDirection: "row",
+      alignItems: "center",
+      flex: 1,
+    },
+    iconColor: {
+      color: theme.colors.textPrimary,
+      primaryColor: theme.colors.primary,
+    },
+    buttonsGroup: {
+      flexDirection: "row",
+      justifyContent: "space-between",
+      gap: 8,
+    },
+    headerBreadcrumb: {
+      alignItems: "center",
+      marginVertical: theme.spacing.sm,
+    },
+    cardWrapper: {
+      flex: 1,
+      alignItems: "center",
+      paddingBottom: theme.spacing.sm,
+    },
+    volverButton: {
+      ...cardShadow(theme),
+      backgroundColor: theme.colors.primary,
+      borderRadius: 16,
+      alignSelf: "center",
+      justifyContent: "flex-end",
+      paddingVertical: theme.spacing.md,
+      marginBottom: 126,
+      width: "80%",
+    },
+    volverText: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textPrimary,
+      textAlign: "center",
+    },
+    emptyFolderIconContainer: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    emptyFolderText: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textSecondary,
+      textAlign: "center",
+      marginTop: 16,
+    },
+    footerEmptyContainer: {
+      flex: 1,
+      alignItems: "center",
+    },
+    flatListContent: {
+      paddingBottom: 120,
+      gap: 10,
+      padding: 16,
+    },
+    headerBreadcrumbText: {
+      fontSize: 34,
+      fontFamily: theme.typography.fontFamily.title.semiBold,
+      color: theme.colors.textPrimary,
+    },
+  }));
+};

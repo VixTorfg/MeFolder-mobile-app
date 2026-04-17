@@ -1,14 +1,11 @@
 import { NewTag } from "@/components/TagCreator";
-import { useAlert } from "@/providers";
-import { TagService } from "@/services";
+import { useAlert, useServices } from "@/providers";
 import { CreateTagInput } from "@/types/entities/tag";
 import { useTagsStore } from "@/stores/useTagsStore";
 
-interface UseTagsActionsParams {
-  tagService: TagService | null;
-}
-
-export const useTagsActions = ({ tagService }: UseTagsActionsParams) => {
+export const useTagsActions = () => {
+  const { services } = useServices();
+  const tagService = services?.tagService;
   const { showAlert } = useAlert();
   const { addItem, addAlbum } = useTagsStore();
 

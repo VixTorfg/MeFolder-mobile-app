@@ -36,6 +36,7 @@ export const useSizeIconCardStyles = (size: number) => {
       flexWrap: "wrap",
     },
     fileNameInput: {
+      flexShrink: 1,
       fontSize: theme.typography.fontSize.md,
       fontFamily: theme.typography.fontFamily.title.semiBold,
       color: theme.colors.textPrimary,

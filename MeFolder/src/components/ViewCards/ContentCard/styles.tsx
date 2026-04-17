@@ -70,6 +70,8 @@ export const useContentCardStyles = () => {
       color: theme.colors.textSecondary,
     },
     fileNameInput: {
+      flex: 1,
+      flexShrink: 1,
       fontSize: theme.typography.fontSize.md,
       fontFamily: theme.typography.fontFamily.title.semiBold,
       color: theme.colors.textPrimary,

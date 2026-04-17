@@ -25,11 +25,13 @@ export default function GridCard({
   data,
   showCard = true,
   selected = false,
+  selectionMode = false,
 }: CommunCardProps) {
   const styles = useGridCardStyles();
   const isFile = data instanceof FileModel;
   const lastTap = useRef(0);
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const cardRef = useRef<View>(null);
 
   const [renameValue, setRenameValue] = useState(data.name);
 
@@ -48,6 +50,11 @@ export default function GridCard({
   const handlePress = async (): Promise<void> => {
     if (disabled) return;
 
+    if (selectionMode) {
+      await onPress?.();
+      return;
+    }
+
     const now = Date.now();
     const isDoubleTap = now - lastTap.current < 200;
     lastTap.current = now;
@@ -57,7 +64,9 @@ export default function GridCard({
         clearTimeout(tapTimeout.current);
         tapTimeout.current = null;
       }
-      await onDoublePress?.();
+      cardRef.current?.measureInWindow((x, y, width, height) => {
+        onDoublePress?.({ x, y, width, height });
+      });
     } else {
       tapTimeout.current = setTimeout(async () => {
         tapTimeout.current = null;
@@ -111,6 +120,7 @@ export default function GridCard({
 
   return (
     <TouchableOpacity
+      ref={cardRef}
       style={selected ? styles.cardContainerSelected : styles.cardContainer}
       onPress={handlePress}
       disabled={disabled}

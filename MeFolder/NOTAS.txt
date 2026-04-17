@@ -28,3 +28,7 @@ Mejoras en general
         -filtros combinados trabajo + urgente
         -reglas de auto etiquetado
         -compartir archivos por tags
+
+CORREGIR:
+
+    - DoubleTap menu contextual

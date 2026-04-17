@@ -4,11 +4,21 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { TouchableOpacity, View, Text } from "react-native";
 import { useTagCardStyles } from "./styles";
 
-export const TagCard = ({ tag }: { tag: TagModel }) => {
+export const TagCard = ({
+  tag,
+  onPress,
+}: {
+  tag: TagModel;
+  onPress?: () => Promise<void> | void;
+}) => {
   const styles = useTagCardStyles();
   const priorityCfg = PRIORITY_CONFIG[tag.priority];
   return (
-    <TouchableOpacity style={styles.tagCard} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.tagCard}
+      activeOpacity={0.7}
+      onPress={onPress}
+    >
       <View
         style={[
           styles.tagIconContainer,

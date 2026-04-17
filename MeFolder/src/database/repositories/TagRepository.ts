@@ -10,6 +10,7 @@ import {
 import { UUID } from "../../types/common/base";
 import { ColorInfo } from "../../types/common/colors";
 import { TagRepository, TagTreeNode } from "../../types/repositories/tag";
+import { ViewSettings } from "../../types/entities/folder";
 
 /**
  * Implementación del repositorio de etiquetas.
@@ -597,5 +598,68 @@ export class TagRepositoryImplementation implements TagRepository {
       ...(row.parent_id && { parentId: row.parent_id }),
       ...(row.last_used_at && { lastUsedAt: new Date(row.last_used_at) }),
     };
+  }
+
+  async getTagViewConfig(tagId: UUID): Promise<ViewSettings | null> {
+    try {
+      const [row] = await this.db.query<any>(
+        "SELECT view_settings_sort_by, view_settings_sort_order, view_settings_view_mode, view_settings_show_hidden_files, view_settings_show_extension FROM tags WHERE id = ?",
+        [tagId],
+      );
+
+      return row
+        ? {
+            sortBy: row.view_settings_sort_by || "name",
+            sortOrder: row.view_settings_sort_order || "asc",
+            viewMode: row.view_settings_view_mode || "list",
+            options: {
+              showHiddenFiles: Boolean(row.view_settings_show_hidden_files),
+              showExtension: Boolean(row.view_settings_show_extension),
+            },
+          }
+        : null;
+    } catch (error) {
+      console.error("Error getting tag view config:", error);
+      throw new Error(
+        `Error al obtener configuración de vista del tag: ${error}`,
+      );
+    }
+  }
+
+  async updateTagViewConfig(
+    tagId: UUID,
+    viewSettings: Partial<ViewSettings>,
+  ): Promise<void> {
+    try {
+      const existing = await this.getTagViewConfig(tagId);
+      if (!existing) throw new Error("Tag no encontrado");
+
+      const updated = { ...existing, ...viewSettings };
+
+      await this.db.execute(
+        `UPDATE tags SET
+          view_settings_sort_by = ?,
+          view_settings_sort_order = ?,
+          view_settings_view_mode = ?,
+          view_settings_show_hidden_files = ?,
+          view_settings_show_extension = ?,
+          updated_at = ?
+        WHERE id = ?`,
+        [
+          updated.sortBy,
+          updated.sortOrder,
+          updated.viewMode,
+          updated.options?.showHiddenFiles,
+          updated.options?.showExtension,
+          new Date().getTime(),
+          tagId,
+        ],
+      );
+    } catch (error) {
+      console.error("Error updating tag view config:", error);
+      throw new Error(
+        `Error al actualizar configuración de vista del tag: ${error}`,
+      );
+    }
   }
 }

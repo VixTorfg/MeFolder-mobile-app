@@ -92,6 +92,10 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
       if (tagIds.length === 0) return;
 
       const placeholders = tagIds.map(() => "?").join(",");
+      console.log(
+        `DELETE FROM file_tags WHERE file_id = ? AND tag_id IN (${placeholders})`,
+        [fileId, ...tagIds],
+      );
       await this.db.execute(
         `DELETE FROM file_tags WHERE file_id = ? AND tag_id IN (${placeholders})`,
         [fileId, ...tagIds],

@@ -5,6 +5,7 @@ import { ColorInfo } from "../types/common/colors";
 import { TagModel, TagFactory } from "../models/tag";
 import { SYSTEM_ALBUM_TAG_ID } from "../database/seeds/systemTags";
 import { FileModel } from "@/models";
+import type { ViewSettings } from "../types/entities/folder";
 
 /**
  * TagService MVP - Funcionalidades básicas para desarrollo inicial
@@ -187,6 +188,19 @@ export class TagService extends BaseService {
   }
 
   /**
+   * Eliminar tag de un archivo (remover asociación)
+   */
+  async removeTagFromFile(fileId: UUID, tagId: UUID): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+      console.log(`Removing tag ${tagId} from file ${fileId}`);
+      await this.tagAssignmentRepo.removeTagsFromFile(fileId, [tagId]);
+    } catch (error) {
+      return this.handleError(error, "eliminar tag de archivo");
+    }
+  }
+
+  /**
    * Asignar tags a un archivo
    */
   async addTagsToFile(fileId: UUID, tagIds: UUID[]): Promise<void> {
@@ -353,6 +367,30 @@ export class TagService extends BaseService {
 
     if (existing && existing.id !== excludeTagId) {
       throw new Error(`Ya existe un tag con el nombre "${name}"`);
+    }
+  }
+
+  async getTagViewConfig(tagId: UUID): Promise<ViewSettings | null> {
+    try {
+      this.ensureDbInitialized();
+      return await this.tagRepo.getTagViewConfig(tagId);
+    } catch (error) {
+      return this.handleError(error, "obtener configuración de vista del tag");
+    }
+  }
+
+  async updateTagViewConfig(
+    tagId: UUID,
+    viewSettings: Partial<ViewSettings>,
+  ): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+      await this.tagRepo.updateTagViewConfig(tagId, viewSettings);
+    } catch (error) {
+      return this.handleError(
+        error,
+        "actualizar configuración de vista del tag",
+      );
     }
   }
 }

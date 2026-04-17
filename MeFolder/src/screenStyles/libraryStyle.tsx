@@ -31,9 +31,10 @@ export const useLibraryStyles = () => {
     section: {
       padding: 16,
     },
-    gridRow: {
-      justifyContent: "space-evenly",
-      gap: 10,
+    cardWrapper: {
+      flex: 1,
+      alignItems: "center",
+      paddingBottom: theme.spacing.sm,
     },
     sectionTitle: {
       fontSize: 18,

@@ -40,9 +40,16 @@ export interface OptionsType {
   icon: keyof typeof Ionicons.glyphMap;
 }
 
+export interface ItemPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface CommunCardProps {
   onPress: () => Promise<void> | void;
-  onDoublePress?: () => Promise<void> | void;
+  onDoublePress?: (position: ItemPosition) => Promise<void> | void;
   onLongPress?: () => Promise<void> | void;
   onRename?: (newName: string) => void;
   onRenameCancel?: () => void;
@@ -52,6 +59,7 @@ export interface CommunCardProps {
   data: FileModel | FolderModel;
   showCard?: boolean;
   selected?: boolean;
+  selectionMode?: boolean;
 }
 
 export interface ErrorState {

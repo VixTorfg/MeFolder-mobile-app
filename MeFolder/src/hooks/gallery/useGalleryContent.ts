@@ -1,7 +1,7 @@
-import { FileModel } from "@/models";
 import { useAlert, useServices } from "@/providers";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "expo-router";
+import { useTagContentStore } from "@/stores/useTagContentStore";
 
 interface GalleryContentProps {
   tagId: string;
@@ -12,13 +12,13 @@ export const useGalleryContent = ({
   tagId,
   pageSize = 100,
 }: GalleryContentProps) => {
-  const [items, setItems] = useState<FileModel[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const hasMore = useRef(true);
   const currentPage = useRef(1);
   const { showAlert } = useAlert();
   const { services } = useServices();
   const tagService = services?.tagService;
+  const { items, setItems } = useTagContentStore();
 
   const loadPage = useCallback(
     async (page: number) => {
@@ -36,12 +36,17 @@ export const useGalleryContent = ({
         }
 
         const maxItems = pageSize * 2;
-        setItems((prev) => {
-          if (page === 1) return files;
+        const prev = useTagContentStore.getState().items;
+        if (page === 1) {
+          setItems(files);
+        } else {
           const merged = [...prev, ...files];
-          if (merged.length <= maxItems) return merged;
-          return merged.slice(merged.length - maxItems);
-        });
+          setItems(
+            merged.length <= maxItems
+              ? merged
+              : merged.slice(merged.length - maxItems),
+          );
+        }
         currentPage.current = page;
       } catch (error) {
         console.error("Error loading gallery content:", error);
@@ -59,7 +64,7 @@ export const useGalleryContent = ({
   const refresh = useCallback(() => {
     hasMore.current = true;
     currentPage.current = 1;
-    setItems([]);
+    useTagContentStore.getState().setItems([]);
     loadPage(1);
   }, [tagId, pageSize]);
 
