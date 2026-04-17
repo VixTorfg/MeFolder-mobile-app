@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useViewSettings } from "../useViewSettings";
 import { useGalleryContent } from "../gallery/useGalleryContent";
 import { FileModel } from "@/models";
@@ -11,7 +11,7 @@ export const useFilesInTag = ({ tagId }: { tagId: string }) => {
     sortValue,
     viewOptions,
     gridConfig,
-    // loadViewConfig,
+    loadViewConfig,
     handleSortItems,
     handleViewModeChange,
     handleViewOptionsChange,
@@ -27,18 +27,9 @@ export const useFilesInTag = ({ tagId }: { tagId: string }) => {
     [items, sortValue, orderBy],
   );
 
-  // loadViewConfig es async — no se puede llamar directamente en el cuerpo
-  // del componente porque React no permite que el render sea asíncrono.
-  // Llamarlo suelto ("loadViewConfig()") lanzaría una promesa no controlada en
-  // cada render y posibles race-conditions. Un useEffect garantiza que solo se
-  // ejecute al montar (o cuando cambie tagId).
-  //
-  // Descomentar cuando la columna "view" exista en tags:
-  // import { useEffect } from "react";
-  // + descomentar loadViewConfig en useViewSettings
-  // useEffect(() => {
-  //   loadViewConfig();
-  // }, [tagId]);
+  useEffect(() => {
+    loadViewConfig();
+  }, [tagId]);
 
   return {
     loadMore,

@@ -30,6 +30,7 @@ export const createTagsTable = async (): Promise<void> => {
       view_settings_show_hidden_files BOOLEAN NOT NULL DEFAULT FALSE,
       view_settings_show_extension BOOLEAN NOT NULL DEFAULT TRUE,
       
+      is_favourite BOOLEAN NOT NULL DEFAULT FALSE,
       is_active BOOLEAN NOT NULL DEFAULT TRUE,
       
       color_hex TEXT NOT NULL,
@@ -60,6 +61,7 @@ export const createTagsTable = async (): Promise<void> => {
     "CREATE INDEX IF NOT EXISTS idx_tags_name ON tags(name);",
     "CREATE INDEX IF NOT EXISTS idx_tags_type ON tags(type);",
     "CREATE INDEX IF NOT EXISTS idx_tags_priority ON tags(priority);",
+    "CREATE INDEX IF NOT EXISTS idx_tags_is_favourite ON tags(is_favourite);",
     "CREATE INDEX IF NOT EXISTS idx_tags_is_active ON tags(is_active);",
     "CREATE INDEX IF NOT EXISTS idx_tags_usage_count ON tags(usage_count);",
     "CREATE INDEX IF NOT EXISTS idx_tags_parent_id ON tags(parent_id);",
@@ -147,8 +149,6 @@ export const dropTagsSystem = async (): Promise<void> => {
     const dropTriggers = [
       "DROP TRIGGER IF EXISTS trg_file_tag_insert;",
       "DROP TRIGGER IF EXISTS trg_file_tag_delete;",
-      "DROP TRIGGER IF EXISTS trg_folder_tag_insert;",
-      "DROP TRIGGER IF EXISTS trg_folder_tag_delete;",
     ];
 
     for (const dropTrigger of dropTriggers) {
@@ -160,7 +160,6 @@ export const dropTagsSystem = async (): Promise<void> => {
     }
 
     await db.execute("DROP TABLE IF EXISTS file_tags;");
-    await db.execute("DROP TABLE IF EXISTS folder_tags;");
     await db.execute("DROP TABLE IF EXISTS tags;");
 
     console.log("Sistema de tags eliminado");

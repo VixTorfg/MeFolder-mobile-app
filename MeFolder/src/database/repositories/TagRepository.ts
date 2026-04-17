@@ -88,7 +88,7 @@ export class TagRepositoryImplementation implements TagRepository {
         }
       }
 
-      sql += " ORDER BY usage_count DESC, name ASC";
+      sql += " ORDER BY is_favourite DESC, usage_count DESC, name ASC";
 
       if (filters?.limit) {
         sql += " LIMIT ?";
@@ -126,10 +126,10 @@ export class TagRepositoryImplementation implements TagRepository {
         `
         INSERT INTO tags (
           id, created_at, updated_at,
-          name, description, type, priority, is_active,
+          name, description, type, priority, is_favourite, is_active,
           color_hex, color_rgb_r, color_rgb_g, color_rgb_b,
           usage_count, last_used_at, parent_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
         [
           tag.id,
@@ -139,6 +139,7 @@ export class TagRepositoryImplementation implements TagRepository {
           tag.description,
           tag.type,
           tag.priority,
+          tag.isFavorite,
           tag.isActive,
           tag.color.hex,
           tag.color.rgb.r,
@@ -187,6 +188,7 @@ export class TagRepositoryImplementation implements TagRepository {
           description = ?,
           type = ?,
           priority = ?,
+          is_favourite = ?,
           color_hex = ?, 
           color_rgb_r = ?, 
           color_rgb_g = ?, 
@@ -200,6 +202,7 @@ export class TagRepositoryImplementation implements TagRepository {
           tag.description,
           tag.type,
           tag.priority,
+          tag.isFavorite,
           tag.color.hex,
           tag.color.rgb.r,
           tag.color.rgb.g,
@@ -445,9 +448,9 @@ export class TagRepositoryImplementation implements TagRepository {
         tags.push(tag);
         queries.push({
           sql: `INSERT INTO tags (
-            id, created_at, updated_at, name, description, type, priority, is_active,
+            id, created_at, updated_at, name, description, type, priority, is_favourite, is_active,
             color_hex, color_rgb_r, color_rgb_g, color_rgb_b, usage_count, last_used_at, parent_id
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
             tag.id,
             tag.createdAt.getTime(),
@@ -456,6 +459,7 @@ export class TagRepositoryImplementation implements TagRepository {
             tag.description,
             tag.type,
             tag.priority,
+            tag.isFavorite,
             tag.isActive,
             tag.color.hex,
             tag.color.rgb.r,
@@ -581,6 +585,7 @@ export class TagRepositoryImplementation implements TagRepository {
       name: row.name,
       type: row.type as TagType,
       priority: row.priority as TagPriority,
+      isFavorite: Boolean(row.is_favourite),
       isActive: Boolean(row.is_active),
       color: {
         hex: row.color_hex,

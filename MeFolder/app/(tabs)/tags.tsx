@@ -33,7 +33,6 @@ export default function TagsScreen() {
   );
   const allTags = items;
 
-  // ── Header buttons ──
   const renderHeaderButtons = () => (
     <View style={styles.buttonsGroup}>
       <MultiActionButton
@@ -55,10 +54,12 @@ export default function TagsScreen() {
     </View>
   );
 
-  // ── Favorite chip ──
   const renderFavoriteChip = (tag: TagModel) => (
     <TouchableOpacity
       key={tag.id}
+      onPress={() =>
+        router.push(`/tags-content?tagId=${tag.id}&tagName=${tag.name}`)
+      }
       style={[styles.favoriteChip, { backgroundColor: tag.color.hex + "18" }]}
       activeOpacity={0.7}
     >
@@ -138,7 +139,6 @@ export default function TagsScreen() {
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <>
-            {/* Favorites */}
             {favoriteTags.length > 0 && (
               <>
                 {renderSectionHeader("Favoritos")}
@@ -153,14 +153,12 @@ export default function TagsScreen() {
               </>
             )}
 
-            {/* Albums 2x2 grid */}
             {renderSectionHeader(
               "Álbumes",
               albums.length > 0 ? "Ver todos" : undefined,
             )}
             {renderAlbumsGrid()}
 
-            {/* High priority */}
             {highPriorityTags.length > 0 && (
               <>
                 {renderSectionHeader("Prioridad alta")}
