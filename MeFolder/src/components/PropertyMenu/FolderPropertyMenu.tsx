@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -112,6 +112,25 @@ export const FolderPropertyMenu = ({
     folders: number;
   } | null>(null);
 
+  // Para calcular el ancho del grid de iconos y centrarlo. Un poco trufero pero funciona
+  const [iconGridWidth, setIconGridWidth] = useState<number | undefined>(
+    undefined,
+  );
+
+  const ICON_SIZE = 48;
+  const ICON_GAP = theme.spacing.sm + 4;
+
+  const onIconCardLayout = useCallback(
+    (e: { nativeEvent: { layout: { width: number } } }) => {
+      const cardPadding = theme.spacing.md * 2;
+      const available = e.nativeEvent.layout.width - cardPadding;
+      const cols = Math.floor((available + ICON_GAP) / (ICON_SIZE + ICON_GAP));
+      const gridWidth = cols * ICON_SIZE + (cols - 1) * ICON_GAP;
+      setIconGridWidth(gridWidth);
+    },
+    [theme.spacing.md],
+  );
+
   const isRenaming = folderName !== folder.name;
   const folderColor = folder.color?.hex ?? theme.colors.folderColor;
   const folderIcon = folder.icon ?? "folder";
@@ -201,71 +220,84 @@ export const FolderPropertyMenu = ({
         {/* Color picker */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Color</Text>
-          <View style={folderStyles.colorGrid}>
-            {/* Sin color (default) */}
-            <TouchableOpacity
-              style={[
-                folderStyles.colorOption,
-                !folder.color && folderStyles.colorOptionSelected,
-              ]}
-              onPress={() => handleColorChange(undefined)}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  folderStyles.colorOptionInner,
-                  { backgroundColor: theme.colors.folderColor },
-                ]}
-              />
-            </TouchableOpacity>
-
-            {colors.map((color) => (
-              <TouchableOpacity
-                key={color.hex}
-                style={[
-                  folderStyles.colorOption,
-                  folder.color?.hex === color.hex &&
-                    folderStyles.colorOptionSelected,
-                ]}
-                onPress={() => handleColorChange(color)}
-                activeOpacity={0.7}
-              >
-                <View
-                  style={[
-                    folderStyles.colorOptionInner,
-                    { backgroundColor: color.hex },
-                  ]}
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={folderStyles.colorScrollContent}>
+              {(() => {
+                const allColors = [
+                  { key: "default", color: undefined },
+                  ...colors.map((c) => ({ key: c.hex, color: c })),
+                ];
+                const columns: (typeof allColors)[] = [];
+                for (let i = 0; i < allColors.length; i += 2) {
+                  columns.push(allColors.slice(i, i + 2));
+                }
+                return columns.map((col, colIdx) => (
+                  <View key={colIdx} style={folderStyles.colorColumn}>
+                    {col.map((item) => (
+                      <TouchableOpacity
+                        key={item.key}
+                        style={[
+                          folderStyles.colorOption,
+                          item.color
+                            ? folder.color?.hex === item.color.hex &&
+                              folderStyles.colorOptionSelected
+                            : !folder.color && folderStyles.colorOptionSelected,
+                        ]}
+                        onPress={() => handleColorChange(item.color)}
+                        activeOpacity={0.7}
+                      >
+                        <View
+                          style={[
+                            folderStyles.colorOptionInner,
+                            {
+                              backgroundColor: item.color
+                                ? item.color.hex
+                                : theme.colors.folderColor,
+                            },
+                          ]}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ));
+              })()}
+            </View>
+          </ScrollView>
         </View>
 
         {/* Icon picker */}
-        <View style={styles.card}>
+        <View style={styles.card} onLayout={onIconCardLayout}>
           <Text style={styles.sectionTitle}>Icono</Text>
-          <View style={folderStyles.iconGrid}>
-            {FOLDER_ICONS.map((icon) => (
-              <TouchableOpacity
-                key={icon}
-                style={[
-                  folderStyles.iconOption,
-                  folderIcon === icon && folderStyles.iconOptionSelected,
-                ]}
-                onPress={() => handleIconChange(icon)}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={icon}
-                  size={24}
-                  color={
-                    folderIcon === icon
-                      ? theme.colors.primary
-                      : theme.colors.textSecondary
-                  }
-                />
-              </TouchableOpacity>
-            ))}
+
+          <View style={folderStyles.iconGridWrapper}>
+            <View
+              style={[
+                folderStyles.iconGrid,
+                iconGridWidth ? { width: iconGridWidth } : undefined,
+              ]}
+            >
+              {FOLDER_ICONS.map((icon) => (
+                <TouchableOpacity
+                  key={icon}
+                  style={[
+                    folderStyles.iconOption,
+                    folderIcon === icon && folderStyles.iconOptionSelected,
+                  ]}
+                  onPress={() => handleIconChange(icon)}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={icon}
+                    size={24}
+                    color={
+                      folderIcon === icon
+                        ? theme.colors.primary
+                        : theme.colors.textSecondary
+                    }
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
           </View>
         </View>
       </View>

@@ -283,9 +283,12 @@ export const useFolderPropertyMenuStyles = () => {
     },
 
     /* ── Color picker ── */
-    colorGrid: {
+    colorScrollContent: {
       flexDirection: "row",
-      flexWrap: "wrap",
+      gap: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+    },
+    colorColumn: {
       gap: theme.spacing.sm,
     },
     colorOption: {
@@ -306,11 +309,14 @@ export const useFolderPropertyMenuStyles = () => {
       borderRadius: 15,
     },
 
-    /* ── Icon picker ── */
+    iconGridWrapper: {
+      alignItems: "center",
+      width: "100%",
+    },
     iconGrid: {
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: theme.spacing.sm,
+      gap: theme.spacing.sm + 4,
     },
     iconOption: {
       width: 48,
