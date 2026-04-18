@@ -59,6 +59,24 @@ export class TagService extends BaseService {
   }
 
   /**
+   * Obtener tags por IDs
+   */
+  async getTagsByIds(tagIds: UUID[]): Promise<TagModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      const tags = await this.tagRepo.getTagsByIds(tagIds);
+      if (!tags || tags.length === 0) {
+        throw new Error("Tags no encontrados");
+      }
+
+      return tags.map((tag) => TagFactory.fromJSON(tag));
+    } catch (error) {
+      return this.handleError(error, "obtener tags por IDs");
+    }
+  }
+
+  /**
    * Obtener todos los tags activos
    */
   async getAllTags(): Promise<TagModel[]> {
@@ -349,7 +367,9 @@ export class TagService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      const albums = await this.tagRepo.findByParentId(SYSTEM_ALBUM_TAG_ID);
+      //const albums = await this.tagRepo.findByParentId(SYSTEM_ALBUM_TAG_ID);
+      const albums = await this.tagRepo.findByType("album");
+
       return albums.map((t) => TagFactory.fromJSON(t));
     } catch (error) {
       return this.handleError(error, "obtener álbumes");

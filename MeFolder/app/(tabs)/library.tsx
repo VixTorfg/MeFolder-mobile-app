@@ -23,6 +23,7 @@ import { SortDropDown } from "@/components/SortDropDown";
 import { useLibraryContent, useLibraryActions } from "@/hooks/library";
 import { useFileSystem, useSelection } from "@/hooks";
 import { FlashList } from "@shopify/flash-list";
+import { router } from "expo-router";
 
 export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
@@ -269,6 +270,21 @@ export default function LibraryScreen() {
             size={42}
             onPress={() => {}}
           />
+          {!itemsSelected.some((i) => i instanceof FolderModel) && (
+            <MultiActionButton
+              icon={"bookmark-plus-outline"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={44}
+              onPress={() => {
+                const fileIds = itemsSelected
+                  .filter((i) => i instanceof FileModel)
+                  .map((f) => f.id)
+                  .join(",");
+                router.push({ pathname: "/tag-adder", params: { fileIds } });
+              }}
+            />
+          )}
           <MultiActionButton
             icon={"trash-outline"}
             backgroundColor="transparent"
@@ -380,7 +396,10 @@ export default function LibraryScreen() {
           </View>
           <TouchableOpacity
             style={styles.volverButton}
-            onPress={() => navigateBack()}
+            onPress={() => {
+              clearSelection();
+              navigateBack();
+            }}
           >
             <Text style={styles.volverText}>Volver</Text>
           </TouchableOpacity>

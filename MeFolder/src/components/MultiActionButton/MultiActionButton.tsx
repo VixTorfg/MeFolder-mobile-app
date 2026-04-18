@@ -1,39 +1,44 @@
-import { View, TouchableOpacity, Dimensions, Text } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { getResponsiveSize, getMultiActionButtonDimensions } from '@/utils/ui/responsive';
-import { useMultiActionButtonStyles } from '../MultiActionButton/styles';
-import { defaultColor } from '@/themes/colors';
-import { ColorInfo } from '@/types/common/colors';
+import { View, TouchableOpacity, Dimensions, Text } from "react-native";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import {
+  getResponsiveSize,
+  getMultiActionButtonDimensions,
+} from "@/utils/ui/responsive";
+import { useMultiActionButtonStyles } from "../MultiActionButton/styles";
+import { defaultColor } from "@/themes/colors";
+import { isIoniconsIcon } from "@/utils/ui/icons";
+import { ColorInfo } from "@/types/common/colors";
 
-const { width: screenWidth } = Dimensions.get('window'); 
+const { width: screenWidth } = Dimensions.get("window");
 const responsive = getResponsiveSize(screenWidth);
 
 interface MultiActionButtonProps {
   onPress: () => Promise<void> | void;
-  icon?: keyof typeof Ionicons.glyphMap; 
-  backgroundColor?: ColorInfo | string;            
-  label?: string;          
-  disabled?: boolean;  
+  icon?:
+    | keyof typeof Ionicons.glyphMap
+    | keyof typeof MaterialCommunityIcons.glyphMap;
+  backgroundColor?: ColorInfo | string;
+  label?: string;
+  disabled?: boolean;
   borderRadius?: number;
   size?: number;
-  iconColor?: string;       
+  iconColor?: string;
 }
-
 
 export default function MultiActionButton({
   backgroundColor = defaultColor,
-  icon = 'help-outline',
-  label = '',
+  icon = "help-outline",
+  label = "",
   disabled = false,
   borderRadius,
-  iconColor = '#FFFFFF',
+  iconColor = "#FFFFFF",
   size = 38,
   onPress,
 }: MultiActionButtonProps) {
-  
   const dimensions = getMultiActionButtonDimensions(size, responsive);
   const styles = useMultiActionButtonStyles(dimensions);
- 
+  const isIonicons = isIoniconsIcon(icon);
+
   /**
    * Maneja el evento de presión del botón
    */
@@ -42,37 +47,41 @@ export default function MultiActionButton({
       await onPress();
     }
   };
-  
-  const resolvedBackgroundColor = typeof backgroundColor === 'string'
-    ? backgroundColor
-    : backgroundColor.hex;
+
+  const resolvedBackgroundColor =
+    typeof backgroundColor === "string" ? backgroundColor : backgroundColor.hex;
 
   return (
-    <TouchableOpacity 
-      style={styles.buttonContainer} 
-      onPress={handlePress} 
+    <TouchableOpacity
+      style={styles.buttonContainer}
+      onPress={handlePress}
       disabled={disabled}
       activeOpacity={0.8}
     >
-      <View style={[
-        styles.iconContainer,
-        { 
-          backgroundColor: resolvedBackgroundColor,
-          borderRadius: borderRadius ?? dimensions.borderRadius,        
-        }
-      ]}>
-        <Ionicons 
-          name={icon} 
-          size={dimensions.iconSize} 
-          color={iconColor}
-        />
-        {label && (
-          <Text style={styles.labelText}>
-            {label}
-          </Text>
+      <View
+        style={[
+          styles.iconContainer,
+          {
+            backgroundColor: resolvedBackgroundColor,
+            borderRadius: borderRadius ?? dimensions.borderRadius,
+          },
+        ]}
+      >
+        {isIonicons ? (
+          <Ionicons
+            name={icon as keyof typeof Ionicons.glyphMap}
+            size={dimensions.iconSize}
+            color={iconColor}
+          />
+        ) : (
+          <MaterialCommunityIcons
+            name={icon as keyof typeof MaterialCommunityIcons.glyphMap}
+            size={dimensions.iconSize}
+            color={iconColor}
+          />
         )}
+        {label && <Text style={styles.labelText}>{label}</Text>}
       </View>
     </TouchableOpacity>
   );
 }
-

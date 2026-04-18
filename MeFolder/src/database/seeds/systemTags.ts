@@ -118,9 +118,9 @@ export const seedSystemTags = async (): Promise<void> => {
   const tagsQueries = SYSTEM_TAGS.map((tag) => ({
     sql: `INSERT OR IGNORE INTO tags (
       id, created_at, updated_at,
-      name, description, type, priority, is_active, is_favourite, type,
+      name, description, priority, is_active, is_favourite, type,
       color_hex, color_rgb_r, color_rgb_g, color_rgb_b, parent_id
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 
     params: [
       tag.id,
@@ -128,16 +128,15 @@ export const seedSystemTags = async (): Promise<void> => {
       now,
       tag.name,
       null,
-      "system",
       tag.priority,
       true,
       tag.isFavourite,
+      tag.type,
       tag.color.hex,
       tag.color.rgb.r,
       tag.color.rgb.g,
       tag.color.rgb.b,
       null,
-      tag.type,
     ],
   }));
 

@@ -7,6 +7,7 @@ import {
   formatDate,
   formatFileSize,
   getIconByCategory,
+  isIoniconsIcon,
   removeExtension,
 } from "@/utils";
 import { useEffect, useRef, useState } from "react";
@@ -125,11 +126,19 @@ export default function ContentCard({
           renderThumbnail(data)
         ) : (
           <View style={styles.folderContainer}>
-            <MaterialCommunityIcons
-              name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap}
-              size={32}
-              color={data.color?.hex || styles.iconColor.color}
-            />
+            {isIoniconsIcon(data.icon ?? "folder") ? (
+              <Ionicons
+                name={(data.icon ?? "folder") as keyof typeof Ionicons.glyphMap}
+                size={32}
+                color={data.color?.hex || styles.iconColor.color}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+                size={32}
+                color={data.color?.hex || styles.iconColor.color}
+              />
+            )}
           </View>
         )}
 

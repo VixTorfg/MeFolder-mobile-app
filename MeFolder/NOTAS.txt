@@ -29,6 +29,11 @@ Mejoras en general
         -reglas de auto etiquetado
         -compartir archivos por tags
 
+
+- Decidirme si mostrar el album padre o no
+
 CORREGIR:
 
     - DoubleTap menu contextual
+    - Cuando se añade una etiqueta nueva a un archivo, este se añade bien, pero cuando se vuelve
+    hacia atras, como no se ha actualizado el FileModel, las etqieutas estan desactualizadas

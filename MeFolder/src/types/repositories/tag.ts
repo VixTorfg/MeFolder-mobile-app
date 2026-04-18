@@ -25,6 +25,7 @@ export interface TagRepository extends BaseRepository<
   findMostUsed(limit: number): Promise<Tag[]>;
   findSystemTags(): Promise<Tag[]>;
   findActiveTags(): Promise<Tag[]>;
+  getTagsByIds(ids: UUID[]): Promise<Tag[]>;
   search(query: string, filters?: any): Promise<Tag[]>;
 
   updateUsageCount(tagId: UUID, increment: number): Promise<void>;

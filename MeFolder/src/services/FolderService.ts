@@ -2,12 +2,14 @@ import { BaseService } from "./base/BaseService";
 import {
   Folder,
   CreateFolderInput,
+  UpdateFolderInput,
   FolderStatus,
 } from "../types/entities/folder";
 import { UUID } from "../types/common/base";
 import { FolderModel, FolderFactory } from "../models/folder";
 import { ROOT_FOLDER_ID } from "../database/seeds/systemFolders";
 import { FileSystemService } from "./filesystem/FileSystemService";
+import { ColorInfo } from "@/types/common/colors";
 
 /**
  * FolderService MVP - Funcionalidades básicas para desarrollo inicial
@@ -292,15 +294,12 @@ export class FolderService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      const [files, subfolders] = await Promise.all([
-        this.fileRepo.findByFolderId(folderId),
-        this.folderRepo.findByFolderId(folderId),
+      const [files, folders] = await Promise.all([
+        this.fileRepo.count({ folderId }),
+        this.folderRepo.count({ parentId: folderId }),
       ]);
 
-      return {
-        files: files.length,
-        folders: subfolders.length,
-      };
+      return { files, folders };
     } catch (error) {
       return this.handleError(error, "contar contenido de carpeta");
     }
@@ -449,6 +448,63 @@ export class FolderService extends BaseService {
       return FolderFactory.fromJSON(updated);
     } catch (error) {
       return this.handleError(error, "renombrar carpeta");
+    }
+  }
+
+  /**
+   * Actualizar propiedades de una carpeta (color, icono, etc.)
+   */
+  async updateFolder(
+    folderId: UUID,
+    input: UpdateFolderInput,
+  ): Promise<FolderModel> {
+    try {
+      this.ensureDbInitialized();
+
+      const folder = await this.folderRepo.findById(folderId);
+      if (!folder) throw new Error("Carpeta no encontrada");
+
+      const updated = await this.folderRepo.update(folderId, input);
+      return FolderFactory.fromJSON(updated);
+    } catch (error) {
+      return this.handleError(error, "actualizar carpeta");
+    }
+  }
+
+  /**
+   * Actualizar el icono de una carpeta
+   */
+  async updateFolderIcon(folderId: UUID, input: string): Promise<FolderModel> {
+    try {
+      this.ensureDbInitialized();
+
+      const folder = await this.folderRepo.findById(folderId);
+      if (!folder) throw new Error("Carpeta no encontrada");
+
+      const updated = await this.folderRepo.update(folderId, { icon: input });
+      return FolderFactory.fromJSON(updated);
+    } catch (error) {
+      return this.handleError(error, "actualizar icono de carpeta");
+    }
+  }
+
+  /**
+   * Actualizar el color de una carpeta
+   */
+  async updateFolderColor(
+    folderId: UUID,
+    input: ColorInfo,
+  ): Promise<FolderModel> {
+    try {
+      this.ensureDbInitialized();
+
+      const folder = await this.folderRepo.findById(folderId);
+      if (!folder) throw new Error("Carpeta no encontrada");
+
+      const updated = await this.folderRepo.update(folderId, { color: input });
+      return FolderFactory.fromJSON(updated);
+    } catch (error) {
+      return this.handleError(error, "actualizar color de carpeta");
     }
   }
 

@@ -3,7 +3,7 @@ import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useListCardStyles } from "./styles";
 import { CommunCardProps } from "@/types";
 import { FileModel } from "@/models/file";
-import { getIconByCategory, removeExtension } from "@/utils";
+import { getIconByCategory, isIoniconsIcon, removeExtension } from "@/utils";
 import { useRef, useState, useEffect } from "react";
 import { Image } from "expo-image";
 
@@ -119,11 +119,19 @@ export default function ListCard({
           renderThumbnail(data)
         ) : (
           <View style={styles.folderContainer}>
-            <MaterialCommunityIcons
-              name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap}
-              size={32}
-              color={data.color?.hex || styles.iconColor.color}
-            />
+            {isIoniconsIcon(data.icon ?? "folder") ? (
+              <Ionicons
+                name={(data.icon ?? "folder") as keyof typeof Ionicons.glyphMap}
+                size={32}
+                color={data.color?.hex || styles.iconColor.color}
+              />
+            ) : (
+              <MaterialCommunityIcons
+                name={data.icon as keyof typeof MaterialCommunityIcons.glyphMap}
+                size={32}
+                color={data.color?.hex || styles.iconColor.color}
+              />
+            )}
           </View>
         )}
 

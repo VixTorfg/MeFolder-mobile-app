@@ -34,7 +34,11 @@ export class FileRepositoryImplementation implements FileRepository {
   async findById(id: UUID): Promise<File | null> {
     try {
       const [row] = await this.db.query<any>(
-        "SELECT * FROM files WHERE id = ?",
+        `SELECT f.*, GROUP_CONCAT(DISTINCT ft.tag_id) as tag_ids
+         FROM files f
+         LEFT JOIN file_tags ft ON f.id = ft.file_id
+         WHERE f.id = ?
+         GROUP BY f.id`,
         [id],
       );
 
@@ -51,7 +55,11 @@ export class FileRepositoryImplementation implements FileRepository {
   async findRootFiles(): Promise<File[]> {
     try {
       const rows = await this.db.query<any>(
-        "SELECT * FROM files WHERE (folder_id = ? OR folder_id IS NULL) AND status != ?",
+        `SELECT f.*, GROUP_CONCAT(DISTINCT ft.tag_id) as tag_ids
+         FROM files f
+         LEFT JOIN file_tags ft ON f.id = ft.file_id
+         WHERE (f.folder_id = ? OR f.folder_id IS NULL) AND f.status != ?
+         GROUP BY f.id`,
         [ROOT_FOLDER_ID, "deleted"],
       );
 
@@ -87,37 +95,38 @@ export class FileRepositoryImplementation implements FileRepository {
   async findAll(filters?: any, includeDeleted = false): Promise<File[]> {
     try {
       let sql = includeDeleted
-        ? "SELECT * FROM files WHERE 1=1"
-        : "SELECT * FROM files WHERE status != ?";
+        ? "SELECT f.*, GROUP_CONCAT(DISTINCT ft.tag_id) as tag_ids FROM files f LEFT JOIN file_tags ft ON f.id = ft.file_id WHERE 1=1"
+        : "SELECT f.*, GROUP_CONCAT(DISTINCT ft.tag_id) as tag_ids FROM files f LEFT JOIN file_tags ft ON f.id = ft.file_id WHERE f.status != ?";
       const params: any[] = includeDeleted ? [] : ["deleted"];
 
       // Aplicar filtros si existen
       if (filters) {
         if (filters.folderId) {
-          sql += " AND folder_id = ?";
+          sql += " AND f.folder_id = ?";
           params.push(filters.folderId);
         }
         if (filters.status) {
-          sql += " AND status = ?";
+          sql += " AND f.status = ?";
           params.push(filters.status);
         }
         if (filters.extensions && filters.extensions.length > 0) {
           const placeholders = filters.extensions.map(() => "?").join(",");
-          sql += ` AND extension IN (${placeholders})`;
+          sql += ` AND f.extension IN (${placeholders})`;
           params.push(...filters.extensions);
         }
         if (filters.category) {
-          sql += " AND category = ?";
+          sql += " AND f.category = ?";
           params.push(filters.category);
         }
         if (filters.excludeTagId) {
           sql +=
-            " AND id NOT IN (SELECT file_id FROM file_tags WHERE tag_id = ?)";
+            " AND f.id NOT IN (SELECT file_id FROM file_tags WHERE tag_id = ?)";
           params.push(filters.excludeTagId);
         }
       }
 
-      sql += " ORDER BY created_at DESC";
+      sql += " GROUP BY f.id";
+      sql += " ORDER BY f.created_at DESC";
 
       // Paginación si se especifica
       if (filters?.limit) {
@@ -432,10 +441,14 @@ export class FileRepositoryImplementation implements FileRepository {
 
       const placeholders = tagIds.map(() => "?").join(",");
       const sql = `
-        SELECT DISTINCT f.* FROM files f
-        INNER JOIN file_tags ft ON f.id = ft.file_id
-        WHERE ft.tag_id IN (${placeholders})
+        SELECT f.*, GROUP_CONCAT(DISTINCT ft_all.tag_id) as tag_ids
+        FROM files f
+        LEFT JOIN file_tags ft_all ON f.id = ft_all.file_id
+        WHERE f.id IN (
+          SELECT DISTINCT file_id FROM file_tags WHERE tag_id IN (${placeholders})
+        )
         AND f.status != 'deleted'
+        GROUP BY f.id
         ORDER BY f.created_at DESC
       `;
 
@@ -491,24 +504,27 @@ export class FileRepositoryImplementation implements FileRepository {
   async search(query: string, filters?: any): Promise<File[]> {
     try {
       let sql = `
-        SELECT * FROM files 
-        WHERE status != 'deleted' 
-        AND (name LIKE ? OR description LIKE ?)
+        SELECT f.*, GROUP_CONCAT(DISTINCT ft.tag_id) as tag_ids
+        FROM files f
+        LEFT JOIN file_tags ft ON f.id = ft.file_id
+        WHERE f.status != 'deleted' 
+        AND (f.name LIKE ? OR f.description LIKE ?)
       `;
       const params: any[] = [`%${query}%`, `%${query}%`];
 
       if (filters) {
         if (filters.folderId) {
-          sql += " AND folder_id = ?";
+          sql += " AND f.folder_id = ?";
           params.push(filters.folderId);
         }
         if (filters.category) {
-          sql += " AND category = ?";
+          sql += " AND f.category = ?";
           params.push(filters.category);
         }
       }
 
-      sql += " ORDER BY name ASC";
+      sql += " GROUP BY f.id";
+      sql += " ORDER BY f.name ASC";
 
       const rows = await this.db.query<any>(sql, params);
       return rows.map((row) => this.mapRowToFile(row));
@@ -533,7 +549,7 @@ export class FileRepositoryImplementation implements FileRepository {
       path: row.path,
       status: row.status as FileStatus,
       visibility: row.visibility as FileVisibility,
-      tagIds: [],
+      tagIds: row.tag_ids ? row.tag_ids.split(",") : [],
     };
 
     const metadata: FileMetadata = {

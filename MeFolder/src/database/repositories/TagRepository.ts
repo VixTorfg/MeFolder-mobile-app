@@ -631,6 +631,21 @@ export class TagRepositoryImplementation implements TagRepository {
     }
   }
 
+  async getTagsByIds(ids: UUID[]): Promise<Tag[]> {
+    try {
+      if (ids.length === 0) return [];
+      const placeholders = ids.map(() => "?").join(",");
+      const rows = await this.db.query<any>(
+        `SELECT * FROM tags WHERE id IN (${placeholders}) AND is_active = ?`,
+        [...ids, true],
+      );
+      return rows.map((row) => this.mapRowToTag(row));
+    } catch (error) {
+      console.error("Error getting tags by ids:", error);
+      throw new Error(`Error al obtener etiquetas por ids: ${error}`);
+    }
+  }
+
   async updateTagViewConfig(
     tagId: UUID,
     viewSettings: Partial<ViewSettings>,

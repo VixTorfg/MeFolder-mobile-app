@@ -92,25 +92,23 @@ export const ContextMenu = ({
           styles.menuContainer,
         ]}
       >
-        {options.map((option) => (
-          <>
-            {option.visible !== false && (
-              <TouchableOpacity
-                key={option.hierarchy}
-                onPress={option.onPress}
-                disabled={option.disabled}
-                style={[
-                  ["Propiedades", "Renombrar"].includes(option.label)
-                    ? styles.menuItemsBorder
-                    : styles.menuItems,
-                  option.disabled && { opacity: 0.5 },
-                ]}
-              >
-                {renderRow(option)}
-              </TouchableOpacity>
-            )}
-          </>
-        ))}
+        {options.map((option) =>
+          option.visible !== false ? (
+            <TouchableOpacity
+              key={option.hierarchy}
+              onPress={option.onPress}
+              disabled={option.disabled}
+              style={[
+                ["Propiedades", "Renombrar"].includes(option.label)
+                  ? styles.menuItemsBorder
+                  : styles.menuItems,
+                option.disabled && { opacity: 0.5 },
+              ]}
+            >
+              {renderRow(option)}
+            </TouchableOpacity>
+          ) : null,
+        )}
       </Animated.View>
     </View>
   );

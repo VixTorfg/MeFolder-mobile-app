@@ -1,20 +1,18 @@
-import { StyleSheet } from 'react-native';
-import { useStyles } from '@/hooks';
-import { basicCard } from '@/constants/styles/cards';
-import { rename } from 'node:fs';
+import { StyleSheet } from "react-native";
+import { useStyles } from "@/hooks";
 
 export const usePropertyMenuStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     overlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: "rgba(0,0,0,0.5)",
     },
     containerWrapper: {
-      position: 'absolute',
+      position: "absolute",
       bottom: 0,
       left: 0,
       right: 0,
-      maxHeight: '90%',
+      maxHeight: "90%",
     },
     container: {
       backgroundColor: theme.colors.background,
@@ -23,7 +21,7 @@ export const usePropertyMenuStyles = () => {
       paddingHorizontal: theme.spacing.lg,
     },
     handleZone: {
-      alignItems: 'center',
+      alignItems: "center",
       paddingVertical: theme.spacing.md,
     },
     handle: {
@@ -33,35 +31,35 @@ export const usePropertyMenuStyles = () => {
       borderRadius: theme.effects.radius.exs,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       marginBottom: theme.spacing.lg,
     },
     headerTitle: {
       fontSize: theme.typography.fontSize.xl,
       fontFamily: theme.typography.fontFamily.title.bold,
       color: theme.colors.textPrimary,
-      maxWidth: '80%',
+      maxWidth: "80%",
     },
     closeButton: {
       width: 36,
       height: 36,
       borderRadius: theme.effects.radius.md,
       backgroundColor: theme.colors.subCard,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     sectionSelector: {
-      flexDirection: 'row',
+      flexDirection: "row",
       gap: theme.spacing.sm,
       marginBottom: theme.spacing.lg,
     },
     typeOption: {
       flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
       gap: theme.spacing.sm,
       paddingVertical: theme.spacing.md,
       borderRadius: theme.effects.radius.md,
@@ -86,78 +84,116 @@ export const usePropertyMenuStyles = () => {
 };
 
 export const useFilePropertyMenuStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     container: {
       flex: 1,
-    },
-    section: {
-      paddingBottom: theme.spacing.sm,
-      paddingHorizontal: theme.spacing.sm,
-    },
-    nameRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
       gap: theme.spacing.md,
     },
-    tagRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: theme.spacing.md,
-      paddingVertical: theme.spacing.md,
-    },
-    sectionTitle: {
-      fontSize: theme.typography.fontSize.lg,
-      fontFamily: theme.typography.fontFamily.primary.semiBold,
-      color: theme.colors.textPrimary,
-    },
-    fileInfo: {
-      flex: 1,
-      flexDirection: 'row',
+
+    /* ── Header: icono + nombre ── */
+    nameSection: {
+      flexDirection: "row",
+      alignItems: "center",
       gap: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.xs,
+    },
+    fileIconContainer: {
+      width: 44,
+      height: 44,
+      borderRadius: theme.effects.radius.md,
+      backgroundColor: theme.colors.primarySoft,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    nameInputWrapper: {
+      flex: 1,
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing.xs,
     },
     fileNameInput: {
+      flex: 1,
       fontSize: theme.typography.fontSize.md,
       fontFamily: theme.typography.fontFamily.primary.medium,
       color: theme.colors.textPrimary,
       paddingVertical: theme.spacing.xs,
       paddingHorizontal: theme.spacing.sm,
-      borderRadius: theme.effects.radius.xxs,
+      borderRadius: theme.effects.radius.xs,
       borderWidth: theme.effects.borderWidth.md,
+      borderColor: theme.colors.borderSoft,
       backgroundColor: theme.colors.surface,
     },
-    row: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: theme.spacing.xs,
+    fileNameInputFocused: {
+      borderColor: theme.colors.primary,
     },
-    column: {
-      flexDirection: 'column',
-      alignItems: 'flex-start',
-      gap: theme.spacing.xs,
-      paddingLeft: theme.spacing.sm,
-      marginTop: theme.spacing.xs,
+    extensionBadge: {
+      fontSize: theme.typography.fontSize.xs,
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      color: theme.colors.textMuted,
+      paddingVertical: 2,
+      paddingHorizontal: theme.spacing.xs,
+      borderRadius: theme.effects.radius.xxs,
+      backgroundColor: theme.colors.subCard,
     },
-    label: {
-      fontSize: theme.typography.fontSize.sm,
-      fontFamily: theme.typography.fontFamily.primary.regular,
-      color: theme.colors.textSecondary,
-      minWidth: 100,
+    renameButton: {
+      width: 36,
+      height: 36,
+      borderRadius: theme.effects.radius.xs,
+      backgroundColor: theme.colors.primarySoft,
+      alignItems: "center",
+      justifyContent: "center",
     },
-    value: {
+
+    /* ── Cards / secciones ── */
+    card: {
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.effects.radius.md,
+      borderWidth: theme.effects.borderWidth.xs,
+      borderColor: theme.colors.borderSoft,
+      padding: theme.spacing.md,
+      gap: theme.spacing.sm,
+    },
+    sectionTitle: {
       fontSize: theme.typography.fontSize.sm,
       fontFamily: theme.typography.fontFamily.primary.semiBold,
-      color: theme.colors.textPrimary,
-      marginLeft: theme.spacing.xs,
-      marginRight: theme.spacing.sm,
+      color: theme.colors.textSecondary,
+      textTransform: "uppercase",
+      letterSpacing: 0.5,
     },
+
+    /* ── Info rows ── */
+    infoGrid: {
+      gap: theme.spacing.xs,
+    },
+    infoRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+    },
+    infoLabel: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      color: theme.colors.textMuted,
+      minWidth: 90,
+    },
+    infoValue: {
+      flex: 1,
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      color: theme.colors.textPrimary,
+      textAlign: "right",
+    },
+
+    /* ── Tags ── */
     tagList: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: theme.spacing.sm,
     },
     tagChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: theme.spacing.xs,
       paddingVertical: theme.spacing.xs,
       paddingHorizontal: theme.spacing.sm,
@@ -165,10 +201,6 @@ export const useFilePropertyMenuStyles = () => {
       backgroundColor: theme.colors.subCard,
       borderWidth: theme.effects.borderWidth.xs,
       borderColor: theme.colors.borderSoft,
-    },
-    tagChipSelected: {
-      backgroundColor: theme.colors.primarySoft,
-      borderColor: theme.colors.primary,
     },
     tagDot: {
       width: 8,
@@ -180,42 +212,155 @@ export const useFilePropertyMenuStyles = () => {
       fontFamily: theme.typography.fontFamily.primary.medium,
       color: theme.colors.textSecondary,
     },
-    tagChipTextSelected: {
-      color: theme.colors.primary,
+    emptyText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      color: theme.colors.textMuted,
+      fontStyle: "italic",
+    },
+    tagActions: {
+      flexDirection: "row",
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.xs,
     },
     tagButton: {
       flex: 1,
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'center',
-      gap: theme.spacing.sm,
-      paddingVertical: theme.spacing.md,
-      borderRadius: theme.effects.radius.md,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: theme.spacing.xs,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.effects.radius.xs,
+      backgroundColor: theme.colors.surface,
       borderWidth: theme.effects.borderWidth.md,
       borderColor: theme.colors.borderSoft,
-      backgroundColor: theme.colors.surface,
     },
-    tagsButtonRow: {
-      flex: 1,
-      flexDirection: 'row',
+    tagButtonText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      color: theme.colors.textSecondary,
+    },
+
+    /* ── Placeholder customize ── */
+    placeholderSection: {
+      alignItems: "center",
+      justifyContent: "center",
+      paddingVertical: theme.spacing.xxl * 2,
       gap: theme.spacing.sm,
-      marginVertical: theme.spacing.lg,
     },
-    tagsButtonText: {
-      fontSize: theme.typography.fontSize.md,
-      fontFamily: theme.typography.fontFamily.primary.medium,
-      color: theme.colors.textSecondary,
+    placeholderText: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textMuted,
     },
-    renameButtonText: {
-      fontSize: theme.typography.fontSize.xs,
+    placeholderSubtext: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      color: theme.colors.textMuted,
+    },
+  }));
+};
+
+export const useFolderPropertyMenuStyles = () => {
+  return useStyles((theme) => ({
+    /* ── Preview (customize) ── */
+    previewContainer: {
+      alignItems: "center",
+      gap: theme.spacing.sm,
+      paddingVertical: theme.spacing.lg,
+    },
+    previewIcon: {
+      width: 80,
+      height: 80,
+      borderRadius: theme.effects.radius.lg,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    previewName: {
+      fontSize: theme.typography.fontSize.lg,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textPrimary,
+    },
+
+    /* ── Color picker ── */
+    colorGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: theme.spacing.sm,
+    },
+    colorOption: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: theme.effects.borderWidth.lg,
+      borderColor: "transparent",
+    },
+    colorOptionSelected: {
+      borderColor: theme.colors.textPrimary,
+    },
+    colorOptionInner: {
+      width: 30,
+      height: 30,
+      borderRadius: 15,
+    },
+
+    /* ── Icon picker ── */
+    iconGrid: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: theme.spacing.sm,
+    },
+    iconOption: {
+      width: 48,
+      height: 48,
+      borderRadius: theme.effects.radius.md,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.subCard,
+      borderWidth: theme.effects.borderWidth.xs,
+      borderColor: theme.colors.borderSoft,
+    },
+    iconOptionSelected: {
+      backgroundColor: theme.colors.primarySoft,
+      borderColor: theme.colors.primary,
+    },
+
+    /* ── Attributes ── */
+    attributeRow: {
+      flexDirection: "row",
+      flexWrap: "wrap",
+      gap: theme.spacing.sm,
+    },
+    attributeBadge: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing.xs,
+      paddingVertical: theme.spacing.xs,
+      paddingHorizontal: theme.spacing.sm,
+      borderRadius: theme.effects.radius.lg,
+      backgroundColor: theme.colors.subCard,
+      borderWidth: theme.effects.borderWidth.xs,
+      borderColor: theme.colors.borderSoft,
+    },
+    attributeBadgeActive: {
+      backgroundColor: theme.colors.primarySoft,
+      borderColor: theme.colors.primary,
+    },
+    attributeText: {
+      fontSize: theme.typography.fontSize.sm,
       fontFamily: theme.typography.fontFamily.primary.medium,
-      color: theme.colors.textSecondary,
+      color: theme.colors.textMuted,
+    },
+    attributeTextActive: {
+      color: theme.colors.primary,
     },
   }));
 };
 
 export const useFolderCreatorStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     container: {
       flex: 1,
     },
@@ -244,24 +389,24 @@ export const useFolderCreatorStyles = () => {
     },
     descriptionInput: {
       minHeight: 80,
-      textAlignVertical: 'top',
+      textAlignVertical: "top",
     },
     colorSection: {
       marginBottom: theme.spacing.lg,
     },
     colorList: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: theme.spacing.sm,
     },
     colorOption: {
       width: 40,
       height: 40,
       borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       borderWidth: theme.effects.borderWidth.lg,
-      borderColor: 'transparent',
+      borderColor: "transparent",
     },
     colorOptionSelected: {
       borderColor: theme.colors.textPrimary,
@@ -275,16 +420,16 @@ export const useFolderCreatorStyles = () => {
       marginBottom: theme.spacing.lg,
     },
     iconGrid: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: theme.spacing.sm,
     },
     iconOption: {
       width: 48,
       height: 48,
       borderRadius: theme.effects.radius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: theme.colors.subCard,
       borderWidth: theme.effects.borderWidth.xs,
       borderColor: theme.colors.borderSoft,
@@ -297,13 +442,13 @@ export const useFolderCreatorStyles = () => {
       marginBottom: theme.spacing.lg,
     },
     tagList: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      flexDirection: "row",
+      flexWrap: "wrap",
       gap: theme.spacing.sm,
     },
     tagChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: theme.spacing.xs,
       paddingVertical: theme.spacing.xs,
       paddingHorizontal: theme.spacing.sm,
@@ -334,8 +479,8 @@ export const useFolderCreatorStyles = () => {
       paddingVertical: theme.spacing.md,
       borderRadius: theme.effects.radius.md,
       backgroundColor: theme.colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     saveButtonDisabled: {
       backgroundColor: theme.colors.borderSoft,
