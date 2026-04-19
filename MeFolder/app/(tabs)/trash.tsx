@@ -1,240 +1,457 @@
-import { ViewDropDown, ViewCards, SearchBox, MultiActionButton, OptionDropDown } from '@/components';
-import { FileModel, FolderModel } from '@/models';
-import { useServices, useDatabase } from '@/providers';
-import { useAlert } from '@/hooks';
-import { useLibraryStyles } from '@/screenStyles/libraryStyle';
-import React, { useCallback, useState } from 'react';
-import { useFocusEffect } from 'expo-router';
-import { View, FlatList } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { modeView, OptionsIds, OptionsType } from '@/types';
+import {
+  ViewDropDown,
+  ViewCards,
+  MultiActionButton,
+  OptionDropDown,
+  SortDropDown,
+  ContextMenu,
+  AudioPlayer,
+  VideoPlayer,
+  ImageViewer,
+  PropertyMenu,
+} from "@/components";
+import { FileModel, FolderModel } from "@/models";
+import {
+  useAlert,
+  useFileSystem,
+  useSelection,
+  useTrashActions,
+} from "@/hooks";
+import { MediaSource } from "@/types/media/viewers";
+import React, { useMemo, useState } from "react";
+import { View, Text, ActivityIndicator } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTrashContent } from "@/hooks/trash/useTrashContent";
+import { router } from "expo-router";
+import EmptyFolder from "@/components/svgIcons/emptyFolder";
+import { FlashList } from "@shopify/flash-list";
+import { useTrashStyles } from "@/screenStyles/trashStyle";
 
 export default function TrashScreen() {
-  const { isReady } = useDatabase();
-  const { services } = useServices();
-  const [selectedView, setSelectedView] = useState<modeView>('list');
-  const [items, setItems] = useState<(FileModel | FolderModel)[]>([]);
-  const [itemsSelected, setItemsSelected] = useState<(FileModel | FolderModel)[]>([]);
-  const selectionMode = itemsSelected.length > 0;
+  const [showMenu, setShowMenu] = useState(false);
+  const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
+  const [clickedItem, setClickedItem] = useState<
+    FileModel | FolderModel | null
+  >(null);
+  const [menuPosition, setMenuPosition] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
+  const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
+  const [audioPlayerSource, setAudioPlayerSource] =
+    useState<MediaSource | null>(null);
+  const [videoPlayerSource, setVideoPlayerSource] =
+    useState<MediaSource | null>(null);
+  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
 
-  const styles = useLibraryStyles();
   const { showAlert } = useAlert();
-  
-  let folders: FolderModel[] = [];
-  let files: FileModel[] = [];
+  const fs = useFileSystem();
+  const styles = useTrashStyles();
 
-  useFocusEffect(
-    useCallback(() => {
-      if (!isReady) return;
+  const {
+    items,
+    loading,
+    viewOptions,
+    gridConfig,
+    selectedView,
+    sortedItems,
+    sortValue,
+    orderBy,
+    handleSortItems,
+    handleViewModeChange,
+    handleViewOptionsChange,
+  } = useTrashContent();
 
-      const loadContent = async () => {
-        const folderService = services?.folderService;
-        const fileService = services?.fileService;
+  const {
+    itemsSelected,
+    selectionMode,
+    toggleSelection,
+    clearSelection,
+    handleOnSelectOption,
+  } = useSelection(items);
 
-        folders = await folderService.getDeletedFolders();
-        files = await fileService.getDeletedFiles();
-
-        setItems([...folders, ...files]);
-      };
-
-      loadContent();
-    }, [isReady])
+  const {
+    handlePermanentDelete,
+    handleRestoreSelected,
+    handleEmptyTrash,
+    handleRestoreAll,
+    handleRename,
+    handleShare,
+    handleMakeFavorite,
+  } = useTrashActions(
+    itemsSelected,
+    clearSelection,
+    clickedItem,
+    setIsRenaming,
   );
 
-  const handleRestore = (itemName: string) => {
-    showAlert({
-      title: 'Restaurar elemento',
-      message: `¿Deseas restaurar "${itemName}"?`,
-      buttons: [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Restaurar', onPress: () => console.log('Restaurando:', itemName) }
-      ],
-    });
-  };
-
-  const handlePermanentDelete = () => {
-    showAlert({
-      title: 'Eliminar permanentemente',
-      message: '¿Estás seguro de que deseas eliminar permanentemente los elementos seleccionados? Esta acción no se puede deshacer.',
-      buttons: [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Eliminar',
-          style: 'destructive',
-          onPress: async () => {
-            const fileService = services?.fileService;
-            const folderService = services?.folderService;
-
-            for (const item of itemsSelected) {
-              if (item instanceof FolderModel) {
-                await folderService.permanentDeleteFolder(item.id);
-              } else {
-                await fileService.permanentDeleteFile(item.id);
-              }
-            }
-
-            setItems(prev => prev.filter(i => !itemsSelected.includes(i)));
-            setItemsSelected([]);
+  const handleOpenItem = (item: FileModel | FolderModel) => {
+    if (item instanceof FolderModel) {
+      showAlert({
+        title: "Restaurar o eliminar",
+        message: "¿Desea restaurar o eliminar esta carpeta?",
+        buttons: [
+          {
+            text: "Restaurar",
+            onPress: () => {
+              handleRestoreSelected();
+              clearSelection();
+            },
           },
-        },
-      ],
-    });
-  };
-
-  const handleEmptyTrash = () => {
-    showAlert({
-      title: 'Vaciar papelera',
-      message: '¿Estás seguro de que deseas vaciar toda la papelera? Esta acción no se puede deshacer.',
-      buttons: [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Vaciar',
-          style: 'destructive',
-         onPress: async () => {
-            const fileService = services?.fileService;
-            const folderService = services?.folderService;
-
-            const filesOnly = items.filter(i => i instanceof FileModel);
-            const foldersOnly = items.filter(i => i instanceof FolderModel);
-
-            for (const file of filesOnly) {
-              await fileService.permanentDeleteFile(file.id);
-            }
-            for (const folder of foldersOnly) {
-              await folderService.permanentDeleteFolder(folder.id);
-            }
-
-            setItems([]);
-            setItemsSelected([]);
+          {
+            text: "Eliminar",
+            onPress: () => {
+              handlePermanentDelete();
+              clearSelection();
+            },
+            style: "destructive",
           },
-        },
-      ],
-    });
-  };
+          {
+            text: "Cancelar",
+            style: "cancel",
+          },
+        ],
+      });
+    } else {
+      const uri = item.storageUrl ?? item.path;
 
-  const handleOnPress = (selectedMode: any) => {
-      setSelectedView(selectedMode.id);
-      console.log('Modo seleccionado:', selectedMode.id);
+      if (!fs.fileExists(uri)) {
+        console.error("[handleOpenItem] File not found:", uri);
+        console.error("[handleOpenItem] storageUrl:", item.storageUrl);
+        console.error("[handleOpenItem] path:", item.path);
+        return;
+      }
+
+      const source: MediaSource = {
+        uri,
+        fileId: item.id,
+        ...(item.metadata.mimeType != null && {
+          mimeType: item.metadata.mimeType,
+        }),
+        displayName: item.name,
+      };
+
+      switch (item.category) {
+        case "image":
+          setViewerSource(source);
+          setViewerVisible(true);
+          break;
+        case "video":
+          setVideoPlayerSource(source);
+          setVideoPlayerVisible(true);
+          break;
+        case "audio":
+          setAudioPlayerSource(source);
+          setAudioPlayerVisible(true);
+          break;
+        default:
+          break;
+      }
     }
-  
-    const handleElementPress = (item: FileModel | FolderModel) => {
-      if (item instanceof FolderModel) {
-        
-      } else {
-        /*Alert.alert(
-          `📄 ${item.name}`,
-          JSON.stringify(item.toJSON(), null, 2),
-        );*/
-      }
-    };
-  
-    const toggleSelection = (item: FileModel | FolderModel) => {
-      setItemsSelected(prev =>
-        prev.some(i => i.id === item.id)
-          ? prev.filter(i => i.id !== item.id)
-          : [...prev, item]
+  };
+
+  const menuOptions = useMemo(
+    () => [
+      {
+        hierarchy: "1",
+        label: "Abrir",
+        onPress: () => {
+          handleOpenItem(clickedItem!);
+          setShowMenu(false);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons name="open-in-app" size={20} color="black" />
+        ),
+      },
+      {
+        hierarchy: "2",
+        label: "Compartir con",
+        onPress: () => {
+          setShowMenu(false);
+          clickedItem && handleShare(clickedItem);
+        },
+        disabled: false,
+        visible: true,
+        icon: <MaterialCommunityIcons name="share" size={20} color="black" />,
+      },
+      {
+        hierarchy: "3",
+        label: "Agregar a favoritos",
+        onPress: () => {
+          setShowMenu(false);
+          clickedItem && handleMakeFavorite(clickedItem as FileModel);
+        },
+        disabled: false,
+        visible: clickedItem instanceof FileModel,
+        icon: <MaterialCommunityIcons name="star" size={20} color="black" />,
+      },
+      {
+        hierarchy: "4",
+        label: "Renombrar",
+        onPress: () => {
+          setShowMenu(false);
+          setIsRenaming(true);
+        },
+        disabled: false,
+        visible: true,
+        icon: <MaterialCommunityIcons name="pencil" size={20} color="black" />,
+      },
+      {
+        hierarchy: "5",
+        label: "Eliminar",
+        onPress: () => {
+          setShowMenu(false);
+          clickedItem && handlePermanentDelete([clickedItem]);
+        },
+        disabled: false,
+        visible: true,
+        icon: <MaterialCommunityIcons name="delete" size={20} color="black" />,
+      },
+      {
+        hierarchy: "6",
+        label: "Restaurar",
+        onPress: () => {
+          setShowMenu(false);
+          clickedItem && handleRestoreSelected([clickedItem]);
+        },
+        disabled: false,
+        visible: true,
+        icon: <MaterialCommunityIcons name="restore" size={20} color="black" />,
+      },
+      {
+        hierarchy: "7",
+        label: "Propiedades",
+        onPress: () => {
+          setShowItemPropertyMenu(true);
+          setShowMenu(false);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons name="information" size={20} color="black" />
+        ),
+      },
+    ],
+    [clickedItem],
+  );
+
+  const renderGroupButtons = () => {
+    if (selectionMode) {
+      return (
+        <>
+          <MultiActionButton
+            icon={"search-outline"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => {}}
+          />
+          {!itemsSelected.some((i) => i instanceof FolderModel) && (
+            <MultiActionButton
+              icon={"bookmark-plus-outline"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={44}
+              onPress={() => {
+                const fileIds = itemsSelected
+                  .filter((i) => i instanceof FileModel)
+                  .map((f) => f.id)
+                  .join(",");
+                router.push({ pathname: "/tag-adder", params: { fileIds } });
+              }}
+            />
+          )}
+          <MultiActionButton
+            icon={"trash-outline"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => handlePermanentDelete()}
+          />
+          <MultiActionButton
+            icon={"restore"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => handleRestoreSelected()}
+          />
+          <OptionDropDown
+            size={42}
+            showProperties={false}
+            onSelect={handleOnSelectOption}
+          />
+        </>
       );
-    };
-  
-    const handleRestoreSelected = async () => {
-      const fileService = services?.fileService;
-      const folderService = services?.folderService;
-
-      const allRestoredIds = new Set<string>();
-
-      for (const item of itemsSelected) {
-        if (item instanceof FolderModel) {
-          const restoredIds = await folderService.restoreFolder(item.id);
-          restoredIds.forEach((id: string) => allRestoredIds.add(id));
-        } else {
-          const restoredIds = await fileService.restoreFile(item.id);
-          restoredIds.forEach((id: string) => allRestoredIds.add(id));
-        }
-      }
-
-      setItems(prev => prev.filter(i => !allRestoredIds.has(i.id)));
-      setItemsSelected([]);
-    };
-
-    const handleOnSelectOption = (option: OptionsType) => {
-      switch (option.id) {
-        case OptionsIds.SELECT_ALL:
-          setItemsSelected([...items]);
-          break;
-        case OptionsIds.NO_SELECT:
-          setItemsSelected([]);
-          break;
-        case OptionsIds.INVERT_SELECT:
-          setItemsSelected(prev => {
-            const selectedIds = new Set(prev.map(item => item.id));
-            return items.filter(item => !selectedIds.has(item.id));
-          });
-          break;
-        case OptionsIds.PROPERTIES:
-          console.log('Seleccionaste Propiedades');
-          break;
-        case OptionsIds.SETTINGS:
-          console.log('Seleccionaste Configuración');
-          break;
-      }
-    };
+    } else {
+      return (
+        <>
+          <MultiActionButton
+            icon={"search-outline"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => {}}
+          />
+          <MultiActionButton
+            icon={"restore"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => handleRestoreAll()}
+          />
+          <MultiActionButton
+            icon={"trash-outline"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => handleEmptyTrash()}
+          />
+          <SortDropDown
+            size={42}
+            onChangeOrderBy={async (ob) => await handleSortItems(sortValue, ob)}
+            onChangeSortValue={async (sv) => await handleSortItems(sv, orderBy)}
+            defaultOrderByValue={orderBy}
+            defaultSortValue={sortValue}
+          />
+          <ViewDropDown
+            size={42}
+            onChange={async (selectedMode) =>
+              await handleViewModeChange(selectedMode.id)
+            }
+            defaultValue={selectedView}
+            viewOptions={viewOptions}
+            onViewOptionsChange={handleViewOptionsChange}
+          />
+          <OptionDropDown
+            size={42}
+            showProperties={false}
+            onSelect={handleOnSelectOption}
+          />
+        </>
+      );
+    }
+  };
 
   return (
-   <View style={styles.container}>
+    <View style={styles.container}>
       <View style={styles.header}>
-        <SearchBox
-          onSearch={async (query) => { /* futuro */ return []; }}
-          onClear={() => { /* futuro */ }}
-        />
-        {selectionMode && (
-          <MultiActionButton
-            icon={"refresh-outline"}
-            backgroundColor="#4CAF50"
-            size={38}
-            onPress={handleRestoreSelected}
-          />         
-        )}
-
-        {selectionMode && (
-           <MultiActionButton
-            icon={"trash-outline"}
-            backgroundColor="red"
-            size={38}
-            onPress={handlePermanentDelete}
-          />    
-        )}
-
-        <MultiActionButton
-          icon={"settings"}
-          size={38}
-          onPress={() => console.log("hola")}
-        />
+        <View style={styles.buttonsGroup}>{renderGroupButtons()}</View>
       </View>
 
       <View style={styles.headerBreadcrumb}>
-        <View style={styles.buttonsGroup}>
-          <OptionDropDown onSelect={handleOnSelectOption}/>
-          <ViewDropDown onChange={handleOnPress} defaultValue='list'/>
-        </View>
+        <Text style={styles.headerBreadcrumbText}>Papelera</Text>
       </View>
 
-      <FlatList
-        data={items}
-        keyExtractor={(item) => item.id}
-        key={selectedView === 'grid' ? 'grid' : 'list'}
-        numColumns={selectedView === 'grid' ? 2 : 1}
-        renderItem={({ item }) => (
-          <ViewCards
-            data={item}
-            viewConfig={selectedView}
-            selected={itemsSelected.some(i => i.id === item.id)}
-            onPress={() => {selectionMode ? toggleSelection(item) : handleElementPress(item)}}
-            onLongPress={() => toggleSelection(item)}
+      {loading ? (
+        <View
+          style={[styles.footerEmptyContainer, { justifyContent: "center" }]}
+        >
+          <ActivityIndicator
+            size="large"
+            color={styles.iconColor.primaryColor}
           />
-        )}
-        columnWrapperStyle={selectedView === 'grid' ? styles.gridRow : undefined}
-        contentContainerStyle={{ paddingBottom: 120, gap: 10, padding: 16 }}
+        </View>
+      ) : sortedItems.length === 0 ? (
+        <View style={styles.footerEmptyContainer}>
+          <View style={styles.emptyFolderIconContainer}>
+            <EmptyFolder
+              strokeWidth={0.35}
+              width={120}
+              height={120}
+              folderColor={styles.iconColor.color}
+              crossColor={styles.iconColor.primaryColor}
+            />
+            <Text style={styles.emptyFolderText}>La papelera está vacía</Text>
+          </View>
+        </View>
+      ) : (
+        <FlashList
+          data={sortedItems}
+          keyExtractor={(item) => item.id}
+          key={`${selectedView}-${gridConfig.columns}`}
+          numColumns={gridConfig.columns}
+          onScroll={() => setShowMenu(false)}
+          renderItem={({ item }) => (
+            <View style={styles.cardWrapper}>
+              <ViewCards
+                data={item}
+                viewConfig={selectedView}
+                viewOptions={viewOptions}
+                selected={itemsSelected.some((i) => i.id === item.id)}
+                selectionMode={selectionMode}
+                isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+                onRename={handleRename}
+                onRenameCancel={() => setIsRenaming(false)}
+                onPress={() => {
+                  selectionMode ? toggleSelection(item) : handleOpenItem(item);
+                }}
+                onDoublePress={(position) => {
+                  setClickedItem(item);
+                  setMenuPosition(position);
+                  setShowMenu(true);
+                }}
+                onLongPress={() => toggleSelection(item)}
+              />
+            </View>
+          )}
+          contentContainerStyle={styles.flatListContent}
+        />
+      )}
+
+      <ContextMenu
+        options={menuOptions}
+        visible={showMenu}
+        onDismiss={() => setShowMenu(false)}
+        position={menuPosition}
       />
+
+      {clickedItem && (
+        <PropertyMenu
+          item={clickedItem}
+          visible={showItemPropertyMenu}
+          onClose={() => setShowItemPropertyMenu(false)}
+        />
+      )}
+
+      {viewerSource && (
+        <ImageViewer
+          source={viewerSource}
+          visible={viewerVisible}
+          onClose={() => {
+            setViewerVisible(false);
+            setViewerSource(null);
+          }}
+        />
+      )}
+
+      {audioPlayerSource && (
+        <AudioPlayer
+          source={audioPlayerSource}
+          visible={audioPlayerVisible}
+          onClose={() => {
+            setAudioPlayerVisible(false);
+            setAudioPlayerSource(null);
+          }}
+        />
+      )}
+
+      {videoPlayerSource && (
+        <VideoPlayer
+          source={videoPlayerSource}
+          visible={videoPlayerVisible}
+          onClose={() => {
+            setVideoPlayerVisible(false);
+            setVideoPlayerSource(null);
+          }}
+        />
+      )}
     </View>
   );
 }

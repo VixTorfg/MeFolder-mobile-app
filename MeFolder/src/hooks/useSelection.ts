@@ -14,7 +14,7 @@ type SelectionContext = "folder" | "tag";
 
 export const useSelection = <T extends Selectable>(
   items: T[],
-  currentId: string,
+  currentId?: string,
   context: SelectionContext = "folder",
 ) => {
   const { services } = useServices();
@@ -28,6 +28,7 @@ export const useSelection = <T extends Selectable>(
 
   useEffect(() => {
     const loadData = async () => {
+      if (!currentId) return;
       if (context === "tag") {
         const data = await services.tagService.getTag(currentId);
         setCurrentData(data);
@@ -40,6 +41,7 @@ export const useSelection = <T extends Selectable>(
   }, [currentId, context]);
 
   const refreshCurrentData = useCallback(async () => {
+    if (!currentId) return;
     if (context === "tag") {
       const data = await services.tagService.getTag(currentId);
       setCurrentData(data);

@@ -176,6 +176,14 @@ export const useLibraryActions = ({
   ) => {
     const targetItems = itemsToDelete ?? itemsSelected;
 
+    if (targetItems.some((i) => i instanceof FolderModel && i.isProtected)) {
+      showAlert({
+        title: "Eliminar carpeta protegida",
+        message: "No se pueden eliminar carpetas protegidas.",
+      });
+      return;
+    }
+
     showAlert({
       title: "Confirmar eliminación",
       message: `¿Estás seguro de que deseas eliminar ${targetItems.length} elemento(s)?`,

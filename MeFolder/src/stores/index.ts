@@ -3,3 +3,4 @@ export type { PathSegment } from "./useNavigationStore";
 export { useClipboardStore } from "./useClipboard";
 export { useCaptureStore } from "./useCaptureStore";
 export { useTagContentStore } from "./useTagContentStore";
+export { useTrashStore } from "./useTrashStore";

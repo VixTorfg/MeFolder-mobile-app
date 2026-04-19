@@ -38,7 +38,7 @@ const VISIBILITY_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   active: "Activo",
   archived: "Archivado",
-  deleted: "Eliminado",
+  deleted: "En papelera",
 };
 
 type InfoRowProps = {

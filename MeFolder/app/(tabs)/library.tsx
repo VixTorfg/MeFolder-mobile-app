@@ -158,14 +158,6 @@ export default function LibraryScreen() {
       },
       {
         hierarchy: "2",
-        label: "Abrir con",
-        onPress: () => {},
-        disabled: false,
-        visible: true,
-        icon: <MaterialCommunityIcons name="folder" size={20} color="black" />,
-      },
-      {
-        hierarchy: "3",
         label: "Compartir con",
         onPress: () => {
           clickedItem && handleShare(clickedItem);
@@ -175,7 +167,7 @@ export default function LibraryScreen() {
         icon: <MaterialCommunityIcons name="share" size={20} color="black" />,
       },
       {
-        hierarchy: "4",
+        hierarchy: "3",
         label: "Agregar a favoritos",
         onPress: () => {
           setShowMenu(false);
@@ -186,7 +178,7 @@ export default function LibraryScreen() {
         icon: <MaterialCommunityIcons name="star" size={20} color="black" />,
       },
       {
-        hierarchy: "5",
+        hierarchy: "4",
         label: "Renombrar",
         onPress: () => {
           setShowMenu(false);
@@ -197,7 +189,7 @@ export default function LibraryScreen() {
         icon: <MaterialCommunityIcons name="pencil" size={20} color="black" />,
       },
       {
-        hierarchy: "6",
+        hierarchy: "5",
         label: "Copiar",
         onPress: () => {
           clickedItem && handleCopy([clickedItem]);
@@ -209,7 +201,7 @@ export default function LibraryScreen() {
         ),
       },
       {
-        hierarchy: "7",
+        hierarchy: "6",
         label: "Cortar",
         onPress: () => {
           clickedItem && handleCut([clickedItem]);
@@ -221,7 +213,7 @@ export default function LibraryScreen() {
         ),
       },
       {
-        hierarchy: "8",
+        hierarchy: "7",
         label: "Pegar",
         onPress: () => {
           handlePaste();
@@ -237,7 +229,7 @@ export default function LibraryScreen() {
         ),
       },
       {
-        hierarchy: "9",
+        hierarchy: "8",
         label: "Eliminar",
         onPress: () => {
           clickedItem && handleDeleteElements([clickedItem]);
@@ -247,7 +239,7 @@ export default function LibraryScreen() {
         icon: <MaterialCommunityIcons name="delete" size={20} color="black" />,
       },
       {
-        hierarchy: "10",
+        hierarchy: "9",
         label: "Propiedades",
         onPress: () => {
           setShowItemPropertyMenu(true);

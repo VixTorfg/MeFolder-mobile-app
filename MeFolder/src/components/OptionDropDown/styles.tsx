@@ -1,21 +1,20 @@
-import { useStyles } from '@/hooks';
-import { cardShadow } from '@/constants/styles/shadows';
-
+import { useStyles } from "@/hooks";
+import { cardShadow } from "@/constants/styles/shadows";
 
 export const useOptionDropDownStyles = (responsive: {
-    iconSize: number, 
-    padding: number, 
-    tabPadding: number
+  iconSize: number;
+  padding: number;
+  tabPadding: number;
 }) => {
   const horizantalPadding = responsive.padding - 12;
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     modalOverlay: {
       flex: 1,
       backgroundColor: theme.effects.shadowColor.default,
     },
     dropdownContainer: {
-      position: 'absolute',
-      top: '10%', 
+      position: "absolute",
+      top: "10%",
       right: 16,
       zIndex: 1000,
     },
@@ -40,19 +39,19 @@ export const useOptionDropDownStyles = (responsive: {
       color: theme.colors.textPrimary,
     },
     dropdownItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingHorizontal: horizantalPadding,
       paddingVertical: responsive.padding / 2,
       gap: 12,
     },
     optionDropdownItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingHorizontal: horizantalPadding,
       paddingVertical: responsive.padding / 2,
-      borderTopWidth: theme.effects.borderWidth.md,
-      borderTopColor: theme.colors.borderSoft,
+      borderBottomWidth: theme.effects.borderWidth.md,
+      borderBottomColor: theme.colors.borderSoft,
       gap: 12,
     },
     selectedItem: {
@@ -61,7 +60,7 @@ export const useOptionDropDownStyles = (responsive: {
     selectedIconColor: {
       color: theme.colors.primary,
     },
-    IconColor:{
+    IconColor: {
       color: theme.colors.textPrimary,
     },
     itemText: {
@@ -79,6 +78,6 @@ export const useOptionDropDownStyles = (responsive: {
     },
     primary: {
       color: theme.colors.textPrimary,
-    }
+    },
   }));
 };

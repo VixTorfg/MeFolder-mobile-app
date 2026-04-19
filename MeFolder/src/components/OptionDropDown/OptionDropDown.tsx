@@ -16,6 +16,7 @@ import { OptionsType } from "@/types/ui/components";
 export interface OptionDropDownProps {
   disabled?: boolean;
   size?: number;
+  showProperties?: boolean;
   onSelect?: (options: OptionsType) => void;
 }
 
@@ -25,18 +26,23 @@ const responsive = getResponsiveSize(screenWidth);
 export default function OptionDropDown({
   disabled = false,
   size = 38,
+  showProperties = true,
   onSelect,
 }: OptionDropDownProps = {}) {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
-  const options: OptionsType[] = [
+  const allOptions: OptionsType[] = [
     { id: "select_all", name: "Seleccionar todo", icon: "menu-outline" },
     { id: "no_select", name: "No seleccionar", icon: "grid-outline" },
     { id: "invert_select", name: "Invertir selección", icon: "stop-outline" },
     { id: "properties", name: "Propiedades", icon: "build-outline" },
     { id: "settings", name: "Configuración", icon: "settings-outline" },
   ];
+
+  const options = showProperties
+    ? allOptions
+    : allOptions.filter((o) => o.id !== "properties");
 
   const styles = useOptionDropDownStyles(responsive);
 
@@ -112,7 +118,7 @@ export default function OptionDropDown({
                 <TouchableOpacity
                   key={option.id}
                   style={
-                    option.id === "properties"
+                    option.id === "invert_select"
                       ? styles.optionDropdownItem
                       : styles.dropdownItem
                   }
