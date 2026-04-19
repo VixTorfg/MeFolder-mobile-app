@@ -51,6 +51,9 @@ export class TagModel extends BaseModel<Tag> {
 
   /** Establece nuevo nombre de etiqueta */
   setName(name: string): void {
+    if (this.isSystemTag()) {
+      throw new Error("No se puede renombrar una etiqueta del sistema");
+    }
     this.data.name = name.trim();
     this.data.updatedAt = new Date();
   }

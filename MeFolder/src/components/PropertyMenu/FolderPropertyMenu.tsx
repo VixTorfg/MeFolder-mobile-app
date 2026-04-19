@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -98,6 +98,7 @@ export const FolderPropertyMenu = ({
 }) => {
   const { theme } = useTheme();
   const { services } = useServices();
+  const folderService = services.folderService;
   const { showAlert } = useAlert();
   const { updateItem } = useLibraryStore();
   const styles = useFilePropertyMenuStyles();
@@ -105,41 +106,32 @@ export const FolderPropertyMenu = ({
   const { colors } = useColors();
 
   const [folderName, setFolderName] = useState(item.name);
+  const [folderDescription, setFolderDescription] = useState(
+    item.description ?? "",
+  );
   const [folder, setFolder] = useState(item);
   const [focused, setFocused] = useState(false);
+  const [descFocused, setDescFocused] = useState(false);
   const [contentCount, setContentCount] = useState<{
     files: number;
     folders: number;
   } | null>(null);
 
-  // Para calcular el ancho del grid de iconos y centrarlo. Un poco trufero pero funciona
-  const [iconGridWidth, setIconGridWidth] = useState<number | undefined>(
-    undefined,
-  );
+  useEffect(() => {
+    setFolder(item);
+    setFolderName(item.name);
+    setFolderDescription(item.description ?? "");
+  }, [item]);
 
-  const ICON_SIZE = 48;
-  const ICON_GAP = theme.spacing.sm + 4;
-
-  const onIconCardLayout = useCallback(
-    (e: { nativeEvent: { layout: { width: number } } }) => {
-      const cardPadding = theme.spacing.md * 2;
-      const available = e.nativeEvent.layout.width - cardPadding;
-      const cols = Math.floor((available + ICON_GAP) / (ICON_SIZE + ICON_GAP));
-      const gridWidth = cols * ICON_SIZE + (cols - 1) * ICON_GAP;
-      setIconGridWidth(gridWidth);
-    },
-    [theme.spacing.md],
-  );
-
+  const isSystemFolder = folder.isSystemFolder;
   const isRenaming = folderName !== folder.name;
+  const isEditingDescription = folderDescription !== (folder.description ?? "");
   const folderColor = folder.color?.hex ?? theme.colors.folderColor;
   const folderIcon = folder.icon ?? "folder";
 
   useEffect(() => {
     const loadContentCount = async () => {
-      const count = await services.folderService.getFolderContentCount(
-        folder.id,
-      );
+      const count = await folderService.getFolderContentCount(folder.id);
       setContentCount(count);
     };
     loadContentCount();
@@ -161,7 +153,16 @@ export const FolderPropertyMenu = ({
               });
               return;
             }
-            const result = await services.folderService.renameFolder(
+
+            if (isSystemFolder) {
+              showAlert({
+                title: "Error",
+                message: "No se puede modificar una carpeta del sistema",
+              });
+              return;
+            }
+
+            const result = await folderService.renameFolder(
               folder.id,
               folderName,
             );
@@ -176,10 +177,7 @@ export const FolderPropertyMenu = ({
   const handleColorChange = async (color: ColorInfo | undefined) => {
     if (!color) return;
 
-    const updated = await services.folderService.updateFolderColor(
-      folder.id,
-      color,
-    );
+    const updated = await folderService.updateFolderColor(folder.id, color);
     setFolder(updated);
     updateItem(updated);
   };
@@ -189,12 +187,38 @@ export const FolderPropertyMenu = ({
 
     if (!selectedIcon) return;
 
-    const updated = await services.folderService.updateFolderIcon(
+    const updated = await folderService.updateFolderIcon(
       folder.id,
       selectedIcon,
     );
     setFolder(updated);
     updateItem(updated);
+  };
+
+  const handleUpdateDescription = async () => {
+    try {
+      const description = folderDescription.trim();
+      if (description?.length > 200) {
+        showAlert({
+          title: "Error",
+          message: "La descripción no puede exceder los 200 caracteres",
+        });
+        return;
+      }
+      const updated = await folderService.updateFolderDescription(
+        folder.id,
+        description,
+      );
+      setFolder(updated);
+      setFolderDescription(updated.description ?? "");
+      updateItem(updated);
+    } catch (error) {
+      console.error("Error actualizando descripción de carpeta:", error);
+      showAlert({
+        title: "Error",
+        message: "No se pudo actualizar la descripción",
+      });
+    }
   };
 
   if (section === "customize") {
@@ -266,16 +290,11 @@ export const FolderPropertyMenu = ({
         </View>
 
         {/* Icon picker */}
-        <View style={styles.card} onLayout={onIconCardLayout}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>Icono</Text>
 
           <View style={folderStyles.iconGridWrapper}>
-            <View
-              style={[
-                folderStyles.iconGrid,
-                iconGridWidth ? { width: iconGridWidth } : undefined,
-              ]}
-            >
+            <View style={[folderStyles.iconGrid]}>
               {FOLDER_ICONS.map((icon) => (
                 <TouchableOpacity
                   key={icon}
@@ -326,6 +345,7 @@ export const FolderPropertyMenu = ({
             style={[
               styles.fileNameInput,
               focused && styles.fileNameInputFocused,
+              isSystemFolder && { opacity: 0.7 },
             ]}
             value={folderName}
             onBlur={() => setFocused(false)}
@@ -337,10 +357,11 @@ export const FolderPropertyMenu = ({
             numberOfLines={1}
             scrollEnabled
             textAlignVertical="center"
+            editable={!isSystemFolder}
           />
         </View>
 
-        {isRenaming && (
+        {isRenaming && !isSystemFolder && (
           <TouchableOpacity
             style={styles.renameButton}
             onPress={handleRenameFolder}
@@ -349,6 +370,48 @@ export const FolderPropertyMenu = ({
             <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
           </TouchableOpacity>
         )}
+      </View>
+
+      {/* Descripción */}
+      <View style={styles.card}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text style={styles.sectionTitle}>Descripción</Text>
+          {isEditingDescription && (
+            <TouchableOpacity
+              onPress={handleUpdateDescription}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="checkmark"
+                size={20}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+        <TextInput
+          style={[
+            folderStyles.textInput,
+            folderStyles.descriptionInput,
+            descFocused && folderStyles.textInputFocused,
+          ]}
+          value={folderDescription}
+          onChangeText={setFolderDescription}
+          onFocus={() => setDescFocused(true)}
+          onBlur={() => setDescFocused(false)}
+          placeholder="Sin descripción"
+          placeholderTextColor={theme.colors.textMuted}
+          multiline
+          numberOfLines={3}
+          maxLength={200}
+          textAlignVertical="top"
+        />
       </View>
 
       {/* Información */}
@@ -385,13 +448,6 @@ export const FolderPropertyMenu = ({
             icon="navigate-outline"
             scrollable={true}
           />
-          {folder.description && (
-            <InfoRow
-              label="Descripción"
-              value={folder.description}
-              icon="text-outline"
-            />
-          )}
         </View>
       </View>
 

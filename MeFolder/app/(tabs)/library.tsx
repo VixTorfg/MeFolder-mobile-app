@@ -37,8 +37,8 @@ export default function LibraryScreen() {
     width: 0,
     height: 0,
   });
-  const [showPropertyMenu, setShowPropertyMenu] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
+  const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
   const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
@@ -47,6 +47,9 @@ export default function LibraryScreen() {
   const [videoPlayerSource, setVideoPlayerSource] =
     useState<MediaSource | null>(null);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+
+  const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
+    useNavigationStore();
 
   const {
     items,
@@ -69,8 +72,11 @@ export default function LibraryScreen() {
     selectionMode,
     toggleSelection,
     clearSelection,
+    currentData: currentFolderData,
+    showPropertyMenu,
+    closePropertyMenu,
     handleOnSelectOption,
-  } = useSelection(items);
+  } = useSelection(items, currentFolderId);
 
   const {
     handleShare,
@@ -91,8 +97,6 @@ export default function LibraryScreen() {
     setIsRenaming,
   });
 
-  const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
-    useNavigationStore();
   const styles = useLibraryStyles();
   const fs = useFileSystem();
 
@@ -246,7 +250,7 @@ export default function LibraryScreen() {
         hierarchy: "10",
         label: "Propiedades",
         onPress: () => {
-          setShowPropertyMenu(true);
+          setShowItemPropertyMenu(true);
           setShowMenu(false);
         },
         disabled: false,
@@ -448,8 +452,16 @@ export default function LibraryScreen() {
       {clickedItem && (
         <PropertyMenu
           item={clickedItem}
+          visible={showItemPropertyMenu}
+          onClose={() => setShowItemPropertyMenu(false)}
+        />
+      )}
+
+      {currentFolderData && (
+        <PropertyMenu
+          item={currentFolderData}
           visible={showPropertyMenu}
-          onClose={() => setShowPropertyMenu(false)}
+          onClose={closePropertyMenu}
         />
       )}
 

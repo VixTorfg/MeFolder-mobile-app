@@ -149,6 +149,10 @@ export class TagService extends BaseService {
       const tag = await this.tagRepo.findById(tagId);
       if (!tag) throw new Error("Tag no encontrado");
 
+      if (tag.type === "system") {
+        throw new Error("No se puede renombrar una etiqueta del sistema");
+      }
+
       // Validar que no existe otro tag con el nuevo nombre
       await this.validateUniqueTagName(newName, tagId);
 
@@ -159,6 +163,28 @@ export class TagService extends BaseService {
       return TagFactory.fromJSON(updated);
     } catch (error) {
       return this.handleError(error, "renombrar tag");
+    }
+  }
+
+  /**
+   * Actualizar descripción del tag
+   */
+  async updateTagDescription(
+    tagId: UUID,
+    description: string,
+  ): Promise<TagModel> {
+    try {
+      this.ensureDbInitialized();
+
+      const tag = await this.tagRepo.findById(tagId);
+      if (!tag) throw new Error("Tag no encontrado");
+
+      const updated = await this.tagRepo.update(tagId, {
+        description,
+      });
+      return TagFactory.fromJSON(updated);
+    } catch (error) {
+      return this.handleError(error, "actualizar descripción del tag");
     }
   }
 

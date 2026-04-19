@@ -1,17 +1,62 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import type { OptionsType } from "@/types";
 import { OptionsIds } from "@/types";
 import type { UUID } from "@/types/common/base";
+import { useServices } from "@/providers";
+import { FolderModel, TagModel } from "@/models";
 
 interface Selectable {
   id: UUID;
   visibility?: string;
 }
 
-export const useSelection = <T extends Selectable>(items: T[]) => {
+type SelectionContext = "folder" | "tag";
+
+export const useSelection = <T extends Selectable>(
+  items: T[],
+  currentId: string,
+  context: SelectionContext = "folder",
+) => {
+  const { services } = useServices();
   const [itemsSelected, setItemsSelected] = useState<T[]>([]);
+  const [currentData, setCurrentData] = useState<FolderModel | TagModel | null>(
+    null,
+  );
+  const [showPropertyMenu, setShowPropertyMenu] = useState(false);
 
   const selectionMode = itemsSelected.length > 0;
+
+  useEffect(() => {
+    const loadData = async () => {
+      if (context === "tag") {
+        const data = await services.tagService.getTag(currentId);
+        setCurrentData(data);
+      } else {
+        const data = await services.folderService.getFolder(currentId);
+        setCurrentData(data);
+      }
+    };
+    loadData();
+  }, [currentId, context]);
+
+  const refreshCurrentData = useCallback(async () => {
+    if (context === "tag") {
+      const data = await services.tagService.getTag(currentId);
+      setCurrentData(data);
+    } else {
+      const data = await services.folderService.getFolder(currentId);
+      setCurrentData(data);
+    }
+  }, [currentId, context]);
+
+  const openPropertyMenu = useCallback(async () => {
+    await refreshCurrentData();
+    setShowPropertyMenu(true);
+  }, [refreshCurrentData]);
+
+  const closePropertyMenu = useCallback(() => {
+    setShowPropertyMenu(false);
+  }, []);
 
   const toggleSelection = (item: T) => {
     setItemsSelected((prev) =>
@@ -46,6 +91,7 @@ export const useSelection = <T extends Selectable>(items: T[]) => {
         });
         break;
       case OptionsIds.PROPERTIES:
+        openPropertyMenu();
         break;
       case OptionsIds.SETTINGS:
         break;
@@ -57,6 +103,10 @@ export const useSelection = <T extends Selectable>(items: T[]) => {
     selectionMode,
     toggleSelection,
     clearSelection,
+    currentData,
+    showPropertyMenu,
+    openPropertyMenu,
+    closePropertyMenu,
     handleOnSelectOption,
   };
 };

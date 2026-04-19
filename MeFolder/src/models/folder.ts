@@ -77,6 +77,9 @@ export class FolderModel extends BaseModel<Folder> {
 
   /** Establece nuevo nombre de carpeta (no afecta al path interno basado en IDs) */
   setName(name: string): void {
+    if (this.isSystemFolder) {
+      throw new Error("No se puede renombrar una carpeta del sistema");
+    }
     const cleanName = name.trim();
     if (!cleanName) throw new Error("El nombre no puede estar vacío");
 
@@ -299,7 +302,6 @@ export class FolderFactory {
       status: "active",
       type: input.type || "regular",
       visibility: input.visibility || "private",
-      tagIds: input.tagIds || [],
       viewSettings: {
         sortBy: "name",
         sortOrder: "asc",
@@ -338,7 +340,6 @@ export class FolderFactory {
       status: "active",
       type: "system",
       visibility: "private",
-      tagIds: [],
       viewSettings: {
         sortBy: "name",
         sortOrder: "asc",

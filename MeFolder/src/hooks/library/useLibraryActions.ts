@@ -430,6 +430,14 @@ export const useLibraryActions = ({
 
             try {
               if (clickedItem instanceof FolderModel) {
+                if (clickedItem.isSystemFolder) {
+                  showAlert({
+                    title: "Error",
+                    message: "No se puede modificar una carpeta del sistema",
+                  });
+                  return;
+                }
+
                 if (!folderService) return;
                 const result = await folderService.renameFolder(
                   clickedItem.id,

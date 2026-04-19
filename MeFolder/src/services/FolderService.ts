@@ -425,6 +425,28 @@ export class FolderService extends BaseService {
   }
 
   /**
+   * Actualizar descripción de la carpeta
+   */
+  async updateFolderDescription(
+    folderId: UUID,
+    description: string,
+  ): Promise<FolderModel> {
+    try {
+      this.ensureDbInitialized();
+
+      const folder = await this.folderRepo.findById(folderId);
+      if (!folder) throw new Error("Carpeta no encontrada");
+
+      const updated = await this.folderRepo.update(folderId, {
+        description,
+      });
+      return FolderFactory.fromJSON(updated);
+    } catch (error) {
+      return this.handleError(error, "actualizar descripción de carpeta");
+    }
+  }
+
+  /**
    * Renombrar carpeta
    */
   async renameFolder(folderId: UUID, newName: string): Promise<FolderModel> {
@@ -432,6 +454,10 @@ export class FolderService extends BaseService {
       this.ensureDbInitialized();
 
       const folder = await this.folderRepo.findById(folderId);
+
+      if (folder?.isSystemFolder)
+        throw new Error("No se puede renombrar una carpeta del sistema");
+
       if (!folder) throw new Error("Carpeta no encontrada");
 
       // Validar nombre único en el mismo nivel

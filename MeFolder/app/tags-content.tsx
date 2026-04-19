@@ -8,6 +8,7 @@ import {
   ContextMenu,
   MultiActionButton,
   OptionDropDown,
+  PropertyMenu,
   SortDropDown,
   ViewCards,
   ViewDropDown,
@@ -31,7 +32,7 @@ export default function tagsContent() {
     width: 0,
     height: 0,
   });
-  const [showPropertyMenu, setShowPropertyMenu] = useState(false);
+  const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
   const [viewerVisible, setViewerVisible] = useState(false);
   const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
@@ -69,8 +70,11 @@ export default function tagsContent() {
     selectionMode,
     toggleSelection,
     clearSelection,
+    currentData: currentTagData,
+    showPropertyMenu: showTagPropertyMenu,
+    closePropertyMenu: closeTagPropertyMenu,
     handleOnSelectOption,
-  } = useSelection(storeItems);
+  } = useSelection(storeItems, tagId as string, "tag");
 
   const { handleRename, handleShare, handleDeleteElements } =
     useContentTagActions({
@@ -145,7 +149,7 @@ export default function tagsContent() {
         hierarchy: "7",
         label: "Propiedades",
         onPress: () => {
-          setShowPropertyMenu(true);
+          setShowItemPropertyMenu(true);
           setShowMenu(false);
         },
         disabled: false,
@@ -363,6 +367,22 @@ export default function tagsContent() {
         onDismiss={() => setShowMenu(false)}
         position={menuPosition}
       />
+
+      {clickedItem && (
+        <PropertyMenu
+          item={clickedItem}
+          visible={showItemPropertyMenu}
+          onClose={() => setShowItemPropertyMenu(false)}
+        />
+      )}
+
+      {currentTagData && (
+        <PropertyMenu
+          item={currentTagData}
+          visible={showTagPropertyMenu}
+          onClose={closeTagPropertyMenu}
+        />
+      )}
 
       {viewerSource && (
         <ImageViewer

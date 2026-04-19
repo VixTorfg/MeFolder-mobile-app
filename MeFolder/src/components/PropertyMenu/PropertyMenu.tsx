@@ -4,14 +4,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/providers";
 import { usePropertyMenuStyles } from "./styles";
 import { BottomSheet } from "@/animations";
-import { FileModel, FolderModel } from "@/models";
+import { FileModel, FolderModel, TagModel } from "@/models";
 import { FilePropertyMenu } from "./FilePropertyMenu";
 import { FolderPropertyMenu } from "./FolderPropertyMenu";
+import { TagPropertyMenu } from "./TagPropertyMenu";
 
 type SectionType = "details" | "customize";
 
 interface PropertyMenuProps {
-  item: FileModel | FolderModel;
+  item: FileModel | FolderModel | TagModel;
   visible: boolean;
   onClose: () => void;
 }
@@ -23,6 +24,9 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
     useState<SectionType>("details");
 
   const isFile = item instanceof FileModel;
+  const isTag = item instanceof TagModel;
+  const isFolder = item instanceof FolderModel;
+  const showSectionSelector = !isFile;
 
   const handleResetOnClose = () => {
     setSelectedSection("details");
@@ -35,7 +39,7 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
       onBeforeClose={handleResetOnClose}
       title={`Propiedades de ${item.name}`}
     >
-      {!isFile && (
+      {showSectionSelector && (
         <View style={styles.sectionSelector}>
           <TouchableOpacity
             style={[
@@ -93,27 +97,21 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
         </View>
       )}
 
-      {isFile ? (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{
-            paddingBottom: 4 * theme.spacing.xxl,
-          }}
-        >
-          <FilePropertyMenu item={item} section={selectedSection} />
-        </ScrollView>
-      ) : (
-        <ScrollView
-          showsVerticalScrollIndicator={false}
-          keyboardShouldPersistTaps="handled"
-          contentContainerStyle={{
-            paddingBottom: 4 * theme.spacing.xxl,
-          }}
-        >
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{
+          paddingBottom: isFile
+            ? 2.5 * theme.spacing.xxl
+            : 4 * theme.spacing.xxl,
+        }}
+      >
+        {isFile && <FilePropertyMenu item={item} section={selectedSection} />}
+        {isFolder && (
           <FolderPropertyMenu item={item} section={selectedSection} />
-        </ScrollView>
-      )}
+        )}
+        {isTag && <TagPropertyMenu item={item} section={selectedSection} />}
+      </ScrollView>
     </BottomSheet>
   );
 };

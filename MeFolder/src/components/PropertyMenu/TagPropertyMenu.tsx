@@ -1,0 +1,457 @@
+import React, { useEffect, useState } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  ScrollView,
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useAlert, useServices, useTheme } from "@/providers";
+import {
+  useFilePropertyMenuStyles,
+  useFolderPropertyMenuStyles,
+} from "./styles";
+import { TagModel } from "@/models";
+import { formatDate } from "@/utils";
+import { useColors } from "@/hooks/useColors";
+import { useTagsStore } from "@/stores/useTagsStore";
+import { ColorInfo } from "@/types/common/colors";
+import { PRIORITY_CONFIG } from "@/types";
+
+const TYPE_LABELS: Record<string, string> = {
+  system: "Sistema",
+  user: "Usuario",
+  automatic: "Automática",
+  album: "Álbum",
+};
+
+const PRIORITY_LABELS: Record<string, string> = {
+  low: "Baja",
+  normal: "Normal",
+  high: "Alta",
+  critical: "Crítica",
+};
+
+type InfoRowProps = {
+  label: string;
+  value: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  scrollable?: boolean;
+};
+
+const InfoRow = React.memo(
+  ({ label, value, icon, scrollable }: InfoRowProps) => {
+    const styles = useFilePropertyMenuStyles();
+    const { theme } = useTheme();
+
+    return (
+      <View style={styles.infoRow}>
+        {icon && (
+          <Ionicons name={icon} size={16} color={theme.colors.textMuted} />
+        )}
+        <Text style={styles.infoLabel}>{label}</Text>
+        {scrollable ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ flex: 1 }}
+          >
+            <Text style={styles.infoValue}>{value}</Text>
+          </ScrollView>
+        ) : (
+          <Text style={styles.infoValue}>{value}</Text>
+        )}
+      </View>
+    );
+  },
+);
+
+export const TagPropertyMenu = ({
+  item,
+  section,
+}: {
+  item: TagModel;
+  section: "details" | "customize";
+}) => {
+  const { theme } = useTheme();
+  const { services } = useServices();
+  const { showAlert } = useAlert();
+  const { updateItem: updateTag } = useTagsStore();
+  const styles = useFilePropertyMenuStyles();
+  const folderStyles = useFolderPropertyMenuStyles();
+  const { colors } = useColors();
+
+  const [tagName, setTagName] = useState(item.name);
+  const [tagDescription, setTagDescription] = useState(item.description ?? "");
+  const [tag, setTag] = useState(item);
+  const [focused, setFocused] = useState(false);
+  const [descFocused, setDescFocused] = useState(false);
+
+  useEffect(() => {
+    setTag(item);
+    setTagName(item.name);
+    setTagDescription(item.description ?? "");
+  }, [item]);
+
+  const isSystemTag = tag.isSystemTag();
+  const isRenaming = tagName !== tag.name;
+  const isEditingDescription = tagDescription !== (tag.description ?? "");
+  const tagColor = tag.color?.hex ?? theme.colors.primary;
+
+  const handleRenameTag = () => {
+    showAlert({
+      title: "Renombrar etiqueta",
+      message: `¿Renombrar la etiqueta a "${tagName}"?`,
+      buttons: [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Renombrar",
+          onPress: async () => {
+            if (!tagName.trim()) {
+              showAlert({
+                title: "Error",
+                message: "El nombre no puede estar vacío",
+              });
+              return;
+            }
+
+            if (isSystemTag) {
+              showAlert({
+                title: "Error",
+                message: "No se puede renombrar una etiqueta del sistema",
+              });
+              return;
+            }
+            const result = await services.tagService.renameTag(tag.id, tagName);
+            setTag(result);
+            updateTag(result);
+          },
+        },
+      ],
+    });
+  };
+
+  const handleColorChange = async (color: ColorInfo | undefined) => {
+    if (!color) return;
+
+    const updated = await services.tagService.updateTagColor(tag.id, color);
+    setTag(updated);
+    updateTag(updated);
+  };
+
+  const handleUpdateDescription = async () => {
+    try {
+      const description = tagDescription.trim();
+
+      if (description.length > 200) {
+        showAlert({
+          title: "Error",
+          message: "La descripción no puede exceder los 200 caracteres",
+        });
+        return;
+      }
+
+      const updated = await services.tagService.updateTagDescription(
+        tag.id,
+        description,
+      );
+      setTag(updated);
+      setTagDescription(updated.description ?? "");
+      updateTag(updated);
+    } catch (error) {
+      console.error("Error actualizando descripción del tag:", error);
+      showAlert({
+        title: "Error",
+        message: "No se pudo actualizar la descripción",
+      });
+    }
+  };
+
+  if (section === "customize") {
+    return (
+      <View style={styles.container}>
+        {/* Preview */}
+        <View style={folderStyles.previewContainer}>
+          <View
+            style={[
+              folderStyles.previewIcon,
+              { backgroundColor: tagColor + "20" },
+            ]}
+          >
+            <Ionicons name="pricetag" size={48} color={tagColor} />
+          </View>
+          <Text style={folderStyles.previewName}>{tag.name}</Text>
+        </View>
+
+        {/* Color picker */}
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Color</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={folderStyles.colorScrollContent}>
+              {(() => {
+                const allColors = colors.map((c) => ({ key: c.hex, color: c }));
+                const columns: (typeof allColors)[] = [];
+                for (let i = 0; i < allColors.length; i += 2) {
+                  columns.push(allColors.slice(i, i + 2));
+                }
+                return columns.map((col, colIdx) => (
+                  <View key={colIdx} style={folderStyles.colorColumn}>
+                    {col.map((item) => (
+                      <TouchableOpacity
+                        key={item.key}
+                        style={[
+                          folderStyles.colorOption,
+                          tag.color?.hex === item.color.hex &&
+                            folderStyles.colorOptionSelected,
+                        ]}
+                        onPress={() => handleColorChange(item.color)}
+                        activeOpacity={0.7}
+                      >
+                        <View
+                          style={[
+                            folderStyles.colorOptionInner,
+                            { backgroundColor: item.color.hex },
+                          ]}
+                        />
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                ));
+              })()}
+            </View>
+          </ScrollView>
+        </View>
+      </View>
+    );
+  }
+
+  const priorityConfig =
+    PRIORITY_CONFIG[tag.priority as keyof typeof PRIORITY_CONFIG];
+
+  return (
+    <View style={styles.container}>
+      {/* Header: icono + nombre editable */}
+      <View style={styles.nameSection}>
+        <View
+          style={[
+            styles.fileIconContainer,
+            { backgroundColor: tagColor + "20" },
+          ]}
+        >
+          <Ionicons name="pricetag" size={28} color={tagColor} />
+        </View>
+
+        <View style={styles.nameInputWrapper}>
+          <TextInput
+            style={[
+              styles.fileNameInput,
+              focused && styles.fileNameInputFocused,
+              isSystemTag && { opacity: 0.7 },
+            ]}
+            value={tagName}
+            onBlur={() => setFocused(false)}
+            onFocus={() => setFocused(true)}
+            onChangeText={setTagName}
+            placeholder="Nombre de la etiqueta"
+            placeholderTextColor={theme.colors.textMuted}
+            selectTextOnFocus
+            numberOfLines={1}
+            scrollEnabled
+            textAlignVertical="center"
+            editable={!isSystemTag}
+          />
+        </View>
+
+        {isRenaming && !isSystemTag && (
+          <TouchableOpacity
+            style={styles.renameButton}
+            onPress={handleRenameTag}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="checkmark" size={20} color={theme.colors.primary} />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Descripción */}
+      <View style={styles.card}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text style={styles.sectionTitle}>Descripción</Text>
+          {isEditingDescription && (
+            <TouchableOpacity
+              onPress={handleUpdateDescription}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="checkmark"
+                size={20}
+                color={theme.colors.primary}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+        <TextInput
+          style={[
+            folderStyles.textInput,
+            folderStyles.descriptionInput,
+            descFocused && folderStyles.textInputFocused,
+          ]}
+          value={tagDescription}
+          onChangeText={setTagDescription}
+          onFocus={() => setDescFocused(true)}
+          onBlur={() => setDescFocused(false)}
+          placeholder="Sin descripción"
+          placeholderTextColor={theme.colors.textMuted}
+          multiline
+          maxLength={200}
+          numberOfLines={3}
+          textAlignVertical="top"
+        />
+      </View>
+
+      {/* Información */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Información</Text>
+        <View style={styles.infoGrid}>
+          <InfoRow
+            label="Tipo"
+            value={TYPE_LABELS[tag.type] ?? tag.type}
+            icon="pricetag-outline"
+          />
+          <InfoRow
+            label="Prioridad"
+            value={PRIORITY_LABELS[tag.priority] ?? tag.priority}
+            icon="flag-outline"
+          />
+          <InfoRow
+            label="Archivos asociados"
+            value={`${tag.usageCount}`}
+            icon="document-outline"
+          />
+        </View>
+      </View>
+
+      {/* Atributos */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Atributos</Text>
+        <View style={folderStyles.attributeRow}>
+          <View
+            style={[
+              folderStyles.attributeBadge,
+              tag.isFavorite && folderStyles.attributeBadgeActive,
+            ]}
+          >
+            <Ionicons
+              name={tag.isFavorite ? "star" : "star-outline"}
+              size={16}
+              color={
+                tag.isFavorite ? theme.colors.primary : theme.colors.textMuted
+              }
+            />
+            <Text
+              style={[
+                folderStyles.attributeText,
+                tag.isFavorite && folderStyles.attributeTextActive,
+              ]}
+            >
+              Favorita
+            </Text>
+          </View>
+
+          <View
+            style={[
+              folderStyles.attributeBadge,
+              tag.type === "album" && folderStyles.attributeBadgeActive,
+            ]}
+          >
+            <Ionicons
+              name={tag.type === "album" ? "albums" : "albums-outline"}
+              size={16}
+              color={
+                tag.type === "album"
+                  ? theme.colors.primary
+                  : theme.colors.textMuted
+              }
+            />
+            <Text
+              style={[
+                folderStyles.attributeText,
+                tag.type === "album" && folderStyles.attributeTextActive,
+              ]}
+            >
+              Álbum
+            </Text>
+          </View>
+
+          <View
+            style={[
+              folderStyles.attributeBadge,
+              tag.isActive && folderStyles.attributeBadgeActive,
+            ]}
+          >
+            <Ionicons
+              name={
+                tag.isActive ? "checkmark-circle" : "checkmark-circle-outline"
+              }
+              size={16}
+              color={
+                tag.isActive ? theme.colors.primary : theme.colors.textMuted
+              }
+            />
+            <Text
+              style={[
+                folderStyles.attributeText,
+                tag.isActive && folderStyles.attributeTextActive,
+              ]}
+            >
+              Activa
+            </Text>
+          </View>
+
+          {priorityConfig && (
+            <View
+              style={[
+                folderStyles.attributeBadge,
+                { backgroundColor: priorityConfig.bg },
+              ]}
+            >
+              <Ionicons name="flag" size={16} color={priorityConfig.color} />
+              <Text
+                style={[
+                  folderStyles.attributeText,
+                  { color: priorityConfig.color },
+                ]}
+              >
+                {priorityConfig.label}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+
+      {/* Fechas */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>Fechas</Text>
+        <View style={styles.infoGrid}>
+          <InfoRow
+            label="Creada"
+            value={formatDate(tag.createdAt)}
+            icon="calendar-outline"
+          />
+          <InfoRow
+            label="Modificada"
+            value={formatDate(tag.updatedAt)}
+            icon="create-outline"
+          />
+        </View>
+      </View>
+    </View>
+  );
+};

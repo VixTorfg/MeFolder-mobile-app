@@ -185,6 +185,13 @@ export const useFilePropertyMenuStyles = () => {
       textAlign: "right",
     },
 
+    descriptionValue: {
+      flex: 1,
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      color: theme.colors.textPrimary,
+    },
+
     /* ── Tags ── */
     tagList: {
       flexDirection: "row",
@@ -361,6 +368,26 @@ export const useFolderPropertyMenuStyles = () => {
     },
     attributeTextActive: {
       color: theme.colors.primary,
+    },
+
+    /* ── Description input ── */
+    textInput: {
+      fontSize: theme.typography.fontSize.md,
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      color: theme.colors.textPrimary,
+      paddingVertical: theme.spacing.sm + 2,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: theme.effects.radius.md,
+      borderWidth: theme.effects.borderWidth.md,
+      borderColor: theme.colors.borderSoft,
+      backgroundColor: theme.colors.surface,
+    },
+    textInputFocused: {
+      borderColor: theme.colors.primary,
+    },
+    descriptionInput: {
+      minHeight: 80,
+      textAlignVertical: "top" as const,
     },
   }));
 };
