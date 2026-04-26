@@ -12,11 +12,13 @@ import {
   useFilePropertyMenuStyles,
   useFolderPropertyMenuStyles,
 } from "./styles";
+import { FOLDER_ICONS } from "@/constants/folderIcons";
 import { FolderModel } from "@/models";
 import { formatDate } from "@/utils";
 import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useColors } from "@/hooks/useColors";
 import { ColorInfo } from "@/types/common/colors";
+import { ColorList } from "../ColorPicker";
 
 const VISIBILITY_LABELS: Record<string, string> = {
   private: "Privado",
@@ -35,25 +37,6 @@ const TYPE_LABELS: Record<string, string> = {
   system: "Sistema",
   shared: "Compartida",
 };
-
-const FOLDER_ICONS: (keyof typeof Ionicons.glyphMap)[] = [
-  "folder",
-  "star",
-  "heart",
-  "briefcase",
-  "school",
-  "camera",
-  "musical-notes",
-  "game-controller",
-  "code-slash",
-  "airplane",
-  "fitness",
-  "home",
-  "book",
-  "cart",
-  "leaf",
-  "planet",
-];
 
 type InfoRowProps = {
   label: string;
@@ -103,13 +86,17 @@ export const FolderPropertyMenu = ({
   const { updateItem } = useLibraryStore();
   const styles = useFilePropertyMenuStyles();
   const folderStyles = useFolderPropertyMenuStyles();
-  const { colors } = useColors();
+  const { colors, showColorPicker, setShowColorPicker, handleSaveColor } =
+    useColors();
 
   const [folderName, setFolderName] = useState(item.name);
   const [folderDescription, setFolderDescription] = useState(
     item.description ?? "",
   );
   const [folder, setFolder] = useState(item);
+  const [selectedColor, setSelectedColor] = useState<ColorInfo | null>(
+    item.color ?? null,
+  );
   const [focused, setFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
   const [contentCount, setContentCount] = useState<{
@@ -121,6 +108,7 @@ export const FolderPropertyMenu = ({
     setFolder(item);
     setFolderName(item.name);
     setFolderDescription(item.description ?? "");
+    setSelectedColor(item.color ?? null);
   }, [item]);
 
   const isSystemFolder = folder.isSystemFolder;
@@ -174,12 +162,26 @@ export const FolderPropertyMenu = ({
     });
   };
 
-  const handleColorChange = async (color: ColorInfo | undefined) => {
-    if (!color) return;
+  const handleColorChange = async (color: ColorInfo) => {
+    try {
+      setSelectedColor(color);
 
-    const updated = await folderService.updateFolderColor(folder.id, color);
-    setFolder(updated);
-    updateItem(updated);
+      const updated = await folderService.updateFolderColor(folder.id, color);
+      setFolder(updated);
+      setSelectedColor(updated.color ?? color);
+      updateItem(updated);
+    } catch (error) {
+      console.error("Error actualizando color de carpeta:", error);
+      showAlert({
+        title: "Error",
+        message: "No se pudo actualizar el color de la carpeta",
+      });
+    }
+  };
+
+  const handleSavePickerColor = async (color: ColorInfo) => {
+    await handleSaveColor(color);
+    await handleColorChange(color);
   };
 
   const handleIconChange = async (icon: string) => {
@@ -241,52 +243,17 @@ export const FolderPropertyMenu = ({
           <Text style={folderStyles.previewName}>{folder.name}</Text>
         </View>
 
-        {/* Color picker */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Color</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={folderStyles.colorScrollContent}>
-              {(() => {
-                const allColors = [
-                  { key: "default", color: undefined },
-                  ...colors.map((c) => ({ key: c.hex, color: c })),
-                ];
-                const columns: (typeof allColors)[] = [];
-                for (let i = 0; i < allColors.length; i += 2) {
-                  columns.push(allColors.slice(i, i + 2));
-                }
-                return columns.map((col, colIdx) => (
-                  <View key={colIdx} style={folderStyles.colorColumn}>
-                    {col.map((item) => (
-                      <TouchableOpacity
-                        key={item.key}
-                        style={[
-                          folderStyles.colorOption,
-                          item.color
-                            ? folder.color?.hex === item.color.hex &&
-                              folderStyles.colorOptionSelected
-                            : !folder.color && folderStyles.colorOptionSelected,
-                        ]}
-                        onPress={() => handleColorChange(item.color)}
-                        activeOpacity={0.7}
-                      >
-                        <View
-                          style={[
-                            folderStyles.colorOptionInner,
-                            {
-                              backgroundColor: item.color
-                                ? item.color.hex
-                                : theme.colors.folderColor,
-                            },
-                          ]}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ));
-              })()}
-            </View>
-          </ScrollView>
+        <View style={folderStyles.colorSection}>
+          <Text style={folderStyles.label}>Color</Text>
+          <ColorList
+            colors={colors}
+            selectedColor={selectedColor}
+            onSelect={handleColorChange}
+            onAddColor={() => setShowColorPicker(true)}
+            showPicker={showColorPicker}
+            onClosePicker={() => setShowColorPicker(false)}
+            onSavePickerColor={handleSavePickerColor}
+          />
         </View>
 
         {/* Icon picker */}

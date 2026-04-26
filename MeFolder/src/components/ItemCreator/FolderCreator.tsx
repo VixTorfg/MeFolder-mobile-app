@@ -1,10 +1,11 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, TextInput, Alert } from "react-native";
+import { View, Text, TouchableOpacity, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/providers";
 import { useColors } from "@/hooks";
 import { useFolderCreatorStyles } from "./styles";
 import { SYSTEM_COLORS } from "@/constants/themes/colors";
+import { FOLDER_ICONS } from "@/constants/folderIcons";
 import { ColorList } from "@/components/ColorPicker/ColorList";
 import type { ColorInfo } from "@/types/common/colors";
 
@@ -20,24 +21,6 @@ interface FolderCreatorProps {
   onSave: (data: NewFolder) => Promise<void> | void;
   currentFolderId?: string;
 }
-
-const FOLDER_ICONS: Array<{
-  id: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}> = [
-  { id: "folder", icon: "folder" },
-  { id: "star", icon: "star" },
-  { id: "heart", icon: "heart" },
-  { id: "briefcase", icon: "briefcase" },
-  { id: "school", icon: "school" },
-  { id: "camera", icon: "camera" },
-  { id: "musical-notes", icon: "musical-notes" },
-  { id: "game-controller", icon: "game-controller" },
-  { id: "code-slash", icon: "code-slash" },
-  { id: "airplane", icon: "airplane" },
-  { id: "fitness", icon: "fitness" },
-  { id: "add", icon: "add" },
-];
 
 export default function FolderCreator({
   onSave,
@@ -56,7 +39,9 @@ export default function FolderCreator({
 
   const [folderName, setFolderName] = useState("");
   const [description, setDescription] = useState("");
-  const [selectedIcon, setSelectedIcon] = useState<string>(FOLDER_ICONS[0]!.id);
+  const [selectedIcon, setSelectedIcon] = useState<
+    keyof typeof Ionicons.glyphMap
+  >(FOLDER_ICONS[0]!);
   const [nameFocused, setNameFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
 
@@ -66,26 +51,20 @@ export default function FolderCreator({
     if (!canSave) return;
 
     const color = selectedColor;
-    const icon = FOLDER_ICONS.find((i) => i.id === selectedIcon);
 
     await onSave({
       name: folderName.trim(),
       description: description.trim() || null,
       color: color || SYSTEM_COLORS["yellow"],
-      icon: icon?.icon,
+      icon: selectedIcon,
       parentId: currentFolderId ?? "",
     });
   };
 
-  const handleSelectIcon = (iconId: string): void => {
-    if (iconId === "add") {
-      Alert.alert(
-        "Icono personalizado",
-        "Funcionalidad de icono personalizado no implementada en esta demo.",
-      );
-      return;
-    }
-    setSelectedIcon(iconId);
+  const handleSelectIcon = (
+    icon: keyof typeof Ionicons.glyphMap,
+  ): void => {
+    setSelectedIcon(icon);
   };
 
   return (
@@ -139,30 +118,30 @@ export default function FolderCreator({
 
       <View style={styles.iconSection}>
         <Text style={styles.label}>Icono</Text>
-        <View style={styles.iconGrid}>
-          {FOLDER_ICONS.map((item) => (
+        <View style={styles.iconGridWrapper}>
+          <View style={styles.iconGrid}>
+            {FOLDER_ICONS.map((icon) => (
             <TouchableOpacity
-              key={item.id}
+              key={icon}
               style={[
                 styles.iconOption,
-                selectedIcon === item.id && styles.iconOptionSelected,
+                selectedIcon === icon && styles.iconOptionSelected,
               ]}
-              onPress={() => handleSelectIcon(item.id)}
+              onPress={() => handleSelectIcon(icon)}
               activeOpacity={0.7}
             >
               <Ionicons
-                name={item.icon}
+                name={icon}
                 size={24}
                 color={
-                  selectedIcon === item.id
+                  selectedIcon === icon
                     ? theme.colors.primary
-                    : item.id === "add"
-                      ? theme.colors.warning
-                      : theme.colors.textSecondary
+                    : theme.colors.textSecondary
                 }
               />
             </TouchableOpacity>
-          ))}
+            ))}
+          </View>
         </View>
       </View>
 

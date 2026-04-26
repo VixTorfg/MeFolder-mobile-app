@@ -10,6 +10,7 @@ export * from "./useDeviceOrientation";
 export * from "./useSelection";
 export * from "./useViewSettings";
 export * from "./usePinchColumns";
+export * from "./usePagination";
 export * from "./gallery";
 export * from "./tags";
 export * from "./library";

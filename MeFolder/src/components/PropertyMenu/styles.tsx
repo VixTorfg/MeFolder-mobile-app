@@ -288,6 +288,15 @@ export const useFolderPropertyMenuStyles = () => {
       fontFamily: theme.typography.fontFamily.primary.semiBold,
       color: theme.colors.textPrimary,
     },
+    colorSection: {
+      marginBottom: theme.spacing.md,
+    },
+    label: {
+      fontSize: theme.typography.fontSize.md,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textPrimary,
+      marginBottom: theme.spacing.sm,
+    },
 
     /* ── Color picker ── */
     colorScrollContent: {

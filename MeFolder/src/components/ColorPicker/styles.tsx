@@ -1,32 +1,32 @@
-import { useStyles } from '@/hooks';
+import { useStyles } from "@/hooks";
 
 export const useColorPickerStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     /* ─── Color map ─── */
     colorMapSection: {
       marginBottom: theme.spacing.lg,
     },
     colorMapRow: {
-      flexDirection: 'row' as const,
+      flexDirection: "row" as const,
       gap: theme.spacing.sm,
     },
     colorMapContainer: {
       flex: 1,
       aspectRatio: 1,
       borderRadius: theme.effects.radius.md,
-      overflow: 'hidden' as const,
+      overflow: "hidden" as const,
     },
     colorMapGradient: {
       flex: 1,
     },
     colorMapCursor: {
-      position: 'absolute' as const,
+      position: "absolute" as const,
       width: 24,
       height: 24,
       borderRadius: 12,
       borderWidth: 3,
-      borderColor: '#FFFFFF',
-      shadowColor: '#000',
+      borderColor: "#FFFFFF",
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.3,
       shadowRadius: 2,
@@ -35,8 +35,8 @@ export const useColorPickerStyles = () => {
     grayscaleStrip: {
       width: 36,
       borderRadius: theme.effects.radius.md,
-      overflow: 'hidden' as const,
-      justifyContent: 'space-between' as const,
+      overflow: "hidden" as const,
+      justifyContent: "space-between" as const,
     },
     grayscaleCell: {
       flex: 1,
@@ -50,21 +50,21 @@ export const useColorPickerStyles = () => {
     hueSliderTrack: {
       height: 28,
       borderRadius: theme.effects.radius.md,
-      overflow: 'hidden' as const,
+      overflow: "hidden" as const,
     },
     hueSliderGradient: {
       flex: 1,
-      flexDirection: 'row' as const,
+      flexDirection: "row" as const,
     },
     hueSliderCursor: {
-      position: 'absolute' as const,
+      position: "absolute" as const,
       top: -2,
       width: 8,
       height: 32,
       borderRadius: 4,
       borderWidth: 2.5,
-      borderColor: '#FFFFFF',
-      shadowColor: '#000',
+      borderColor: "#FFFFFF",
+      shadowColor: "#000",
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.3,
       shadowRadius: 2,
@@ -73,8 +73,8 @@ export const useColorPickerStyles = () => {
 
     /* ─── Preview ─── */
     previewSection: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
       gap: theme.spacing.md,
       marginBottom: theme.spacing.lg,
     },
@@ -111,7 +111,7 @@ export const useColorPickerStyles = () => {
       marginBottom: theme.spacing.sm,
     },
     inputRow: {
-      flexDirection: 'row' as const,
+      flexDirection: "row" as const,
       gap: theme.spacing.sm,
     },
     inputGroup: {
@@ -122,7 +122,7 @@ export const useColorPickerStyles = () => {
       fontFamily: theme.typography.fontFamily.primary.medium,
       color: theme.colors.textMuted,
       marginBottom: theme.spacing.xs,
-      textAlign: 'center' as const,
+      textAlign: "center" as const,
     },
     textInput: {
       fontSize: theme.typography.fontSize.md,
@@ -134,7 +134,7 @@ export const useColorPickerStyles = () => {
       borderWidth: theme.effects.borderWidth.md,
       borderColor: theme.colors.borderSoft,
       backgroundColor: theme.colors.surface,
-      textAlign: 'center' as const,
+      textAlign: "center" as const,
     },
     textInputFocused: {
       borderColor: theme.colors.primary,
@@ -161,9 +161,9 @@ export const useColorPickerStyles = () => {
 
     /* ─── Favorite toggle ─── */
     favoriteSection: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
-      justifyContent: 'space-between' as const,
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      justifyContent: "space-between" as const,
       marginBottom: theme.spacing.lg,
       paddingVertical: theme.spacing.sm,
       paddingHorizontal: theme.spacing.md,
@@ -173,8 +173,8 @@ export const useColorPickerStyles = () => {
       borderColor: theme.colors.borderSoft,
     },
     favoriteLabel: {
-      flexDirection: 'row' as const,
-      alignItems: 'center' as const,
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
       gap: theme.spacing.sm,
     },
     favoriteLabelText: {
@@ -190,8 +190,8 @@ export const useColorPickerStyles = () => {
       paddingVertical: theme.spacing.md,
       borderRadius: theme.effects.radius.md,
       backgroundColor: theme.colors.primary,
-      alignItems: 'center' as const,
-      justifyContent: 'center' as const,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
     },
     saveButtonText: {
       fontSize: theme.typography.fontSize.lg,
@@ -202,20 +202,62 @@ export const useColorPickerStyles = () => {
 };
 
 export const useColorListStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
+    gridWidth: {
+      width: 40 * 7 + theme.spacing.sm * 6,
+      maxWidth: "100%",
+    },
+    paginationFooter: {
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+      marginTop: theme.spacing.sm,
+      alignSelf: "center",
+    },
+    paginationButton: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: "center",
+      justifyContent: "center",
+      borderWidth: theme.effects.borderWidth.md,
+      borderColor: theme.colors.borderSoft,
+      backgroundColor: theme.colors.surface,
+    },
+    paginationButtonDisabled: {
+      opacity: 0.25,
+    },
+    paginationText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      color: theme.colors.textSecondary,
+    },
+    paginationIcon: {
+      color: theme.colors.textPrimary,
+    },
+    container: {
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.surface,
+      paddingVertical: theme.spacing.md,
+      borderRadius: theme.effects.radius.md,
+    },
     colorList: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
+      alignSelf: "center",
+      flexDirection: "row",
+      flexWrap: "wrap",
+      justifyContent: "flex-start",
       gap: theme.spacing.sm,
     },
     colorOption: {
       width: 40,
       height: 40,
       borderRadius: 20,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       borderWidth: theme.effects.borderWidth.lg,
-      borderColor: 'transparent',
+      borderColor: "transparent",
     },
     colorOptionSelected: {
       borderColor: theme.colors.textPrimary,
@@ -226,7 +268,7 @@ export const useColorListStyles = () => {
       borderRadius: 15,
     },
     favoriteIcon: {
-      position: 'absolute',
+      position: "absolute",
       top: 20,
       right: 0,
     },
@@ -239,12 +281,12 @@ export const useColorListStyles = () => {
       borderRadius: 15,
       borderWidth: 1.5,
       borderColor: theme.colors.borderSoft,
-      borderStyle: 'dashed',
-      alignItems: 'center',
-      justifyContent: 'center',
+      borderStyle: "dashed",
+      alignItems: "center",
+      justifyContent: "center",
     },
     addIconColor: {
       color: theme.colors.textSecondary,
     },
-  }))
-}
+  }));
+};

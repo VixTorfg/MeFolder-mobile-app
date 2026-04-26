@@ -274,10 +274,19 @@ export const useFolderCreatorStyles = () => {
     iconSection: {
       marginBottom: theme.spacing.lg,
     },
+    iconGridWrapper: {
+      width: "100%",
+      alignItems: "center",
+      justifyContent: "center",
+    },
     iconGrid: {
+      width: 48 * 5 + theme.spacing.md * 5,
+      maxWidth: "100%",
       flexDirection: "row",
       flexWrap: "wrap",
-      gap: theme.spacing.sm,
+      gap: theme.spacing.md,
+      alignItems: "center",
+      justifyContent: "flex-start",
     },
     iconOption: {
       width: 48,
