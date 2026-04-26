@@ -214,7 +214,7 @@ export class FileRepositoryImplementation implements FileRepository {
         },
         // Insertar tags si existen
         ...(file.tagIds?.map((tagId) => ({
-          sql: "INSERT INTO file_tags (file_id, tag_id) VALUES (?, ?)",
+          sql: "INSERT OR IGNORE INTO file_tags (file_id, tag_id) VALUES (?, ?)",
           params: [file.id, tagId],
         })) || []),
       ]);
