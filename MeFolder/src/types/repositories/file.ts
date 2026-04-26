@@ -36,7 +36,6 @@ export interface FileRepository extends BaseRepository<
   bulkCreate(files: CreateFileInput[])
   findRecentlyAccessed(limit)
   
-
   Tipa filter
   */
 }

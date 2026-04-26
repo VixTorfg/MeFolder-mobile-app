@@ -3,6 +3,7 @@ import {
   ViewCards,
   ItemCreator,
   MultiActionButton,
+  SearchBox,
   ContextMenu,
   Breadcrumb,
   OptionDropDown,
@@ -11,8 +12,14 @@ import {
   AudioPlayer,
   VideoPlayer,
 } from "@/components";
-import React, { useMemo, useState } from "react";
-import { View, TouchableOpacity, Text, ActivityIndicator } from "react-native";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import {
+  View,
+  TouchableOpacity,
+  Text,
+  ActivityIndicator,
+  Keyboard,
+} from "react-native";
 import { useNavigationStore } from "@/stores";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FileModel, FolderModel } from "@/models";
@@ -21,7 +28,7 @@ import { useLibraryStyles } from "@/screenStyles/libraryStyle";
 import EmptyFolder from "@/components/svgIcons/emptyFolder";
 import { SortDropDown } from "@/components/SortDropDown";
 import { useLibraryContent, useLibraryActions } from "@/hooks/library";
-import { useFileSystem, useSelection } from "@/hooks";
+import { useFileSystem, useSearch, useSelection } from "@/hooks";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 
@@ -47,6 +54,7 @@ export default function LibraryScreen() {
   const [videoPlayerSource, setVideoPlayerSource] =
     useState<MediaSource | null>(null);
   const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
     useNavigationStore();
@@ -99,6 +107,31 @@ export default function LibraryScreen() {
 
   const styles = useLibraryStyles();
   const fs = useFileSystem();
+  const { handleSearch, clearSearch, isSearching, isSearchActive } =
+    useSearch("");
+
+  const dismissSearchFocus = useCallback(() => {
+    if (isSearchExpanded) {
+      Keyboard.dismiss();
+    }
+  }, [isSearchExpanded]);
+
+  useEffect(() => {
+    if (selectionMode) {
+      if (isSearchExpanded) {
+        setIsSearchExpanded(false);
+      }
+
+      if (isSearchActive) {
+        clearSearch();
+      }
+    }
+  }, [selectionMode, isSearchExpanded, isSearchActive, clearSearch]);
+
+  useEffect(() => {
+    clearSearch();
+    setIsSearchExpanded(false);
+  }, [currentFolderId, clearSearch]);
 
   const handleOpenItem = (item: FileModel | FolderModel) => {
     if (item instanceof FolderModel) {
@@ -259,13 +292,6 @@ export default function LibraryScreen() {
     if (selectionMode) {
       return (
         <>
-          <MultiActionButton
-            icon={"search-outline"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => {}}
-          />
           {!itemsSelected.some((i) => i instanceof FolderModel) && (
             <MultiActionButton
               icon={"bookmark-plus-outline"}
@@ -294,37 +320,55 @@ export default function LibraryScreen() {
     } else {
       return (
         <>
-          <MultiActionButton
-            icon={"search-outline"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => handlePaste()}
+          <SearchBox
+            placeholder="Buscar en biblioteca..."
+            iconSize={22}
+            collapsible
+            onSearch={async (query) => {
+              const results = await handleSearch(query);
+
+              return results.map((item) => ({
+                id: item.id,
+                name: item.name,
+                type: item instanceof FolderModel ? "folder" : "file",
+              }));
+            }}
+            onClear={clearSearch}
+            onExpandedChange={setIsSearchExpanded}
           />
-          <MultiActionButton
-            icon={"add"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => setCreatorVisible(true)}
-          />
-          <SortDropDown
-            size={42}
-            onChangeOrderBy={async (ob) => await handleSortItems(sortValue, ob)}
-            onChangeSortValue={async (sv) => await handleSortItems(sv, orderBy)}
-            defaultOrderByValue={orderBy}
-            defaultSortValue={sortValue}
-          />
-          <ViewDropDown
-            size={42}
-            onChange={async (selectedMode) =>
-              await handleViewModeChange(selectedMode.id)
-            }
-            defaultValue={selectedView}
-            viewOptions={viewOptions}
-            onViewOptionsChange={handleViewOptionsChange}
-          />
-          <OptionDropDown size={42} onSelect={handleOnSelectOption} />
+
+          {!isSearchExpanded && (
+            <>
+              <MultiActionButton
+                icon={"add"}
+                backgroundColor="transparent"
+                iconColor={styles.iconColor.color}
+                size={42}
+                onPress={() => setCreatorVisible(true)}
+              />
+              <SortDropDown
+                size={42}
+                onChangeOrderBy={async (ob) =>
+                  await handleSortItems(sortValue, ob)
+                }
+                onChangeSortValue={async (sv) =>
+                  await handleSortItems(sv, orderBy)
+                }
+                defaultOrderByValue={orderBy}
+                defaultSortValue={sortValue}
+              />
+              <ViewDropDown
+                size={42}
+                onChange={async (selectedMode) =>
+                  await handleViewModeChange(selectedMode.id)
+                }
+                defaultValue={selectedView}
+                viewOptions={viewOptions}
+                onViewOptionsChange={handleViewOptionsChange}
+              />
+              <OptionDropDown size={42} onSelect={handleOnSelectOption} />
+            </>
+          )}
         </>
       );
     }
@@ -348,10 +392,17 @@ export default function LibraryScreen() {
           )}
         </View>
 
-        <View style={styles.buttonsGroup}>{renderGroupButtons()}</View>
+        <View
+          style={[
+            styles.buttonsGroup,
+            isSearchExpanded && styles.buttonsGroupSearchExpanded,
+          ]}
+        >
+          {renderGroupButtons()}
+        </View>
       </View>
 
-      <View style={styles.headerBreadcrumb}>
+      <View style={styles.headerBreadcrumb} onTouchStart={dismissSearchFocus}>
         <Text style={styles.headerBreadcrumbText}>{currentFolderName}</Text>
         <Breadcrumb />
       </View>
@@ -369,9 +420,10 @@ export default function LibraryScreen() {
           setCreatorVisible(false);
         }}
       />
-      {loading ? (
+      {loading || isSearching ? (
         <View
           style={[styles.footerEmptyContainer, { justifyContent: "center" }]}
+          onTouchStart={dismissSearchFocus}
         >
           <ActivityIndicator
             size="large"
@@ -379,7 +431,10 @@ export default function LibraryScreen() {
           />
         </View>
       ) : sortedItems.length === 0 ? (
-        <View style={styles.footerEmptyContainer}>
+        <View
+          style={styles.footerEmptyContainer}
+          onTouchStart={dismissSearchFocus}
+        >
           <View style={styles.emptyFolderIconContainer}>
             <EmptyFolder
               strokeWidth={0.35}
@@ -388,7 +443,11 @@ export default function LibraryScreen() {
               folderColor={styles.iconColor.color}
               crossColor={styles.iconColor.primaryColor}
             />
-            <Text style={styles.emptyFolderText}>La carpeta está vacía</Text>
+            <Text style={styles.emptyFolderText}>
+              {isSearchActive
+                ? "No se encontraron resultados"
+                : "La carpeta está vacía"}
+            </Text>
           </View>
           <TouchableOpacity
             style={styles.volverButton}
@@ -406,6 +465,10 @@ export default function LibraryScreen() {
           keyExtractor={(item) => item.id}
           key={`${selectedView}-${gridConfig.columns}`}
           numColumns={gridConfig.columns}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          onTouchStart={dismissSearchFocus}
+          onScrollBeginDrag={dismissSearchFocus}
           onScroll={() => setShowMenu(false)}
           renderItem={({ item }) => (
             <View style={styles.cardWrapper}>

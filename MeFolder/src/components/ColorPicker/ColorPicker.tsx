@@ -359,17 +359,32 @@ export default function ColorPicker({
       return;
     }
 
-    const colorInfo: ColorInfo = {
-      ...(initialData?.color?.id && { id: initialData.color.id }),
-      hex: currentHex,
-      rgb: { r: selectedR, g: selectedG, b: selectedB },
-      name: colorName.trim(),
-      isSystem: initialData?.color?.isSystem ?? initialData?.isSystem ?? false,
-      isFavorite,
-    };
+    showAlert({
+      title: "Confirmar eliminación",
+      message:
+        "¿Estás seguro de que quieres eliminar este color personalizado?",
+      buttons: [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: () => {
+            const colorInfo: ColorInfo = {
+              ...(initialData?.color?.id && { id: initialData.color.id }),
+              hex: currentHex,
+              rgb: { r: selectedR, g: selectedG, b: selectedB },
+              name: colorName.trim(),
+              isSystem:
+                initialData?.color?.isSystem ?? initialData?.isSystem ?? false,
+              isFavorite,
+            };
 
-    onDelete?.(colorInfo);
-    onClose();
+            onDelete?.(colorInfo);
+            onClose();
+          },
+        },
+      ],
+    });
   }, [
     onClose,
     onDelete,

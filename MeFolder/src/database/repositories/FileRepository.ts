@@ -123,6 +123,10 @@ export class FileRepositoryImplementation implements FileRepository {
             " AND f.id NOT IN (SELECT file_id FROM file_tags WHERE tag_id = ?)";
           params.push(filters.excludeTagId);
         }
+        if (filters.name) {
+          sql += " AND f.name LIKE ?";
+          params.push(`%${filters.name}%`);
+        }
       }
 
       sql += " GROUP BY f.id";

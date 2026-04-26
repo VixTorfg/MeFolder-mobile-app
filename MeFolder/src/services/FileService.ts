@@ -169,6 +169,17 @@ export class FileService extends BaseService {
     }
   }
 
+  async searchFiles(query: string): Promise<FileModel[]> {
+    try {
+      this.ensureDbInitialized();
+      if (query.trim() === "") return [];
+      const files = await this.fileRepo.findAll({ name: query });
+      return files.map((f) => FileFactory.fromJSON(f));
+    } catch (error) {
+      return this.handleError(error, "buscar archivos");
+    }
+  }
+
   /**
    * Asignar tags a un archivo
    */

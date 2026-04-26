@@ -11,6 +11,7 @@ export * from "./useSelection";
 export * from "./useViewSettings";
 export * from "./usePinchColumns";
 export * from "./usePagination";
+export * from "./useSearch";
 export * from "./gallery";
 export * from "./tags";
 export * from "./library";

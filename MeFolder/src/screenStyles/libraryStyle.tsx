@@ -17,7 +17,8 @@ export const useLibraryStyles = () => {
     headerLeft: {
       flexDirection: "row",
       alignItems: "center",
-      flex: 1,
+      width: 42,
+      marginRight: theme.spacing.sm,
     },
     headerBreadcrumb: {
       alignItems: "center",
@@ -67,9 +68,15 @@ export const useLibraryStyles = () => {
       color: "#6c757d",
     },
     buttonsGroup: {
+      flex: 1,
       flexDirection: "row",
-      justifyContent: "space-between",
+      alignItems: "center",
+      justifyContent: "flex-end",
       gap: 8,
+    },
+    buttonsGroupSearchExpanded: {
+      justifyContent: "center",
+      paddingRight: 12,
     },
     iconColor: {
       color: theme.colors.textPrimary,

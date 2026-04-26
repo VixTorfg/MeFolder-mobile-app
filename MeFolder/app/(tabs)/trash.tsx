@@ -246,13 +246,6 @@ export default function TrashScreen() {
     if (selectionMode) {
       return (
         <>
-          <MultiActionButton
-            icon={"search-outline"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => {}}
-          />
           {!itemsSelected.some((i) => i instanceof FolderModel) && (
             <MultiActionButton
               icon={"bookmark-plus-outline"}
@@ -268,6 +261,7 @@ export default function TrashScreen() {
               }}
             />
           )}
+
           <MultiActionButton
             icon={"trash-outline"}
             backgroundColor="transparent"
@@ -282,6 +276,7 @@ export default function TrashScreen() {
             size={42}
             onPress={() => handleRestoreSelected()}
           />
+
           <OptionDropDown
             size={42}
             showProperties={false}
@@ -299,20 +294,24 @@ export default function TrashScreen() {
             size={42}
             onPress={() => {}}
           />
-          <MultiActionButton
-            icon={"restore"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => handleRestoreAll()}
-          />
-          <MultiActionButton
-            icon={"trash-outline"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => handleEmptyTrash()}
-          />
+          {itemsSelected.length >= 1 && (
+            <>
+              <MultiActionButton
+                icon={"restore"}
+                backgroundColor="transparent"
+                iconColor={styles.iconColor.color}
+                size={42}
+                onPress={() => handleRestoreAll()}
+              />
+              <MultiActionButton
+                icon={"trash-outline"}
+                backgroundColor="transparent"
+                iconColor={styles.iconColor.color}
+                size={42}
+                onPress={() => handleEmptyTrash()}
+              />{" "}
+            </>
+          )}
           <SortDropDown
             size={42}
             onChangeOrderBy={async (ob) => await handleSortItems(sortValue, ob)}

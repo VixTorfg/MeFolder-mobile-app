@@ -70,6 +70,17 @@ export class FolderService extends BaseService {
     }
   }
 
+  async searchFolders(query: string): Promise<FolderModel[]> {
+    try {
+      this.ensureDbInitialized();
+      if (query.trim() === "") return [];
+      const folders = await this.folderRepo.findAll({ name: query });
+      return folders.map((f) => FolderFactory.fromJSON(f));
+    } catch (error) {
+      return this.handleError(error, "buscar carpetas");
+    }
+  }
+
   /** Obtiene la configuración de vista de una carpeta específica */
   async getFolderViewConfig(
     folderId: UUID,

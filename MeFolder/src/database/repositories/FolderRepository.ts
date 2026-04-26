@@ -114,6 +114,10 @@ export class FolderRepositoryImplementation implements FolderRepository {
           sql += " AND is_system_folder = ?";
           params.push(filters.isSystemFolder);
         }
+        if (filters.name) {
+          sql += " AND name LIKE ?";
+          params.push(`%${filters.name}%`);
+        }
       }
 
       sql += " ORDER BY name ASC";
