@@ -35,6 +35,7 @@ export default function FolderCreator({
     setSelectedColor,
     setShowColorPicker,
     handleSaveColor,
+    handleDeleteColor,
   } = useColors();
 
   const [folderName, setFolderName] = useState("");
@@ -61,9 +62,7 @@ export default function FolderCreator({
     });
   };
 
-  const handleSelectIcon = (
-    icon: keyof typeof Ionicons.glyphMap,
-  ): void => {
+  const handleSelectIcon = (icon: keyof typeof Ionicons.glyphMap): void => {
     setSelectedIcon(icon);
   };
 
@@ -113,6 +112,7 @@ export default function FolderCreator({
           showPicker={showColorPicker}
           onClosePicker={() => setShowColorPicker(false)}
           onSavePickerColor={handleSaveColor}
+          onDeletePickerColor={handleDeleteColor}
         />
       </View>
 
@@ -121,25 +121,25 @@ export default function FolderCreator({
         <View style={styles.iconGridWrapper}>
           <View style={styles.iconGrid}>
             {FOLDER_ICONS.map((icon) => (
-            <TouchableOpacity
-              key={icon}
-              style={[
-                styles.iconOption,
-                selectedIcon === icon && styles.iconOptionSelected,
-              ]}
-              onPress={() => handleSelectIcon(icon)}
-              activeOpacity={0.7}
-            >
-              <Ionicons
-                name={icon}
-                size={24}
-                color={
-                  selectedIcon === icon
-                    ? theme.colors.primary
-                    : theme.colors.textSecondary
-                }
-              />
-            </TouchableOpacity>
+              <TouchableOpacity
+                key={icon}
+                style={[
+                  styles.iconOption,
+                  selectedIcon === icon && styles.iconOptionSelected,
+                ]}
+                onPress={() => handleSelectIcon(icon)}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name={icon}
+                  size={24}
+                  color={
+                    selectedIcon === icon
+                      ? theme.colors.primary
+                      : theme.colors.textSecondary
+                  }
+                />
+              </TouchableOpacity>
             ))}
           </View>
         </View>

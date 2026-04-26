@@ -7,7 +7,7 @@ import {
   FolderStatus,
   FolderVisibility,
   FolderType,
-  FolderViewSettings,
+  ViewSettings,
 } from "../../types/entities/folder";
 import { UUID } from "../../types/common/base";
 import { ColorInfo } from "../../types/common/colors";
@@ -262,7 +262,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
               showHiddenFiles: Boolean(row.view_settings_show_hidden_files),
               showExtension: Boolean(row.view_settings_show_extension),
             },
-          } as FolderViewSettings)
+          } as ViewSettings)
         : null;
     } catch (error) {
       console.error("Error getting folder view config:", error);
@@ -598,7 +598,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
           showExtension: Boolean(row.view_settings_show_extension),
           showHiddenFiles: Boolean(row.view_settings_show_hidden_files),
         },
-      } as FolderViewSettings,
+      } as ViewSettings,
       isFavorite: Boolean(row.is_favorite),
       isProtected: Boolean(row.is_protected),
       isSystemFolder: Boolean(row.is_system_folder),

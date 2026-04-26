@@ -71,6 +71,14 @@ export const useColorPickerStyles = () => {
       elevation: 4,
     },
 
+    buttonBottomRow: {
+      flexDirection: "row",
+      gap: theme.spacing.sm,
+      width: "100%",
+      marginTop: theme.spacing.sm,
+      marginBottom: theme.spacing.xxl,
+    },
+
     /* ─── Preview ─── */
     previewSection: {
       flexDirection: "row" as const,
@@ -183,17 +191,31 @@ export const useColorPickerStyles = () => {
       color: theme.colors.textPrimary,
     },
 
+    deleteButton: {
+      width: "100%",
+      paddingVertical: theme.spacing.md,
+      paddingHorizontal: theme.spacing.sm,
+      borderRadius: theme.effects.radius.md,
+      backgroundColor: theme.colors.error,
+      alignItems: "center" as const,
+      justifyContent: "center" as const,
+    },
+
     /* ─── Save button ─── */
     saveButton: {
-      marginTop: theme.spacing.sm,
-      marginBottom: theme.spacing.xxl,
+      width: "100%",
       paddingVertical: theme.spacing.md,
       borderRadius: theme.effects.radius.md,
+      paddingHorizontal: theme.spacing.sm,
       backgroundColor: theme.colors.primary,
       alignItems: "center" as const,
       justifyContent: "center" as const,
     },
-    saveButtonText: {
+    actionButtonCompact: {
+      flex: 1,
+      width: undefined,
+    },
+    buttonText: {
       fontSize: theme.typography.fontSize.lg,
       fontFamily: theme.typography.fontFamily.primary.bold,
       color: theme.colors.textOnColor,

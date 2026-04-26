@@ -144,20 +144,29 @@ export interface ColorPickerProps {
   visible: boolean;
   onClose: () => void;
   onSave?: (data: ColorInfo) => Promise<void> | void;
-  initialColor?: ColorInfo | null;
+  onDelete?: (data: ColorInfo) => Promise<void> | void;
+  initialData?: {
+    color: ColorInfo | null;
+    name: string;
+    isFavorite: boolean;
+    isSystem?: boolean;
+  };
+  showDeleteButton?: boolean;
 }
 
 export default function ColorPicker({
   visible,
   onClose,
   onSave,
-  initialColor,
+  onDelete,
+  initialData,
+  showDeleteButton = false,
 }: ColorPickerProps) {
   const { theme } = useTheme();
   const { showAlert } = useAlert();
   const styles = useColorPickerStyles();
 
-  const initRgb = initialColor?.rgb ?? { r: 242, g: 201, b: 76 };
+  const initRgb = initialData?.color?.rgb ?? { r: 242, g: 201, b: 76 };
   const initHsl = rgbToHsl(initRgb.r, initRgb.g, initRgb.b);
 
   const [hue, setHue] = useState(initHsl.h);
@@ -167,8 +176,10 @@ export default function ColorPicker({
   const [hexText, setHexText] = useState(
     rgbToHex(initRgb.r, initRgb.g, initRgb.b),
   );
-  const [colorName, setColorName] = useState(initialColor?.name ?? "");
-  const [isFavorite, setIsFavorite] = useState(false);
+  const [colorName, setColorName] = useState(initialData?.name ?? "");
+  const [isFavorite, setIsFavorite] = useState(
+    initialData?.isFavorite ?? false,
+  );
   const [lightnessLevel, setLightnessLevel] = useState(4);
   const [selectedCell, setSelectedCell] = useState<{
     row: number;
@@ -180,6 +191,29 @@ export default function ColorPicker({
   const [gFocused, setGFocused] = useState(false);
   const [bFocused, setBFocused] = useState(false);
   const [nameFocused, setNameFocused] = useState(false);
+
+  const isEditingExistingColor = Boolean(
+    initialData?.color?.id && !initialData?.color?.isSystem,
+  );
+
+  React.useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const nextRgb = initialData?.color?.rgb ?? { r: 242, g: 201, b: 76 };
+    const nextHsl = rgbToHsl(nextRgb.r, nextRgb.g, nextRgb.b);
+
+    setHue(nextHsl.h);
+    setSelectedR(nextRgb.r);
+    setSelectedG(nextRgb.g);
+    setSelectedB(nextRgb.b);
+    setHexText(rgbToHex(nextRgb.r, nextRgb.g, nextRgb.b));
+    setColorName(initialData?.name ?? "");
+    setIsFavorite(initialData?.isFavorite ?? false);
+    setLightnessLevel(4);
+    setSelectedCell(null);
+  }, [visible, initialData]);
 
   const currentHex = rgbToHex(selectedR, selectedG, selectedB);
 
@@ -294,10 +328,11 @@ export default function ColorPicker({
     }
 
     const colorInfo: ColorInfo = {
+      ...(initialData?.color?.id && { id: initialData.color.id }),
       hex: currentHex,
       rgb: { r: selectedR, g: selectedG, b: selectedB },
       name: trimmedName,
-      isSystem: false,
+      isSystem: initialData?.color?.isSystem ?? initialData?.isSystem ?? false,
       isFavorite,
     };
 
@@ -312,10 +347,43 @@ export default function ColorPicker({
     isFavorite,
     onSave,
     onClose,
+    initialData,
+  ]);
+
+  const handleDelete = useCallback(() => {
+    if (initialData?.color?.isSystem ?? initialData?.isSystem) {
+      showAlert({
+        title: "Error",
+        message: "No se puede eliminar un color del sistema.",
+      });
+      return;
+    }
+
+    const colorInfo: ColorInfo = {
+      ...(initialData?.color?.id && { id: initialData.color.id }),
+      hex: currentHex,
+      rgb: { r: selectedR, g: selectedG, b: selectedB },
+      name: colorName.trim(),
+      isSystem: initialData?.color?.isSystem ?? initialData?.isSystem ?? false,
+      isFavorite,
+    };
+
+    onDelete?.(colorInfo);
+    onClose();
+  }, [
+    onClose,
+    onDelete,
+    currentHex,
+    selectedR,
+    selectedG,
+    selectedB,
+    colorName,
+    isFavorite,
+    initialData,
   ]);
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} title="Nuevo color">
+    <BottomSheet visible={visible} onClose={onClose} title="Personalizar color">
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.08 }}
@@ -503,13 +571,30 @@ export default function ColorPicker({
           />
         </View>
 
-        <TouchableOpacity
-          style={styles.saveButton}
-          onPress={handleSave}
-          activeOpacity={0.7}
-        >
-          <Text style={styles.saveButtonText}>Guardar color</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonBottomRow}>
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              showDeleteButton && styles.actionButtonCompact,
+            ]}
+            onPress={handleSave}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.buttonText}>
+              {isEditingExistingColor ? "Actualizar color" : "Guardar color"}
+            </Text>
+          </TouchableOpacity>
+
+          {showDeleteButton && (
+            <TouchableOpacity
+              style={[styles.deleteButton, styles.actionButtonCompact]}
+              onPress={handleDelete}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.buttonText}>Eliminar color</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </ScrollView>
     </BottomSheet>
   );

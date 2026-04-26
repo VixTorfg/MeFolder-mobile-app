@@ -86,8 +86,13 @@ export const FolderPropertyMenu = ({
   const { updateItem } = useLibraryStore();
   const styles = useFilePropertyMenuStyles();
   const folderStyles = useFolderPropertyMenuStyles();
-  const { colors, showColorPicker, setShowColorPicker, handleSaveColor } =
-    useColors();
+  const {
+    colors,
+    showColorPicker,
+    setShowColorPicker,
+    handleSaveColor,
+    handleDeleteColor,
+  } = useColors();
 
   const [folderName, setFolderName] = useState(item.name);
   const [folderDescription, setFolderDescription] = useState(
@@ -253,6 +258,7 @@ export const FolderPropertyMenu = ({
             showPicker={showColorPicker}
             onClosePicker={() => setShowColorPicker(false)}
             onSavePickerColor={handleSavePickerColor}
+            onDeletePickerColor={handleDeleteColor}
           />
         </View>
 

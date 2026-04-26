@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -14,7 +14,7 @@ import { formatFileSize } from "@/utils/format/bytes";
 import { FileModel } from "@/models/file";
 import { formatDate, formatVideoDuration, formatAudioDuration } from "@/utils";
 import { useLibraryStore } from "@/stores/useLibraryStore";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { TagCreator } from "../TagCreator";
 import { useTagsActions } from "@/hooks/tags/useTagsActions";
 import { TagModel } from "@/models";
@@ -98,13 +98,31 @@ export const FilePropertyMenu = ({
   const isRenaming = fileName !== file.name;
   const { metadata } = file;
 
+  const refreshFile = useCallback(async () => {
+    const updatedFile = await services.fileService.getFile(file.id);
+    setFile(updatedFile);
+    updateItem(updatedFile);
+  }, [file.id, services.fileService, updateItem]);
+
+  useEffect(() => {
+    setFile(item);
+    setFileName(item.name);
+  }, [item]);
+
   useEffect(() => {
     const loadTags = async () => {
       const result = await services.tagService.getTagsByIds(file.tagIds);
       setTags(result ?? []);
     };
+
     loadTags();
-  }, [file.id]);
+  }, [file.tagIds, services.tagService]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshFile();
+    }, [refreshFile]),
+  );
 
   const mediaStats = useMemo(() => {
     const rows: InfoRowProps[] = [];

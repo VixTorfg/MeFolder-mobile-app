@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
-import { useTheme } from '@/providers';
-import { useColors } from '@/hooks';
-import { useTagCreatorFormStyles } from './styles';
-import type { TagType, TagPriority } from '@/types/entities/tag';
-import type { ColorInfo } from '@/types/common/colors';
-import { ToggleAlbum, ToggleFavourite, PrioritySelector } from '../Toggles';
-import { ColorList } from '@/components/ColorPicker';
-import { TagPreview } from './TagPreview';
+import React, { useState } from "react";
+import { View, Text, TouchableOpacity, TextInput } from "react-native";
+import { useTheme } from "@/providers";
+import { useColors } from "@/hooks";
+import { useTagCreatorFormStyles } from "./styles";
+import type { TagType, TagPriority } from "@/types/entities/tag";
+import type { ColorInfo } from "@/types/common/colors";
+import { ToggleAlbum, ToggleFavourite, PrioritySelector } from "../Toggles";
+import { ColorList } from "@/components/ColorPicker";
+import { TagPreview } from "./TagPreview";
 
 export interface NewTag {
   name: string;
@@ -25,13 +25,21 @@ interface TagCreatorFormProps {
 export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
   const { theme } = useTheme();
   const styles = useTagCreatorFormStyles();
-  const { colors, selectedColor, showColorPicker, setSelectedColor, setShowColorPicker, handleSaveColor } = useColors();
+  const {
+    colors,
+    selectedColor,
+    showColorPicker,
+    setSelectedColor,
+    setShowColorPicker,
+    handleSaveColor,
+    handleDeleteColor,
+  } = useColors();
 
-  const [tagName, setTagName] = useState('');
-  const [description, setDescription] = useState('');
+  const [tagName, setTagName] = useState("");
+  const [description, setDescription] = useState("");
   const [isAlbum, setIsAlbum] = useState(false);
   const [isFavorite, setIsFavorite] = useState(false);
-  const [priority, setPriority] = useState<TagPriority>('normal');
+  const [priority, setPriority] = useState<TagPriority>("normal");
   const [nameFocused, setNameFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
 
@@ -44,13 +52,11 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
       name: tagName.trim(),
       description: description.trim() || null,
       color: selectedColor,
-      type: isAlbum ? 'album' : 'user',
+      type: isAlbum ? "album" : "user",
       priority,
       isFavorite,
     });
   };
-
-
 
   return (
     <View style={styles.container}>
@@ -58,19 +64,28 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Nombre</Text>
         <View style={styles.nameInputAndPreview}>
-            <TextInput
-                style={[styles.textInput, styles.nameInput, nameFocused && styles.textInputFocused]}
-                value={tagName}
-                onChangeText={setTagName}
-                placeholder="Nombre de la etiqueta"
-                placeholderTextColor={theme.colors.textMuted}
-                onFocus={() => setNameFocused(true)}
-                onBlur={() => setNameFocused(false)}
-                maxLength={50}
+          <TextInput
+            style={[
+              styles.textInput,
+              styles.nameInput,
+              nameFocused && styles.textInputFocused,
+            ]}
+            value={tagName}
+            onChangeText={setTagName}
+            placeholder="Nombre de la etiqueta"
+            placeholderTextColor={theme.colors.textMuted}
+            onFocus={() => setNameFocused(true)}
+            onBlur={() => setNameFocused(false)}
+            maxLength={50}
+          />
+          <View style={styles.namePreview}>
+            <TagPreview
+              name={tagName}
+              color={selectedColor}
+              isAlbum={isAlbum}
+              isFavorite={isFavorite}
             />
-            <View style={styles.namePreview}>
-                <TagPreview name={tagName} color={selectedColor} isAlbum={isAlbum} isFavorite={isFavorite} />
-            </View>
+          </View>
         </View>
       </View>
 
@@ -95,18 +110,19 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
         />
       </View>
 
-    <View style={styles.colorSection}>
-    <Text style={styles.label}>Color</Text>   
+      <View style={styles.colorSection}>
+        <Text style={styles.label}>Color</Text>
         <ColorList
-            colors={colors}
-            selectedColor={selectedColor}
-            onSelect={setSelectedColor}
-            onAddColor={() => setShowColorPicker(true)}
-            showPicker={showColorPicker}
-            onClosePicker={() => setShowColorPicker(false)}
-            onSavePickerColor={handleSaveColor}
+          colors={colors}
+          selectedColor={selectedColor}
+          onSelect={setSelectedColor}
+          onAddColor={() => setShowColorPicker(true)}
+          showPicker={showColorPicker}
+          onClosePicker={() => setShowColorPicker(false)}
+          onSavePickerColor={handleSaveColor}
+          onDeletePickerColor={handleDeleteColor}
         />
-    </View>
+      </View>
 
       <View style={styles.optionsSection}>
         <Text style={styles.label}>Prioridad</Text>
@@ -116,7 +132,10 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
       <View style={styles.optionsSection}>
         <Text style={styles.label}>Opciones</Text>
         <ToggleAlbum onToggle={() => setIsAlbum(!isAlbum)} isActive={isAlbum} />
-        <ToggleFavourite onToggle={() => setIsFavorite(!isFavorite)} isActive={isFavorite} />
+        <ToggleFavourite
+          onToggle={() => setIsFavorite(!isFavorite)}
+          isActive={isFavorite}
+        />
       </View>
 
       <TouchableOpacity

@@ -1,9 +1,9 @@
-import { BaseEntity } from '../common/base';
-import { ColorInfo } from '../common/colors';
+import { BaseEntity } from "../common/base";
+import { ColorInfo } from "../common/colors";
 
-export interface UserColor extends ColorInfo, BaseEntity {}
+export interface UserColor extends Omit<ColorInfo, "id">, BaseEntity {}
 
-export type CreateUserColorInput = ColorInfo;
+export type CreateUserColorInput = Omit<ColorInfo, "id">;
 
 export interface UpdateUserColorInput {
   name?: string;

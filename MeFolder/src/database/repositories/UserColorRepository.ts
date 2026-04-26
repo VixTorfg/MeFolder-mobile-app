@@ -1,11 +1,11 @@
-import { Database } from '../sqlite/Database';
-import { 
-  UserColor, 
-  CreateUserColorInput, 
-  UpdateUserColorInput 
-} from '../../types/entities/userColor';
-import { UUID } from '../../types/common/base';
-import { UserColorRepository } from '../../types/repositories/userColor';
+import { Database } from "../sqlite/Database";
+import {
+  UserColor,
+  CreateUserColorInput,
+  UpdateUserColorInput,
+} from "../../types/entities/userColor";
+import { UUID } from "../../types/common/base";
+import { UserColorRepository } from "../../types/repositories/userColor";
 
 /**
  * Implementación del repositorio de colores personalizados del usuario.
@@ -21,12 +21,12 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
   async findById(id: UUID): Promise<UserColor | null> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT * FROM user_colors WHERE id = ?',
-        [id]
+        "SELECT * FROM user_colors WHERE id = ?",
+        [id],
       );
       return row ? this.mapRowToUserColor(row) : null;
     } catch (error) {
-      console.error('Error finding user color by id:', error);
+      console.error("Error finding user color by id:", error);
       throw new Error(`Error al buscar color: ${error}`);
     }
   }
@@ -35,12 +35,12 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
     try {
       const normalizedHex = hex.toUpperCase();
       const [row] = await this.db.query<any>(
-        'SELECT * FROM user_colors WHERE UPPER(color_hex) = ?',
-        [normalizedHex]
+        "SELECT * FROM user_colors WHERE UPPER(color_hex) = ?",
+        [normalizedHex],
       );
       return row ? this.mapRowToUserColor(row) : null;
     } catch (error) {
-      console.error('Error finding user color by hex:', error);
+      console.error("Error finding user color by hex:", error);
       throw new Error(`Error al buscar color por hex: ${error}`);
     }
   }
@@ -48,11 +48,11 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
   async findAll(): Promise<UserColor[]> {
     try {
       const rows = await this.db.query<any>(
-        'SELECT * FROM user_colors ORDER BY created_at DESC'
+        "SELECT * FROM user_colors ORDER BY created_at DESC",
       );
-      return rows.map(row => this.mapRowToUserColor(row));
+      return rows.map((row) => this.mapRowToUserColor(row));
     } catch (error) {
-      console.error('Error finding all user colors:', error);
+      console.error("Error finding all user colors:", error);
       throw new Error(`Error al buscar colores: ${error}`);
     }
   }
@@ -60,25 +60,25 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
   async findFavorites(): Promise<UserColor[]> {
     try {
       const rows = await this.db.query<any>(
-        'SELECT * FROM user_colors WHERE is_favorite = ? ORDER BY created_at DESC',
-        [true]
+        "SELECT * FROM user_colors WHERE is_favorite = ? ORDER BY created_at DESC",
+        [true],
       );
-      return rows.map(row => this.mapRowToUserColor(row));
+      return rows.map((row) => this.mapRowToUserColor(row));
     } catch (error) {
-      console.error('Error finding favorite colors:', error);
+      console.error("Error finding favorite colors:", error);
       throw new Error(`Error al buscar colores favoritos: ${error}`);
     }
   }
 
   async create(input: CreateUserColorInput): Promise<UserColor> {
     try {
-      const now = new Date();
+      const now = Date.now();
       const id = this.generateId();
 
       const userColor: UserColor = {
         id,
-        createdAt: now,
-        updatedAt: now,
+        createdAt: new Date(now),
+        updatedAt: new Date(now),
         hex: input.hex,
         rgb: input.rgb,
         isSystem: false,
@@ -86,23 +86,30 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
         ...(input.name && { name: input.name.trim() }),
       };
 
-      await this.db.execute(`
+      await this.db.execute(
+        `
         INSERT INTO user_colors (
           id, created_at, updated_at,
           name, color_hex, color_rgb_r, color_rgb_g, color_rgb_b,
           is_favorite
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `, [
-        userColor.id, userColor.createdAt, userColor.updatedAt,
-        userColor.name ?? null,
-        userColor.hex,
-        userColor.rgb.r, userColor.rgb.g, userColor.rgb.b,
-        userColor.isFavorite,
-      ]);
+      `,
+        [
+          userColor.id,
+          now,
+          now,
+          userColor.name ?? null,
+          userColor.hex,
+          userColor.rgb.r,
+          userColor.rgb.g,
+          userColor.rgb.b,
+          userColor.isFavorite,
+        ],
+      );
 
       return userColor;
     } catch (error) {
-      console.error('Error creating user color:', error);
+      console.error("Error creating user color:", error);
       throw new Error(`Error al crear color: ${error}`);
     }
   }
@@ -111,19 +118,22 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
     try {
       const existing = await this.findById(id);
       if (!existing) {
-        throw new Error('Color no encontrado');
+        throw new Error("Color no encontrado");
       }
+
+      const updatedAt = Date.now();
 
       const updated: UserColor = {
         ...existing,
-        updatedAt: new Date(),
+        updatedAt: new Date(updatedAt),
         ...(input.name !== undefined && { name: input.name?.trim() }),
         ...(input.hex && { hex: input.hex }),
         ...(input.rgb && { rgb: input.rgb }),
         ...(input.isFavorite !== undefined && { isFavorite: input.isFavorite }),
       };
 
-      await this.db.execute(`
+      await this.db.execute(
+        `
         UPDATE user_colors SET
           updated_at = ?,
           name = ?,
@@ -133,31 +143,32 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
           color_rgb_b = ?,
           is_favorite = ?
         WHERE id = ?
-      `, [
-        updated.updatedAt,
-        updated.name ?? null,
-        updated.hex,
-        updated.rgb.r, updated.rgb.g, updated.rgb.b,
-        updated.isFavorite,
-        id,
-      ]);
+      `,
+        [
+          updatedAt,
+          updated.name ?? null,
+          updated.hex,
+          updated.rgb.r,
+          updated.rgb.g,
+          updated.rgb.b,
+          updated.isFavorite,
+          id,
+        ],
+      );
 
       return updated;
     } catch (error) {
-      console.error('Error updating user color:', error);
+      console.error("Error updating user color:", error);
       throw new Error(`Error al actualizar color: ${error}`);
     }
   }
 
   async delete(id: UUID): Promise<boolean> {
     try {
-      await this.db.execute(
-        'DELETE FROM user_colors WHERE id = ?',
-        [id]
-      );
+      await this.db.execute("DELETE FROM user_colors WHERE id = ?", [id]);
       return true;
     } catch (error) {
-      console.error('Error deleting user color:', error);
+      console.error("Error deleting user color:", error);
       throw new Error(`Error al eliminar color: ${error}`);
     }
   }
@@ -165,11 +176,11 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
   async count(): Promise<number> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT COUNT(*) as total FROM user_colors'
+        "SELECT COUNT(*) as total FROM user_colors",
       );
       return row?.total ?? 0;
     } catch (error) {
-      console.error('Error counting user colors:', error);
+      console.error("Error counting user colors:", error);
       throw new Error(`Error al contar colores: ${error}`);
     }
   }
@@ -177,12 +188,12 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
   async exists(id: UUID): Promise<boolean> {
     try {
       const [row] = await this.db.query<any>(
-        'SELECT 1 FROM user_colors WHERE id = ?',
-        [id]
+        "SELECT 1 FROM user_colors WHERE id = ?",
+        [id],
       );
       return !!row;
     } catch (error) {
-      console.error('Error checking user color existence:', error);
+      console.error("Error checking user color existence:", error);
       throw new Error(`Error al verificar existencia de color: ${error}`);
     }
   }
@@ -191,12 +202,12 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
     try {
       const normalizedHex = hex.toUpperCase();
       const [row] = await this.db.query<any>(
-        'SELECT 1 FROM user_colors WHERE UPPER(color_hex) = ?',
-        [normalizedHex]
+        "SELECT 1 FROM user_colors WHERE UPPER(color_hex) = ?",
+        [normalizedHex],
       );
       return !!row;
     } catch (error) {
-      console.error('Error checking user color hex existence:', error);
+      console.error("Error checking user color hex existence:", error);
       throw new Error(`Error al verificar existencia de color: ${error}`);
     }
   }

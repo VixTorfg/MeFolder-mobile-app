@@ -17,6 +17,7 @@ interface ColorListProps {
   showPicker: boolean;
   onClosePicker: () => void;
   onSavePickerColor: (color: ColorInfo) => Promise<void> | void;
+  onDeletePickerColor: (color: ColorInfo) => Promise<void> | void;
 }
 
 export const ColorList = ({
@@ -27,9 +28,12 @@ export const ColorList = ({
   showPicker,
   onClosePicker,
   onSavePickerColor,
+  onDeletePickerColor,
 }: ColorListProps) => {
   const styles = useColorListStyles();
   const [pageNumber, setPageNumber] = useState(1);
+  const [showColorSettings, setShowColorSettings] = useState(false);
+  const [inspectedColor, setInspectedColor] = useState<ColorInfo | null>(null);
   const pageOpacity = useRef(new Animated.Value(1)).current;
   const pageTranslateX = useRef(new Animated.Value(0)).current;
   const previousPageRef = useRef<number | null>(null);
@@ -38,6 +42,16 @@ export const ColorList = ({
     pageNumber,
     COLORS_PER_PAGE,
   );
+
+  const isSameColor = (left: ColorInfo | null, right: ColorInfo | null) => {
+    if (!left || !right) return false;
+
+    if (left.id && right.id) {
+      return left.id === right.id;
+    }
+
+    return left.hex === right.hex && left.name === right.name;
+  };
 
   useEffect(() => {
     const nextPage = Math.max(totalPages, 1);
@@ -50,9 +64,8 @@ export const ColorList = ({
       return;
     }
 
-    const selectedColorIndex = colors.findIndex(
-      (color) =>
-        color.hex === selectedColor.hex && color.name === selectedColor.name,
+    const selectedColorIndex = colors.findIndex((color) =>
+      isSameColor(color, selectedColor),
     );
 
     if (selectedColorIndex === -1) {
@@ -60,7 +73,7 @@ export const ColorList = ({
     }
 
     setPageNumber(Math.floor(selectedColorIndex / COLORS_PER_PAGE) + 1);
-  }, [colors, selectedColor?.hex, selectedColor?.name]);
+  }, [colors, selectedColor?.id, selectedColor?.hex, selectedColor?.name]);
 
   useEffect(() => {
     if (previousPageRef.current === null) {
@@ -110,14 +123,16 @@ export const ColorList = ({
         >
           {data.map((color) => (
             <TouchableOpacity
-              key={color.hex + color.name}
+              key={color.id ?? color.hex + color.name}
               style={[
                 styles.colorOption,
-                selectedColor?.hex === color.hex &&
-                  selectedColor?.name === color.name &&
-                  styles.colorOptionSelected,
+                isSameColor(selectedColor, color) && styles.colorOptionSelected,
               ]}
               onPress={() => onSelect(color)}
+              onLongPress={() => {
+                setInspectedColor(color);
+                setShowColorSettings(true);
+              }}
               activeOpacity={0.7}
             >
               <View
@@ -195,6 +210,24 @@ export const ColorList = ({
         visible={showPicker}
         onClose={onClosePicker}
         onSave={onSavePickerColor}
+        onDelete={onDeletePickerColor}
+      />
+
+      <ColorPicker
+        visible={showColorSettings}
+        onClose={() => {
+          setShowColorSettings(false);
+          setInspectedColor(null);
+        }}
+        onSave={onSavePickerColor}
+        onDelete={onDeletePickerColor}
+        initialData={{
+          color: inspectedColor,
+          name: inspectedColor?.name ?? "",
+          isFavorite: inspectedColor?.isFavorite ?? false,
+          isSystem: inspectedColor?.isSystem ?? false,
+        }}
+        showDeleteButton={Boolean(inspectedColor && !inspectedColor.isSystem)}
       />
     </>
   );
