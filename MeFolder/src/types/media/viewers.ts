@@ -19,9 +19,16 @@ export interface MediaSource {
   displayName?: string;
 }
 
+export interface ViewerSwipeHandlers {
+  /** Callback para navegar al siguiente elemento del carrusel */
+  onSwipeNext?: () => void;
+  /** Callback para navegar al elemento anterior del carrusel */
+  onSwipePrevious?: () => void;
+}
+
 // ─── Image Viewer ────────────────────────────────────────────
 
-export interface ImageViewerProps {
+export interface ImageViewerProps extends ViewerSwipeHandlers {
   /** Fuente de la imagen a mostrar */
   source: MediaSource;
   /** Visible o no */
@@ -49,7 +56,7 @@ export type VideoPlaybackStatus =
   | "ended"
   | "error";
 
-export interface VideoPlayerProps {
+export interface VideoPlayerProps extends ViewerSwipeHandlers {
   /** Fuente del vídeo */
   source: MediaSource;
   /** Visible o no */

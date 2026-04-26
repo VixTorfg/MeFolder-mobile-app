@@ -22,14 +22,19 @@ import Animated, {
 } from "react-native-reanimated";
 import type { ImageViewerProps } from "@/types/media/viewers";
 import { useImageViewerStyles } from "./styles";
+import { scheduleOnRN } from "react-native-worklets";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
+const SWIPE_THRESHOLD = 180;
+const SWIPE_VERTICAL_TOLERANCE = 80;
 
 export default function ImageViewer({
   source,
   visible,
   onClose,
+  onSwipeNext,
+  onSwipePrevious,
 }: ImageViewerProps) {
   const styles = useImageViewerStyles();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -131,10 +136,28 @@ export default function ImageViewer({
       }
     });
 
+  const swipeGesture = Gesture.Pan()
+    .minPointers(1)
+    .maxPointers(1)
+    .onEnd((e) => {
+      if (scale.value > MIN_SCALE + 0.05) return;
+      if (Math.abs(e.translationY) > SWIPE_VERTICAL_TOLERANCE) return;
+
+      if (e.translationX <= -SWIPE_THRESHOLD && onSwipeNext) {
+        scheduleOnRN(onSwipeNext);
+        return;
+      }
+
+      if (e.translationX >= SWIPE_THRESHOLD && onSwipePrevious) {
+        scheduleOnRN(onSwipePrevious);
+      }
+    });
+
   const composedGesture = Gesture.Simultaneous(
     pinchGesture,
     panGesture,
     doubleTapGesture,
+    swipeGesture,
   );
 
   const animatedImageStyle = useAnimatedStyle(() => ({

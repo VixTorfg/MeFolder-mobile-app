@@ -25,18 +25,24 @@ import Animated, {
 import type { VideoPlayerProps } from "@/types/media/viewers";
 import { useVideoPlayerStyles } from "./styles";
 import { formatAudioDuration } from "@/utils/format/date";
+import { scheduleOnRN } from "react-native-worklets";
 
 const CONTROLS_HIDE_DELAY = 3000;
 const SKIP_SECONDS = 10;
 const DOUBLE_TAP_DELAY = 300;
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
+const SWIPE_THRESHOLD = 180;
+const SWIPE_VERTICAL_TOLERANCE = 80;
+const SWIPE_BOTTOM_GUARD = 160;
 
 export default function VideoPlayer({
   source,
   visible,
   onClose,
   autoPlay = false,
+  onSwipeNext,
+  onSwipePrevious,
 }: VideoPlayerProps) {
   const styles = useVideoPlayerStyles();
   const { width: screenW, height: screenH } = useWindowDimensions();
@@ -316,6 +322,27 @@ export default function VideoPlayer({
 
   const zoomGesture = Gesture.Simultaneous(pinch, panZoom);
 
+  const swipeGesture = Gesture.Pan()
+    .minPointers(1)
+    .maxPointers(1)
+    .activeOffsetX([-16, 16])
+    .onEnd((e) => {
+      if (scale.value > MIN_SCALE + 0.05) return;
+      if (Math.abs(e.translationY) > SWIPE_VERTICAL_TOLERANCE) return;
+      if (screenH - e.y < SWIPE_BOTTOM_GUARD) return;
+
+      if (e.translationX <= -SWIPE_THRESHOLD && onSwipeNext) {
+        scheduleOnRN(onSwipeNext);
+        return;
+      }
+
+      if (e.translationX >= SWIPE_THRESHOLD && onSwipePrevious) {
+        scheduleOnRN(onSwipePrevious);
+      }
+    });
+
+  const composedGesture = Gesture.Simultaneous(zoomGesture, swipeGesture);
+
   /* ── Animated styles ──────────────────────────────────────── */
   const animatedVideo = useAnimatedStyle(() => ({
     transform: [
@@ -340,7 +367,7 @@ export default function VideoPlayer({
       <GestureHandlerRootView style={styles.container}>
         <StatusBar barStyle="light-content" backgroundColor="#000" />
 
-        <GestureDetector gesture={zoomGesture}>
+        <GestureDetector gesture={composedGesture}>
           <View style={styles.gestureRoot} collapsable={false}>
             {/* Video surface with zoom */}
             <Animated.View style={[styles.videoWrapper, animatedVideo]}>

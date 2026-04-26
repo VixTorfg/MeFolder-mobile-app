@@ -1,5 +1,5 @@
 import { useGalleryContent, useStyles, usePinchColumns } from "@/hooks";
-import { MultiActionButton, ImageViewer, VideoPlayer } from "@/components";
+import { MultiActionButton, MediaCarousel } from "@/components";
 import { FileModel } from "@/models/file";
 import { useLocalSearchParams, router } from "expo-router";
 import React, { useCallback, useState } from "react";
@@ -12,7 +12,6 @@ import {
   NativeSyntheticEvent,
 } from "react-native";
 import { Image } from "expo-image";
-import { MediaSource } from "@/types/media/viewers";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatVideoDuration } from "@/utils/format/date";
@@ -41,38 +40,17 @@ export default function GalleryScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const itemSize = Math.trunc(screenWidth / columns);
 
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
-  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
-  const [videoPlayerSource, setVideoPlayerSource] =
-    useState<MediaSource | null>(null);
+  const [mediaCarouselVisible, setMediaCarouselVisible] = useState(false);
+  const [selectedMediaId, setSelectedMediaId] = useState<
+    FileModel["id"] | null
+  >(null);
 
   const handleOpenItem = useCallback((file: FileModel) => {
     if (!file.storageUrl) return;
+    if (file.category !== "image" && file.category !== "video") return;
 
-    switch (file.category) {
-      case "image":
-        setViewerSource({
-          uri: file.storageUrl,
-          fileId: file.id,
-          ...(file.metadata.mimeType && { mimeType: file.metadata.mimeType }),
-          displayName: file.name,
-        });
-        setViewerVisible(true);
-        break;
-
-      case "video":
-        setVideoPlayerSource({
-          uri: file.storageUrl,
-          fileId: file.id,
-          ...(file.metadata.mimeType && { mimeType: file.metadata.mimeType }),
-          displayName: file.name,
-        });
-        setVideoPlayerVisible(true);
-        break;
-      default:
-        break;
-    }
+    setSelectedMediaId(file.id);
+    setMediaCarouselVisible(true);
   }, []);
 
   const handleScroll = useCallback(
@@ -171,27 +149,15 @@ export default function GalleryScreen() {
           </Animated.ScrollView>
         </GestureDetector>
 
-        {viewerSource && (
-          <ImageViewer
-            source={viewerSource}
-            visible={viewerVisible}
-            onClose={() => {
-              setViewerVisible(false);
-              setViewerSource(null);
-            }}
-          />
-        )}
-
-        {videoPlayerSource && (
-          <VideoPlayer
-            source={videoPlayerSource}
-            visible={videoPlayerVisible}
-            onClose={() => {
-              setVideoPlayerVisible(false);
-              setVideoPlayerSource(null);
-            }}
-          />
-        )}
+        <MediaCarousel
+          items={items}
+          visible={mediaCarouselVisible}
+          {...(selectedMediaId ? { initialFileId: selectedMediaId } : {})}
+          onClose={() => {
+            setMediaCarouselVisible(false);
+            setSelectedMediaId(null);
+          }}
+        />
       </View>
     </GestureHandlerRootView>
   );
