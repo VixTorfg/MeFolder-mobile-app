@@ -18,6 +18,7 @@ import { useColors } from "@/hooks/useColors";
 import { useTagsStore } from "@/stores/useTagsStore";
 import { ColorInfo } from "@/types/common/colors";
 import { PRIORITY_CONFIG } from "@/types";
+import { ColorList } from "../ColorPicker";
 
 const TYPE_LABELS: Record<string, string> = {
   system: "Sistema",
@@ -80,18 +81,29 @@ export const TagPropertyMenu = ({
   const { updateItem: updateTag } = useTagsStore();
   const styles = useFilePropertyMenuStyles();
   const folderStyles = useFolderPropertyMenuStyles();
-  const { colors } = useColors();
 
   const [tagName, setTagName] = useState(item.name);
   const [tagDescription, setTagDescription] = useState(item.description ?? "");
   const [tag, setTag] = useState(item);
+  const [selectedColor, setSelectedColor] = useState<ColorInfo | null>(
+    item.color ?? null,
+  );
   const [focused, setFocused] = useState(false);
   const [descFocused, setDescFocused] = useState(false);
+
+  const {
+    colors,
+    showColorPicker,
+    setShowColorPicker,
+    handleSaveColor,
+    handleDeleteColor,
+  } = useColors();
 
   useEffect(() => {
     setTag(item);
     setTagName(item.name);
     setTagDescription(item.description ?? "");
+    setSelectedColor(item.color ?? null);
   }, [item]);
 
   const isSystemTag = tag.isSystemTag();
@@ -132,12 +144,26 @@ export const TagPropertyMenu = ({
     });
   };
 
-  const handleColorChange = async (color: ColorInfo | undefined) => {
-    if (!color) return;
+  const handleColorChange = async (color: ColorInfo) => {
+    try {
+      if (!color) return;
 
-    const updated = await services.tagService.updateTagColor(tag.id, color);
-    setTag(updated);
-    updateTag(updated);
+      const updated = await services.tagService.updateTagColor(tag.id, color);
+      setTag(updated);
+      setSelectedColor(updated.color ?? color);
+      updateTag(updated);
+    } catch (error) {
+      console.error("Error actualizando color de carpeta:", error);
+      showAlert({
+        title: "Error",
+        message: "No se pudo actualizar el color de la carpeta",
+      });
+    }
+  };
+
+  const handleSavePickerColor = async (color: ColorInfo) => {
+    await handleSaveColor(color);
+    await handleColorChange(color);
   };
 
   const handleUpdateDescription = async () => {
@@ -184,43 +210,18 @@ export const TagPropertyMenu = ({
           <Text style={folderStyles.previewName}>{tag.name}</Text>
         </View>
 
-        {/* Color picker */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Color</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <View style={folderStyles.colorScrollContent}>
-              {(() => {
-                const allColors = colors.map((c) => ({ key: c.hex, color: c }));
-                const columns: (typeof allColors)[] = [];
-                for (let i = 0; i < allColors.length; i += 2) {
-                  columns.push(allColors.slice(i, i + 2));
-                }
-                return columns.map((col, colIdx) => (
-                  <View key={colIdx} style={folderStyles.colorColumn}>
-                    {col.map((item) => (
-                      <TouchableOpacity
-                        key={item.key}
-                        style={[
-                          folderStyles.colorOption,
-                          tag.color?.hex === item.color.hex &&
-                            folderStyles.colorOptionSelected,
-                        ]}
-                        onPress={() => handleColorChange(item.color)}
-                        activeOpacity={0.7}
-                      >
-                        <View
-                          style={[
-                            folderStyles.colorOptionInner,
-                            { backgroundColor: item.color.hex },
-                          ]}
-                        />
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                ));
-              })()}
-            </View>
-          </ScrollView>
+        <View style={folderStyles.colorSection}>
+          <Text style={folderStyles.label}>Color</Text>
+          <ColorList
+            colors={colors}
+            selectedColor={selectedColor}
+            onSelect={handleColorChange}
+            onAddColor={() => setShowColorPicker(true)}
+            showPicker={showColorPicker}
+            onClosePicker={() => setShowColorPicker(false)}
+            onSavePickerColor={handleSavePickerColor}
+            onDeletePickerColor={handleDeleteColor}
+          />
         </View>
       </View>
     );

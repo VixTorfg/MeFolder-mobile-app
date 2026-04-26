@@ -43,14 +43,13 @@ export const ColorList = ({
     COLORS_PER_PAGE,
   );
 
-  const isSameColor = (left: ColorInfo | null, right: ColorInfo | null) => {
+  const isSameColor = (
+    left: ColorInfo | null,
+    right: ColorInfo | null,
+  ): boolean => {
     if (!left || !right) return false;
-
-    if (left.id && right.id) {
-      return left.id === right.id;
-    }
-
-    return left.hex === right.hex && left.name === right.name;
+    if (left.id && right.id) return left.id === right.id;
+    return left.hex.trim().toLowerCase() === right.hex.trim().toLowerCase();
   };
 
   useEffect(() => {
