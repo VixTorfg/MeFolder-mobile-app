@@ -162,7 +162,6 @@ export default function TrashScreen() {
         label: "Abrir",
         onPress: () => {
           handleOpenItem(clickedItem!);
-          setShowMenu(false);
         },
         disabled: false,
         visible: true,
@@ -178,7 +177,6 @@ export default function TrashScreen() {
         hierarchy: "2",
         label: "Compartir con",
         onPress: () => {
-          setShowMenu(false);
           clickedItem && handleShare(clickedItem);
         },
         disabled: false,
@@ -195,7 +193,6 @@ export default function TrashScreen() {
         hierarchy: "3",
         label: "Agregar a favoritos",
         onPress: () => {
-          setShowMenu(false);
           clickedItem && handleMakeFavorite(clickedItem as FileModel);
         },
         disabled: false,
@@ -212,7 +209,6 @@ export default function TrashScreen() {
         hierarchy: "4",
         label: "Renombrar",
         onPress: () => {
-          setShowMenu(false);
           setIsRenaming(true);
         },
         disabled: false,
@@ -229,7 +225,6 @@ export default function TrashScreen() {
         hierarchy: "5",
         label: "Eliminar",
         onPress: () => {
-          setShowMenu(false);
           clickedItem && handlePermanentDelete([clickedItem]);
         },
         disabled: false,
@@ -246,7 +241,6 @@ export default function TrashScreen() {
         hierarchy: "6",
         label: "Restaurar",
         onPress: () => {
-          setShowMenu(false);
           clickedItem && handleRestoreSelected([clickedItem]);
         },
         disabled: false,
@@ -264,7 +258,6 @@ export default function TrashScreen() {
         label: "Propiedades",
         onPress: () => {
           setShowItemPropertyMenu(true);
-          setShowMenu(false);
         },
         disabled: false,
         visible: true,

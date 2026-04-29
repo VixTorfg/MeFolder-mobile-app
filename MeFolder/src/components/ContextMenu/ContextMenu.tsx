@@ -31,7 +31,7 @@ type MenuOption = {
   /** Icon to render */
   icon?: React.ReactNode;
   /** Action to perform when the option is pressed */
-  onPress: () => void;
+  onPress: () => void | Promise<void>;
   /** Whether the option is currently visible*/
   visible?: boolean;
   /** Whether the option is disabled */
@@ -149,6 +149,11 @@ export const ContextMenu = ({
     });
   };
 
+  const handleOptionPress = (option: MenuOption) => {
+    onDismiss();
+    void option.onPress();
+  };
+
   const renderRow = (option: MenuOption, index: number) => {
     const isDestructive = option.label === "Eliminar";
     const itemDividerStyle = index > 0 ? styles.menuItemDivider : undefined;
@@ -166,7 +171,7 @@ export const ContextMenu = ({
     return (
       <TouchableOpacity
         key={option.hierarchy}
-        onPress={option.onPress}
+        onPress={() => handleOptionPress(option)}
         disabled={option.disabled}
         activeOpacity={0.82}
         style={[

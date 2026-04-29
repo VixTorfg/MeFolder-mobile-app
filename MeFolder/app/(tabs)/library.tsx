@@ -182,7 +182,6 @@ export default function LibraryScreen() {
         label: "Abrir",
         onPress: () => {
           handleOpenItem(clickedItem!);
-          setShowMenu(false);
         },
         disabled: false,
         visible: true,
@@ -214,7 +213,6 @@ export default function LibraryScreen() {
         hierarchy: "3",
         label: "Agregar a favoritos",
         onPress: () => {
-          setShowMenu(false);
           clickedItem && handleMakeFavorite(clickedItem as FileModel);
         },
         disabled: false,
@@ -231,7 +229,6 @@ export default function LibraryScreen() {
         hierarchy: "4",
         label: "Renombrar",
         onPress: () => {
-          setShowMenu(false);
           setIsRenaming(true);
         },
         disabled: false,
@@ -313,7 +310,6 @@ export default function LibraryScreen() {
         label: "Propiedades",
         onPress: () => {
           setShowItemPropertyMenu(true);
-          setShowMenu(false);
         },
         disabled: false,
         visible: true,

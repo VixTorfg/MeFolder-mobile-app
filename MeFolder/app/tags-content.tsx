@@ -93,7 +93,6 @@ export default function tagsContent() {
         label: "Abrir",
         onPress: () => {
           handleOpenItem(clickedItem!);
-          setShowMenu(false);
         },
         disabled: false,
         icon: (
@@ -149,7 +148,6 @@ export default function tagsContent() {
         hierarchy: "5",
         label: "Renombrar",
         onPress: () => {
-          setShowMenu(false);
           setIsRenaming(true);
         },
         disabled: false,
@@ -167,7 +165,6 @@ export default function tagsContent() {
         label: "Eliminar",
         onPress: () => {
           clickedItem && handleDeleteElements([clickedItem]);
-          setShowMenu(false);
         },
         disabled: false,
         icon: (
@@ -183,7 +180,6 @@ export default function tagsContent() {
         label: "Propiedades",
         onPress: () => {
           setShowItemPropertyMenu(true);
-          setShowMenu(false);
         },
         disabled: false,
         icon: (
