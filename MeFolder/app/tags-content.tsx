@@ -2,7 +2,7 @@ import { VideoPlayer, AudioPlayer, ImageViewer } from "@/components/media";
 import { MediaSource } from "@/types/media/viewers";
 import { useStyles, useSelection, useFileSystem, useAlert } from "@/hooks";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { ActivityIndicator, TouchableOpacity, View, Text } from "react-native";
 import {
   ContextMenu,
@@ -42,7 +42,6 @@ export default function tagsContent() {
   const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
   const [audioPlayerSource, setAudioPlayerSource] =
     useState<MediaSource | null>(null);
-  const itemRefs = useRef<Map<string, View>>(new Map());
 
   const { tagId, tagName } = useLocalSearchParams();
   const { showAlert } = useAlert();
@@ -198,15 +197,6 @@ export default function tagsContent() {
     ],
     [clickedItem],
   );
-
-  const handleElementPress = (item: FileModel) => {
-    setClickedItem(item);
-    const ref = itemRefs.current.get(item.id);
-    ref?.measureInWindow((x, y, width, height) => {
-      setMenuPosition({ x, y, width, height });
-      setShowMenu(true);
-    });
-  };
 
   const handleOpenItem = (item: FileModel) => {
     const uri = item.storageUrl ?? item.path;
@@ -365,12 +355,7 @@ export default function tagsContent() {
           onEndReachedThreshold={0.7}
           onEndReached={loadMore}
           renderItem={({ item }) => (
-            <View
-              style={styles.cardWrapper}
-              ref={(el) => {
-                if (el) itemRefs.current.set(item.id, el);
-              }}
-            >
+            <View style={styles.cardWrapper}>
               <ViewCards
                 data={item}
                 viewConfig={selectedView}
@@ -383,13 +368,10 @@ export default function tagsContent() {
                 onPress={() => {
                   selectionMode ? toggleSelection(item) : handleOpenItem(item);
                 }}
-                onDoublePress={() => {
+                onDoublePress={(position) => {
                   setClickedItem(item);
-                  const ref = itemRefs.current.get(item.id);
-                  ref?.measureInWindow((x, y, width, height) => {
-                    setMenuPosition({ x, y, width, height });
-                    setShowMenu(true);
-                  });
+                  setMenuPosition(position);
+                  setShowMenu(true);
                 }}
                 onLongPress={() => toggleSelection(item)}
               />

@@ -1,6 +1,27 @@
 import { useState, useEffect, useRef } from "react";
-import { TouchableOpacity, Text, View, Animated } from "react-native";
+import {
+  TouchableOpacity,
+  Text,
+  View,
+  Animated,
+  LayoutChangeEvent,
+  useWindowDimensions,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useContextMenuStyles } from "./style";
+
+const MENU_MIN_WIDTH = 214;
+const MENU_SCREEN_MARGIN = 12;
+const MENU_ANCHOR_GAP = 8;
+const MENU_ESTIMATED_ITEM_HEIGHT = 44;
+const MENU_ESTIMATED_VERTICAL_PADDING = 8;
+const FLOATING_TAB_BAR_MIN_HEIGHT = 60;
+
+const clamp = (value: number, min: number, max: number) => {
+  if (min > max) return min;
+
+  return Math.min(Math.max(value, min), max);
+};
 
 type MenuOption = {
   /** The hierarchy level of the option */
@@ -31,12 +52,46 @@ export const ContextMenu = ({
   position,
 }: ContextMenuProps) => {
   const styles = useContextMenuStyles();
+  const insets = useSafeAreaInsets();
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const translateYAnim = useRef(new Animated.Value(-8)).current;
   const scaleAnim = useRef(new Animated.Value(0.96)).current;
   const [rendered, setRendered] = useState(false);
+  const [menuSize, setMenuSize] = useState({ width: 0, height: 0 });
 
   const visibleOptions = options.filter((option) => option.visible !== false);
+  const measuredMenuWidth = Math.max(menuSize.width, MENU_MIN_WIDTH);
+  const estimatedMenuHeight =
+    menuSize.height ||
+    visibleOptions.length * MENU_ESTIMATED_ITEM_HEIGHT +
+      MENU_ESTIMATED_VERTICAL_PADDING;
+  const floatingTabBarBottomOffset = Math.max(insets.bottom, 12) + 8;
+  const bottomBoundary =
+    windowHeight -
+    floatingTabBarBottomOffset -
+    FLOATING_TAB_BAR_MIN_HEIGHT -
+    MENU_SCREEN_MARGIN;
+
+  const topSpace = position.y - insets.top - MENU_SCREEN_MARGIN;
+  const bottomSpace = bottomBoundary - (position.y + position.height);
+  const shouldOpenAbove =
+    bottomSpace < estimatedMenuHeight + MENU_ANCHOR_GAP &&
+    topSpace > bottomSpace;
+
+  const desiredTop = shouldOpenAbove
+    ? position.y - estimatedMenuHeight - MENU_ANCHOR_GAP
+    : position.y + position.height + MENU_ANCHOR_GAP;
+  const desiredLeft = position.x + position.width - measuredMenuWidth;
+
+  const minTop = insets.top + MENU_SCREEN_MARGIN;
+  const maxTop = bottomBoundary - estimatedMenuHeight;
+  const minLeft = insets.left + MENU_SCREEN_MARGIN;
+  const maxLeft =
+    windowWidth - insets.right - measuredMenuWidth - MENU_SCREEN_MARGIN;
+
+  const resolvedTop = clamp(desiredTop, minTop, maxTop);
+  const resolvedLeft = clamp(desiredLeft, minLeft, maxLeft);
 
   useEffect(() => {
     if (visible) {
@@ -59,6 +114,7 @@ export const ContextMenu = ({
         }),
       ]).start();
     } else {
+      setMenuSize({ width: 0, height: 0 });
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -80,6 +136,18 @@ export const ContextMenu = ({
   }, [visible, fadeAnim, scaleAnim, translateYAnim]);
 
   if (!rendered) return null;
+
+  const handleMenuLayout = (event: LayoutChangeEvent) => {
+    const { width, height } = event.nativeEvent.layout;
+
+    setMenuSize((currentSize) => {
+      if (currentSize.width === width && currentSize.height === height) {
+        return currentSize;
+      }
+
+      return { width, height };
+    });
+  };
 
   const renderRow = (option: MenuOption, index: number) => {
     const isDestructive = option.label === "Eliminar";
@@ -130,11 +198,12 @@ export const ContextMenu = ({
         onPress={onDismiss}
       />
       <Animated.View
+        onLayout={handleMenuLayout}
         style={[
           {
             position: "absolute",
-            top: position.y - position.height - 80,
-            right: position.x,
+            top: resolvedTop,
+            left: resolvedLeft,
             zIndex: 1000,
             opacity: fadeAnim,
             transform: [{ translateY: translateYAnim }, { scale: scaleAnim }],

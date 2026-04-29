@@ -517,5 +517,6 @@ export const useLibraryActions = ({
     handleCut,
     handlePaste,
     handleMakeFavorite,
+    hasItems,
   };
 };

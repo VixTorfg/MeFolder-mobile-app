@@ -96,6 +96,7 @@ export default function LibraryScreen() {
     handleCut,
     handlePaste,
     handleMakeFavorite,
+    hasItems,
   } = useLibraryActions({
     folderService,
     fileService,
@@ -386,6 +387,15 @@ export default function LibraryScreen() {
                 size={42}
                 onPress={() => setCreatorVisible(true)}
               />
+              {hasItems() === true && (
+                <MultiActionButton
+                  icon={"content-paste"}
+                  backgroundColor="transparent"
+                  iconColor={styles.iconColor.color}
+                  size={42}
+                  onPress={() => handlePaste()}
+                />
+              )}
               <SortDropDown
                 size={42}
                 onChangeOrderBy={async (ob) =>
