@@ -98,7 +98,11 @@ export default function tagsContent() {
         },
         disabled: false,
         icon: (
-          <MaterialCommunityIcons name="open-in-app" size={20} color="black" />
+          <MaterialCommunityIcons
+            name="open-in-app"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
         ),
       },
       {
@@ -106,7 +110,13 @@ export default function tagsContent() {
         label: "Abrir con",
         onPress: () => {},
         disabled: false,
-        icon: <MaterialCommunityIcons name="folder" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="folder"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
       {
         hierarchy: "3",
@@ -115,14 +125,26 @@ export default function tagsContent() {
           clickedItem && handleShare(clickedItem);
         },
         disabled: false,
-        icon: <MaterialCommunityIcons name="share" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="share"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
       {
         hierarchy: "4",
         label: "Agregar a favoritos",
         onPress: () => {},
         disabled: false,
-        icon: <MaterialCommunityIcons name="star" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="star"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
       {
         hierarchy: "5",
@@ -132,7 +154,13 @@ export default function tagsContent() {
           setIsRenaming(true);
         },
         disabled: false,
-        icon: <MaterialCommunityIcons name="pencil" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="pencil"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
 
       {
@@ -143,7 +171,13 @@ export default function tagsContent() {
           setShowMenu(false);
         },
         disabled: false,
-        icon: <MaterialCommunityIcons name="delete" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="delete"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
       {
         hierarchy: "7",
@@ -154,7 +188,11 @@ export default function tagsContent() {
         },
         disabled: false,
         icon: (
-          <MaterialCommunityIcons name="information" size={20} color="black" />
+          <MaterialCommunityIcons
+            name="information"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
         ),
       },
     ],

@@ -186,7 +186,11 @@ export default function LibraryScreen() {
         disabled: false,
         visible: true,
         icon: (
-          <MaterialCommunityIcons name="open-in-app" size={20} color="black" />
+          <MaterialCommunityIcons
+            name="open-in-app"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
         ),
       },
       {
@@ -197,7 +201,13 @@ export default function LibraryScreen() {
         },
         disabled: false,
         visible: true,
-        icon: <MaterialCommunityIcons name="share" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="share"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
       {
         hierarchy: "3",
@@ -208,7 +218,13 @@ export default function LibraryScreen() {
         },
         disabled: false,
         visible: clickedItem instanceof FileModel,
-        icon: <MaterialCommunityIcons name="star" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="star"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
       {
         hierarchy: "4",
@@ -219,7 +235,13 @@ export default function LibraryScreen() {
         },
         disabled: false,
         visible: true,
-        icon: <MaterialCommunityIcons name="pencil" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="pencil"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
       {
         hierarchy: "5",
@@ -230,7 +252,11 @@ export default function LibraryScreen() {
         disabled: false,
         visible: true,
         icon: (
-          <MaterialCommunityIcons name="content-copy" size={20} color="black" />
+          <MaterialCommunityIcons
+            name="content-copy"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
         ),
       },
       {
@@ -242,7 +268,11 @@ export default function LibraryScreen() {
         disabled: false,
         visible: true,
         icon: (
-          <MaterialCommunityIcons name="content-cut" size={20} color="black" />
+          <MaterialCommunityIcons
+            name="content-cut"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
         ),
       },
       {
@@ -257,7 +287,7 @@ export default function LibraryScreen() {
           <MaterialCommunityIcons
             name="content-paste"
             size={20}
-            color="black"
+            color={styles.iconColor.primaryColor}
           />
         ),
       },
@@ -269,7 +299,13 @@ export default function LibraryScreen() {
         },
         disabled: false,
         visible: true,
-        icon: <MaterialCommunityIcons name="delete" size={20} color="black" />,
+        icon: (
+          <MaterialCommunityIcons
+            name="delete"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
       },
       {
         hierarchy: "9",
@@ -281,7 +317,11 @@ export default function LibraryScreen() {
         disabled: false,
         visible: true,
         icon: (
-          <MaterialCommunityIcons name="information" size={20} color="black" />
+          <MaterialCommunityIcons
+            name="information"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
         ),
       },
     ],

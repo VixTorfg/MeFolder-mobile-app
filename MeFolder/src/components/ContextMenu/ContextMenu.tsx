@@ -32,51 +32,100 @@ export const ContextMenu = ({
 }: ContextMenuProps) => {
   const styles = useContextMenuStyles();
   const fadeAnim = useRef(new Animated.Value(0)).current;
+  const translateYAnim = useRef(new Animated.Value(-8)).current;
+  const scaleAnim = useRef(new Animated.Value(0.96)).current;
   const [rendered, setRendered] = useState(false);
 
-  console.log("Position:", position);
+  const visibleOptions = options.filter((option) => option.visible !== false);
+
   useEffect(() => {
     if (visible) {
       setRendered(true);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 150,
-        useNativeDriver: true,
-      }).start();
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 150,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYAnim, {
+          toValue: 0,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 1,
+          duration: 180,
+          useNativeDriver: true,
+        }),
+      ]).start();
     } else {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }).start(() => setRendered(false));
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateYAnim, {
+          toValue: -6,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scaleAnim, {
+          toValue: 0.98,
+          duration: 120,
+          useNativeDriver: true,
+        }),
+      ]).start(() => setRendered(false));
     }
-  }, [visible]);
+  }, [visible, fadeAnim, scaleAnim, translateYAnim]);
 
   if (!rendered) return null;
 
-  const renderRow = (option: MenuOption) => {
-    if (option.icon) {
-      return (
+  const renderRow = (option: MenuOption, index: number) => {
+    const isDestructive = option.label === "Eliminar";
+    const itemDividerStyle = index > 0 ? styles.menuItemDivider : undefined;
+    const itemDisabledStyle = option.disabled
+      ? styles.menuItemDisabled
+      : undefined;
+    const itemDestructiveStyle = isDestructive
+      ? styles.menuItemDestructive
+      : undefined;
+    const labelIconStyle = option.icon ? styles.labelTextWithIcon : undefined;
+    const labelDestructiveStyle = isDestructive
+      ? styles.labelTextDestructive
+      : undefined;
+
+    return (
+      <TouchableOpacity
+        key={option.hierarchy}
+        onPress={option.onPress}
+        disabled={option.disabled}
+        activeOpacity={0.82}
+        style={[
+          styles.menuItem,
+          itemDividerStyle,
+          itemDisabledStyle,
+          itemDestructiveStyle,
+        ]}
+      >
         <View style={styles.itemsRow}>
-          {option.icon}
-          <Text style={[styles.labelText, { marginLeft: 10 }]}>
+          {option.icon ? (
+            <View style={styles.iconSlot}>{option.icon}</View>
+          ) : null}
+          <Text
+            style={[styles.labelText, labelIconStyle, labelDestructiveStyle]}
+          >
             {option.label}
           </Text>
         </View>
-      );
-    } else {
-      return (
-        <>
-          <Text style={styles.labelText}>{option.label}</Text>
-        </>
-      );
-    }
+      </TouchableOpacity>
+    );
   };
 
   return (
     <View style={styles.overlay}>
       <TouchableOpacity
-        style={{ flex: 1 }}
+        style={styles.dismissPressable}
         activeOpacity={1}
         onPress={onDismiss}
       />
@@ -88,27 +137,12 @@ export const ContextMenu = ({
             right: position.x,
             zIndex: 1000,
             opacity: fadeAnim,
+            transform: [{ translateY: translateYAnim }, { scale: scaleAnim }],
           },
           styles.menuContainer,
         ]}
       >
-        {options.map((option) =>
-          option.visible !== false ? (
-            <TouchableOpacity
-              key={option.hierarchy}
-              onPress={option.onPress}
-              disabled={option.disabled}
-              style={[
-                ["Propiedades", "Renombrar"].includes(option.label)
-                  ? styles.menuItemsBorder
-                  : styles.menuItems,
-                option.disabled && { opacity: 0.5 },
-              ]}
-            >
-              {renderRow(option)}
-            </TouchableOpacity>
-          ) : null,
-        )}
+        {visibleOptions.map(renderRow)}
       </Animated.View>
     </View>
   );
