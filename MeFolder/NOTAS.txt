@@ -2,6 +2,9 @@ TODOS
 
 Orden de prioridades:
 
+-corregir el carrusel de imagenes para que sea optimo y escalable
+-Crear el componente para elegir imagenes y albumes de la galeria
+
 Mejoras en general
     Seccion de inicio:
         Falta diseñar la pantalla
@@ -24,4 +27,8 @@ Mejoras en general
 
 CORREGIR:
 
-    -La interfaz del doble tap
+
+ANTERIOR:
+
+    -Lo ultimo que se corrigio era el bug que hacia que cuando se seleccionaba copy y cut 
+    paracia que el context menu no respondia.

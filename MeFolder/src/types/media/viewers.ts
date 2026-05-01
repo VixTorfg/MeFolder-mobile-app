@@ -1,4 +1,5 @@
 import { UUID } from "../common/base";
+import type { FileCategory } from "../common/file-extensions";
 
 /** Estado base compartido por todos los reproductores */
 export interface ViewerBaseState {
@@ -19,11 +20,34 @@ export interface MediaSource {
   displayName?: string;
 }
 
+export type MediaHostCategory = Extract<
+  FileCategory,
+  "image" | "video" | "audio"
+>;
+
+export interface MediaHostItem extends MediaSource {
+  /** Categoría del archivo usada para resolver el viewer apropiado */
+  category: MediaHostCategory;
+}
+
 export interface ViewerSwipeHandlers {
   /** Callback para navegar al siguiente elemento del carrusel */
   onSwipeNext?: () => void;
   /** Callback para navegar al elemento anterior del carrusel */
   onSwipePrevious?: () => void;
+}
+
+export interface MediaHostProps extends ViewerSwipeHandlers {
+  /** Elemento multimedia activo; cuando es null no se renderiza ningún viewer */
+  item: MediaHostItem | null;
+  /** Callback al cerrar el viewer activo */
+  onClose: () => void;
+  /** Iniciar reproducción automáticamente cuando aplique */
+  autoPlay?: boolean;
+  /** Ancho original de la imagen */
+  imageWidth?: number;
+  /** Alto original de la imagen */
+  imageHeight?: number;
 }
 
 // ─── Image Viewer ────────────────────────────────────────────

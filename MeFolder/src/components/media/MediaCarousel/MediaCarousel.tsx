@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FileModel } from "@/models/file";
-import { MediaSource } from "@/types/media/viewers";
-import { ImageViewer } from "../ImageViewer";
-import { VideoPlayer } from "../VideoPlayer";
+import { MediaHostItem } from "@/types/media/viewers";
+import { MediaHost } from "../MediaHost";
 
 interface MediaCarouselProps {
   items: FileModel[];
@@ -11,16 +10,22 @@ interface MediaCarouselProps {
   onClose: () => void;
 }
 
-const isSupportedMediaItem = (item: FileModel) => {
+type CarouselMediaItem = FileModel & {
+  storageUrl: string;
+  category: "image" | "video";
+};
+
+const isSupportedMediaItem = (item: FileModel): item is CarouselMediaItem => {
   if (!item.storageUrl) return false;
   return item.category === "image" || item.category === "video";
 };
 
-const toMediaSource = (item: FileModel): MediaSource => ({
+const toMediaHostItem = (item: CarouselMediaItem): MediaHostItem => ({
   uri: item.storageUrl ?? "",
   fileId: item.id,
   ...(item.metadata.mimeType && { mimeType: item.metadata.mimeType }),
   displayName: item.name,
+  category: item.category,
 });
 
 export default function MediaCarousel({
@@ -66,26 +71,12 @@ export default function MediaCarousel({
     return null;
   }
 
-  const source = toMediaSource(currentItem);
-
-  if (currentItem.category === "video") {
-    return (
-      <VideoPlayer
-        key={currentItem.id}
-        source={source}
-        visible={visible}
-        onClose={onClose}
-        onSwipeNext={handleSwipeNext}
-        onSwipePrevious={handleSwipePrevious}
-      />
-    );
-  }
+  const item = toMediaHostItem(currentItem);
 
   return (
-    <ImageViewer
+    <MediaHost
       key={currentItem.id}
-      source={source}
-      visible={visible}
+      item={item}
       onClose={onClose}
       onSwipeNext={handleSwipeNext}
       onSwipePrevious={handleSwipePrevious}

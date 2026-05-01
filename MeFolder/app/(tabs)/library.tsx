@@ -8,9 +8,7 @@ import {
   Breadcrumb,
   OptionDropDown,
   PropertyMenu,
-  ImageViewer,
-  AudioPlayer,
-  VideoPlayer,
+  MediaHost,
 } from "@/components";
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
@@ -23,7 +21,7 @@ import {
 import { useNavigationStore } from "@/stores";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FileModel, FolderModel } from "@/models";
-import type { MediaSource } from "@/types/media/viewers";
+import type { MediaHostItem } from "@/types/media/viewers";
 import { useLibraryStyles } from "@/screenStyles/libraryStyle";
 import EmptyFolder from "@/components/svgIcons/emptyFolder";
 import { SortDropDown } from "@/components/SortDropDown";
@@ -46,14 +44,7 @@ export default function LibraryScreen() {
   });
   const [isRenaming, setIsRenaming] = useState(false);
   const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
-  const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
-  const [audioPlayerSource, setAudioPlayerSource] =
-    useState<MediaSource | null>(null);
-  const [videoPlayerSource, setVideoPlayerSource] =
-    useState<MediaSource | null>(null);
-  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+  const [activeMedia, setActiveMedia] = useState<MediaHostItem | null>(null);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
@@ -147,31 +138,25 @@ export default function LibraryScreen() {
         return;
       }
 
-      const source: MediaSource = {
+      if (
+        item.category !== "image" &&
+        item.category !== "video" &&
+        item.category !== "audio"
+      ) {
+        return;
+      }
+
+      const mediaItem: MediaHostItem = {
         uri,
         fileId: item.id,
         ...(item.metadata.mimeType != null && {
           mimeType: item.metadata.mimeType,
         }),
         displayName: item.name,
+        category: item.category,
       };
 
-      switch (item.category) {
-        case "image":
-          setViewerSource(source);
-          setViewerVisible(true);
-          break;
-        case "video":
-          setVideoPlayerSource(source);
-          setVideoPlayerVisible(true);
-          break;
-        case "audio":
-          setAudioPlayerSource(source);
-          setAudioPlayerVisible(true);
-          break;
-        default:
-          break;
-      }
+      setActiveMedia(mediaItem);
     }
   };
 
@@ -566,38 +551,7 @@ export default function LibraryScreen() {
         />
       )}
 
-      {viewerSource && (
-        <ImageViewer
-          source={viewerSource}
-          visible={viewerVisible}
-          onClose={() => {
-            setViewerVisible(false);
-            setViewerSource(null);
-          }}
-        />
-      )}
-
-      {audioPlayerSource && (
-        <AudioPlayer
-          source={audioPlayerSource}
-          visible={audioPlayerVisible}
-          onClose={() => {
-            setAudioPlayerVisible(false);
-            setAudioPlayerSource(null);
-          }}
-        />
-      )}
-
-      {videoPlayerSource && (
-        <VideoPlayer
-          source={videoPlayerSource}
-          visible={videoPlayerVisible}
-          onClose={() => {
-            setVideoPlayerVisible(false);
-            setVideoPlayerSource(null);
-          }}
-        />
-      )}
+      <MediaHost item={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>
   );
 }

@@ -1,5 +1,5 @@
-import { VideoPlayer, AudioPlayer, ImageViewer } from "@/components/media";
-import { MediaSource } from "@/types/media/viewers";
+import { MediaHost } from "@/components/media";
+import type { MediaHostItem } from "@/types/media/viewers";
 import { useStyles, useSelection, useFileSystem, useAlert } from "@/hooks";
 import { router, useLocalSearchParams } from "expo-router";
 import { useMemo, useState } from "react";
@@ -34,14 +34,7 @@ export default function tagsContent() {
   });
   const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
-  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
-  const [videoPlayerSource, setVideoPlayerSource] =
-    useState<MediaSource | null>(null);
-  const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
-  const [audioPlayerSource, setAudioPlayerSource] =
-    useState<MediaSource | null>(null);
+  const [activeMedia, setActiveMedia] = useState<MediaHostItem | null>(null);
 
   const { tagId, tagName } = useLocalSearchParams();
   const { showAlert } = useAlert();
@@ -210,31 +203,25 @@ export default function tagsContent() {
       return;
     }
 
-    const source: MediaSource = {
+    if (
+      item.category !== "image" &&
+      item.category !== "video" &&
+      item.category !== "audio"
+    ) {
+      return;
+    }
+
+    const mediaItem: MediaHostItem = {
       uri,
       fileId: item.id,
       ...(item.metadata.mimeType != null && {
         mimeType: item.metadata.mimeType,
       }),
       displayName: item.name,
+      category: item.category,
     };
 
-    switch (item.category) {
-      case "image":
-        setViewerSource(source);
-        setViewerVisible(true);
-        break;
-      case "video":
-        setVideoPlayerSource(source);
-        setVideoPlayerVisible(true);
-        break;
-      case "audio":
-        setAudioPlayerSource(source);
-        setAudioPlayerVisible(true);
-        break;
-      default:
-        break;
-    }
+    setActiveMedia(mediaItem);
   };
 
   const renderGroupButtons = () => {
@@ -400,38 +387,7 @@ export default function tagsContent() {
         />
       )}
 
-      {viewerSource && (
-        <ImageViewer
-          source={viewerSource}
-          visible={viewerVisible}
-          onClose={() => {
-            setViewerVisible(false);
-            setViewerSource(null);
-          }}
-        />
-      )}
-
-      {audioPlayerSource && (
-        <AudioPlayer
-          source={audioPlayerSource}
-          visible={audioPlayerVisible}
-          onClose={() => {
-            setAudioPlayerVisible(false);
-            setAudioPlayerSource(null);
-          }}
-        />
-      )}
-
-      {videoPlayerSource && (
-        <VideoPlayer
-          source={videoPlayerSource}
-          visible={videoPlayerVisible}
-          onClose={() => {
-            setVideoPlayerVisible(false);
-            setVideoPlayerSource(null);
-          }}
-        />
-      )}
+      <MediaHost item={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>
   );
 }

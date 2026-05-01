@@ -5,9 +5,7 @@ import {
   OptionDropDown,
   SortDropDown,
   ContextMenu,
-  AudioPlayer,
-  VideoPlayer,
-  ImageViewer,
+  MediaHost,
   PropertyMenu,
 } from "@/components";
 import { FileModel, FolderModel } from "@/models";
@@ -17,7 +15,7 @@ import {
   useSelection,
   useTrashActions,
 } from "@/hooks";
-import { MediaSource } from "@/types/media/viewers";
+import type { MediaHostItem } from "@/types/media/viewers";
 import React, { useMemo, useState } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -40,14 +38,7 @@ export default function TrashScreen() {
     height: 0,
   });
   const [isRenaming, setIsRenaming] = useState(false);
-  const [viewerVisible, setViewerVisible] = useState(false);
-  const [viewerSource, setViewerSource] = useState<MediaSource | null>(null);
-  const [audioPlayerVisible, setAudioPlayerVisible] = useState(false);
-  const [audioPlayerSource, setAudioPlayerSource] =
-    useState<MediaSource | null>(null);
-  const [videoPlayerSource, setVideoPlayerSource] =
-    useState<MediaSource | null>(null);
-  const [videoPlayerVisible, setVideoPlayerVisible] = useState(false);
+  const [activeMedia, setActiveMedia] = useState<MediaHostItem | null>(null);
 
   const { showAlert } = useAlert();
   const fs = useFileSystem();
@@ -127,31 +118,25 @@ export default function TrashScreen() {
         return;
       }
 
-      const source: MediaSource = {
+      if (
+        item.category !== "image" &&
+        item.category !== "video" &&
+        item.category !== "audio"
+      ) {
+        return;
+      }
+
+      const mediaItem: MediaHostItem = {
         uri,
         fileId: item.id,
         ...(item.metadata.mimeType != null && {
           mimeType: item.metadata.mimeType,
         }),
         displayName: item.name,
+        category: item.category,
       };
 
-      switch (item.category) {
-        case "image":
-          setViewerSource(source);
-          setViewerVisible(true);
-          break;
-        case "video":
-          setVideoPlayerSource(source);
-          setVideoPlayerVisible(true);
-          break;
-        case "audio":
-          setAudioPlayerSource(source);
-          setAudioPlayerVisible(true);
-          break;
-        default:
-          break;
-      }
+      setActiveMedia(mediaItem);
     }
   };
 
@@ -450,38 +435,7 @@ export default function TrashScreen() {
         />
       )}
 
-      {viewerSource && (
-        <ImageViewer
-          source={viewerSource}
-          visible={viewerVisible}
-          onClose={() => {
-            setViewerVisible(false);
-            setViewerSource(null);
-          }}
-        />
-      )}
-
-      {audioPlayerSource && (
-        <AudioPlayer
-          source={audioPlayerSource}
-          visible={audioPlayerVisible}
-          onClose={() => {
-            setAudioPlayerVisible(false);
-            setAudioPlayerSource(null);
-          }}
-        />
-      )}
-
-      {videoPlayerSource && (
-        <VideoPlayer
-          source={videoPlayerSource}
-          visible={videoPlayerVisible}
-          onClose={() => {
-            setVideoPlayerVisible(false);
-            setVideoPlayerSource(null);
-          }}
-        />
-      )}
+      <MediaHost item={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>
   );
 }
