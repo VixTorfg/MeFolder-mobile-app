@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Modal, StatusBar, useWindowDimensions } from "react-native";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -38,12 +38,16 @@ export default function MediaHost({
     currentItem,
     previousItem,
     nextItem,
+    transitionItem,
+    transitionDirection,
     isEnabled: isCarouselEnabled,
     gesture: carouselGesture,
     translateX: carouselTranslateX,
+    transitionOverlayOpacity,
     isDragging: carouselIsDragging,
     slideGap,
     setSwipeEnabled,
+    clearTransition,
   } = useCarrusel({
     items: activeItems,
     initialFileId,
@@ -73,6 +77,21 @@ export default function MediaHost({
 
   if (!currentItem) return null;
 
+  const transitionItemKey =
+    transitionItem?.fileId ??
+    (transitionItem
+      ? `${transitionItem.category}:${transitionItem.uri}`
+      : null);
+
+  const handleCurrentItemSettled = useCallback(
+    (itemKey: string) => {
+      if (transitionItemKey && itemKey === transitionItemKey) {
+        clearTransition();
+      }
+    },
+    [clearTransition, transitionItemKey],
+  );
+
   const modalAnimation = currentItem.category === "audio" ? "slide" : "fade";
   const statusBarBackgroundColor =
     currentItem.category === "audio" ? "#121212" : "#000000";
@@ -82,11 +101,15 @@ export default function MediaHost({
       previousItem={previousItem}
       currentItem={currentItem}
       nextItem={nextItem}
+      transitionItem={transitionItem}
+      transitionDirection={transitionDirection}
       screenWidth={screenWidth}
       slideGap={slideGap}
       gesture={carouselGesture}
       translateX={carouselTranslateX}
+      transitionOverlayOpacity={transitionOverlayOpacity}
       sharedViewerProps={sharedViewerProps}
+      onCurrentItemSettled={handleCurrentItemSettled}
     />
   ) : (
     <MediaViewer item={currentItem} isActive {...sharedViewerProps} />

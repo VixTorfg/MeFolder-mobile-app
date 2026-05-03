@@ -34,12 +34,16 @@ interface UseCarruselResult {
   currentItem: MediaHostItem | null;
   previousItem: MediaHostItem | null;
   nextItem: MediaHostItem | null;
+  transitionItem: MediaHostItem | null;
+  transitionDirection: -1 | 0 | 1;
   isEnabled: boolean;
   gesture: ReturnType<typeof Gesture.Pan>;
   translateX: SharedValue<number>;
+  transitionOverlayOpacity: SharedValue<number>;
   isDragging: SharedValue<boolean>;
   slideGap: number;
   setSwipeEnabled: (enabled: boolean) => void;
+  clearTransition: () => void;
 }
 
 const clamp = (value: number, min: number, max: number): number => {
@@ -66,8 +70,13 @@ export function useCarrusel({
   const [pendingResetIndex, setPendingResetIndex] = useState<number | null>(
     null,
   );
+  const [transitionTargetIndex, setTransitionTargetIndex] = useState<
+    number | null
+  >(null);
+  const [transitionDirection, setTransitionDirection] = useState<-1 | 0 | 1>(0);
 
   const translateX = useSharedValue(-slideWidth);
+  const transitionOverlayOpacity = useSharedValue(0);
   const isDragging = useSharedValue(false);
   const currentIndexSV = useSharedValue(initialIndex);
   const isSwipeEnabledSV = useSharedValue(true);
@@ -82,6 +91,10 @@ export function useCarrusel({
     currentIndex > 0 ? (items[currentIndex - 1] ?? null) : null;
   const nextItem =
     currentIndex < items.length - 1 ? (items[currentIndex + 1] ?? null) : null;
+  const transitionItem =
+    transitionTargetIndex !== null
+      ? (items[transitionTargetIndex] ?? null)
+      : null;
   const isEnabled = currentItem != null && items.length > 1;
 
   const currentSwipeThreshold = useMemo(() => {
@@ -131,9 +144,12 @@ export function useCarrusel({
   useEffect(() => {
     setCurrentIndex(initialIndex);
     setPendingResetIndex(null);
+    setTransitionTargetIndex(null);
+    setTransitionDirection(0);
     currentIndexSV.value = initialIndex;
     isSwipeEnabledSV.value = true;
     translateX.value = -slideWidth;
+    transitionOverlayOpacity.value = 0;
   }, [initialIndex, slideWidth]);
 
   useEffect(() => {
@@ -141,16 +157,18 @@ export function useCarrusel({
   }, [isEnabled, slideWidth]);
 
   useLayoutEffect(() => {
-    if (pendingResetIndex === null || currentIndex !== pendingResetIndex) {
+    if (pendingResetIndex === null) {
       return;
     }
 
+    currentIndexSV.value = pendingResetIndex;
     translateX.value = -slideWidth;
+    setCurrentIndex(pendingResetIndex);
     isSwipeEnabledSV.value = true;
     setPendingResetIndex(null);
   }, [
-    currentIndex,
     pendingResetIndex,
+    currentIndexSV,
     translateX,
     isSwipeEnabledSV,
     slideWidth,
@@ -164,12 +182,35 @@ export function useCarrusel({
         itemsLengthSV.value - 1,
       );
 
-      currentIndexSV.value = nextIndex;
-      setCurrentIndex(nextIndex);
       setPendingResetIndex(nextIndex);
     },
     [currentIndexSV, itemsLengthSV],
   );
+
+  const beginTransition = useCallback(
+    (direction: -1 | 1) => {
+      const targetIndex = Math.min(
+        Math.max(currentIndex + direction, 0),
+        Math.max(items.length - 1, 0),
+      );
+
+      if (targetIndex === currentIndex) {
+        setTransitionTargetIndex(null);
+        setTransitionDirection(0);
+        return;
+      }
+
+      setTransitionTargetIndex(targetIndex);
+      setTransitionDirection(direction);
+    },
+    [currentIndex, items.length],
+  );
+
+  const clearTransition = useCallback(() => {
+    setTransitionTargetIndex(null);
+    setTransitionDirection(0);
+    transitionOverlayOpacity.value = 0;
+  }, [transitionOverlayOpacity]);
 
   const setSwipeEnabled = useCallback(
     (enabled: boolean) => {
@@ -231,11 +272,16 @@ export function useCarrusel({
 
       if (shouldGoNext) {
         isSwipeEnabledSV.value = false;
+        transitionOverlayOpacity.value = 0;
+        scheduleOnRN(beginTransition, 1);
         translateX.value = withTiming(
           -2 * sw,
           { duration: CAROUSEL_CHANGE_DURATION },
           (finished) => {
-            if (finished) scheduleOnRN(commitSwipe, 1);
+            if (finished) {
+              transitionOverlayOpacity.value = 1;
+              scheduleOnRN(commitSwipe, 1);
+            }
           },
         );
         return;
@@ -243,11 +289,16 @@ export function useCarrusel({
 
       if (shouldGoPrevious) {
         isSwipeEnabledSV.value = false;
+        transitionOverlayOpacity.value = 0;
+        scheduleOnRN(beginTransition, -1);
         translateX.value = withTiming(
           0,
           { duration: CAROUSEL_CHANGE_DURATION },
           (finished) => {
-            if (finished) scheduleOnRN(commitSwipe, -1);
+            if (finished) {
+              transitionOverlayOpacity.value = 1;
+              scheduleOnRN(commitSwipe, -1);
+            }
           },
         );
         return;
@@ -262,11 +313,15 @@ export function useCarrusel({
     currentItem,
     previousItem,
     nextItem,
+    transitionItem,
+    transitionDirection,
     isEnabled,
     gesture,
     translateX,
+    transitionOverlayOpacity,
     isDragging,
     slideGap: SLIDE_GAP,
     setSwipeEnabled,
+    clearTransition,
   };
 }

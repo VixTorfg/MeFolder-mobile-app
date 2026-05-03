@@ -115,6 +115,28 @@ interface MediaViewerProps {
   imageWidth?: number;
   imageHeight?: number;
   isDragging?: SharedValue<boolean>;
+  onItemSettled?: (itemKey: string) => void;
+}
+
+function ActiveMediaPreview({ item }: { item: MediaHostItem }) {
+  if (item.category === "image") {
+    return <MediaPreview item={item} />;
+  }
+
+  if (item.category === "video" && item.thumbnailUrl) {
+    return (
+      <View style={{ flex: 1, backgroundColor: "#000" }}>
+        <Image
+          source={{ uri: item.thumbnailUrl }}
+          style={{ width: "100%", height: "100%" }}
+          contentFit="contain"
+          transition={0}
+        />
+      </View>
+    );
+  }
+
+  return <MediaPreview item={item} />;
 }
 
 export const MediaViewer = React.memo(function MediaViewer({
@@ -126,6 +148,7 @@ export const MediaViewer = React.memo(function MediaViewer({
   imageWidth,
   imageHeight,
   isDragging,
+  onItemSettled,
 }: MediaViewerProps) {
   const itemKey = item.fileId ?? `${item.category}:${item.uri}`;
   const isPreviewable = item.category === "image" || item.category === "video";
@@ -136,7 +159,8 @@ export const MediaViewer = React.memo(function MediaViewer({
 
   const handleInitialRenderSettled = useCallback(() => {
     setSettledItemKey(itemKey);
-  }, [itemKey]);
+    onItemSettled?.(itemKey);
+  }, [itemKey, onItemSettled]);
 
   const activePreview = useMemo(() => {
     if (!showActivePreview) return null;
@@ -153,7 +177,7 @@ export const MediaViewer = React.memo(function MediaViewer({
           zIndex: 1,
         }}
       >
-        <MediaPreview item={item} />
+        <ActiveMediaPreview item={item} />
       </View>
     );
   }, [item, showActivePreview]);
