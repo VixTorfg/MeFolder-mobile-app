@@ -33,6 +33,7 @@ export default function VideoPlayer({
   onClose,
   autoPlay = false,
   onSwipeAvailabilityChange,
+  onInitialRenderSettled,
   isDragging,
 }: VideoPlayerProps) {
   const styles = useVideoPlayerStyles();
@@ -72,6 +73,7 @@ export default function VideoPlayer({
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef({ time: 0, x: 0 });
   const pendingTapRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasReportedInitialRenderRef = useRef(false);
 
   const controlsOpacity = useSharedValue(1);
   const scale = useSharedValue(1);
@@ -241,6 +243,18 @@ export default function VideoPlayer({
       setDuration(player.duration);
     }
   }, [isLoaded]);
+
+  useEffect(() => {
+    hasReportedInitialRenderRef.current = false;
+  }, [source.uri]);
+
+  useEffect(() => {
+    if (hasReportedInitialRenderRef.current) return;
+    if (status !== "readyToPlay" && status !== "error") return;
+
+    hasReportedInitialRenderRef.current = true;
+    onInitialRenderSettled?.();
+  }, [status, onInitialRenderSettled]);
 
   // Show/hide controls on play state changes
   useEffect(() => {

@@ -26,6 +26,7 @@ export default function ImageViewer({
   source,
   onClose,
   onSwipeAvailabilityChange,
+  onInitialRenderSettled,
   isDragging,
 }: ImageViewerProps) {
   const styles = useImageViewerStyles();
@@ -170,12 +171,14 @@ export default function ImageViewer({
   const handleLoad = useCallback(() => {
     setIsLoading(false);
     setHasError(false);
-  }, []);
+    onInitialRenderSettled?.();
+  }, [onInitialRenderSettled]);
 
   const handleError = useCallback(() => {
     setIsLoading(false);
     setHasError(true);
-  }, []);
+    onInitialRenderSettled?.();
+  }, [onInitialRenderSettled]);
 
   const handleClose = useCallback(() => {
     setIsLoading(true);
@@ -225,7 +228,7 @@ export default function ImageViewer({
                 contentFit="contain"
                 onLoad={handleLoad}
                 onError={handleError}
-                transition={200}
+                transition={0}
               />
             </Animated.View>
           </GestureDetector>

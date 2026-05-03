@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
@@ -13,7 +13,7 @@ import type { SharedValue } from "react-native-reanimated";
  * Evita montar instancias nativas de VideoPlayer en slots inactivos,
  * que es la principal causa de crash al deslizar.
  */
-function InactiveSlide({ item }: { item: MediaHostItem }) {
+function MediaPreview({ item }: { item: MediaHostItem }) {
   if (item.category === "image") {
     return (
       <View style={{ flex: 1, backgroundColor: "#000" }}>
@@ -127,36 +127,72 @@ export const MediaViewer = React.memo(function MediaViewer({
   imageHeight,
   isDragging,
 }: MediaViewerProps) {
-  // Slides inactivos usan InactiveSlide: evita múltiples players nativos simultáneos
-  if (!isActive) {
-    return <InactiveSlide item={item} />;
-  }
-
   const itemKey = item.fileId ?? `${item.category}:${item.uri}`;
+  const isPreviewable = item.category === "image" || item.category === "video";
+  const [settledItemKey, setSettledItemKey] = useState<string | null>(null);
+
+  const showActivePreview = isActive && isPreviewable && settledItemKey !== itemKey;
+
+  const handleInitialRenderSettled = useCallback(() => {
+    setSettledItemKey(itemKey);
+  }, [itemKey]);
+
+  const activePreview = useMemo(() => {
+    if (!showActivePreview) return null;
+
+    return (
+      <View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          right: 0,
+          bottom: 0,
+          left: 0,
+          zIndex: 1,
+        }}
+      >
+        <MediaPreview item={item} />
+      </View>
+    );
+  }, [item, showActivePreview]);
+
+  // Slides inactivos usan MediaPreview: evita múltiples players nativos simultáneos
+  if (!isActive) {
+    return <MediaPreview item={item} />;
+  }
 
   switch (item.category) {
     case "image":
       return (
-        <ImageViewer
-          key={itemKey}
-          source={item}
-          onClose={onClose}
-          {...(imageWidth !== undefined ? { imageWidth } : {})}
-          {...(imageHeight !== undefined ? { imageHeight } : {})}
-          {...(onSwipeAvailabilityChange ? { onSwipeAvailabilityChange } : {})}
-          {...(isDragging !== undefined ? { isDragging } : {})}
-        />
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          <ImageViewer
+            key={itemKey}
+            source={item}
+            onClose={onClose}
+            onInitialRenderSettled={handleInitialRenderSettled}
+            {...(imageWidth !== undefined ? { imageWidth } : {})}
+            {...(imageHeight !== undefined ? { imageHeight } : {})}
+            {...(onSwipeAvailabilityChange ? { onSwipeAvailabilityChange } : {})}
+            {...(isDragging !== undefined ? { isDragging } : {})}
+          />
+          {activePreview}
+        </View>
       );
     case "video":
       return (
-        <VideoPlayer
-          key={itemKey}
-          source={item}
-          onClose={onClose}
-          autoPlay={autoPlay}
-          {...(onSwipeAvailabilityChange ? { onSwipeAvailabilityChange } : {})}
-          {...(isDragging !== undefined ? { isDragging } : {})}
-        />
+        <View style={{ flex: 1, backgroundColor: "#000" }}>
+          <VideoPlayer
+            key={itemKey}
+            source={item}
+            onClose={onClose}
+            onInitialRenderSettled={handleInitialRenderSettled}
+            autoPlay={autoPlay}
+            {...(onSwipeAvailabilityChange ? { onSwipeAvailabilityChange } : {})}
+            {...(isDragging !== undefined ? { isDragging } : {})}
+          />
+          {activePreview}
+        </View>
       );
     case "audio":
       return (

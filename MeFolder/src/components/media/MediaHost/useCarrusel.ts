@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { Gesture } from "react-native-gesture-handler";
 import {
   useSharedValue,
@@ -53,6 +53,7 @@ export function useCarrusel({
   }, [items, initialFileId]);
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [pendingResetIndex, setPendingResetIndex] = useState<number | null>(null);
 
   const translateX = useSharedValue(-slideWidth);
   const isDragging = useSharedValue(false);
@@ -85,6 +86,7 @@ export function useCarrusel({
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
+    setPendingResetIndex(null);
     currentIndexSV.value = initialIndex;
     isSwipeEnabledSV.value = true;
     translateX.value = -slideWidth;
@@ -93,6 +95,22 @@ export function useCarrusel({
   useEffect(() => {
     translateX.value = isEnabled ? -slideWidth : 0;
   }, [isEnabled, slideWidth]);
+
+  useLayoutEffect(() => {
+    if (pendingResetIndex === null || currentIndex !== pendingResetIndex) {
+      return;
+    }
+
+    translateX.value = -slideWidth;
+    isSwipeEnabledSV.value = true;
+    setPendingResetIndex(null);
+  }, [
+    currentIndex,
+    pendingResetIndex,
+    translateX,
+    isSwipeEnabledSV,
+    slideWidth,
+  ]);
 
   const commitSwipe = useCallback(
     (direction: -1 | 1) => {
@@ -104,10 +122,9 @@ export function useCarrusel({
 
       currentIndexSV.value = nextIndex;
       setCurrentIndex(nextIndex);
-      isSwipeEnabledSV.value = true;
-      translateX.value = -slideWidthSV.value;
+      setPendingResetIndex(nextIndex);
     },
-    [currentIndexSV, translateX, isSwipeEnabledSV, itemsLengthSV, slideWidthSV],
+    [currentIndexSV, itemsLengthSV],
   );
 
   const setSwipeEnabled = useCallback(
