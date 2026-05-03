@@ -131,7 +131,8 @@ export const MediaViewer = React.memo(function MediaViewer({
   const isPreviewable = item.category === "image" || item.category === "video";
   const [settledItemKey, setSettledItemKey] = useState<string | null>(null);
 
-  const showActivePreview = isActive && isPreviewable && settledItemKey !== itemKey;
+  const showActivePreview =
+    isActive && isPreviewable && settledItemKey !== itemKey;
 
   const handleInitialRenderSettled = useCallback(() => {
     setSettledItemKey(itemKey);
@@ -173,7 +174,9 @@ export const MediaViewer = React.memo(function MediaViewer({
             onInitialRenderSettled={handleInitialRenderSettled}
             {...(imageWidth !== undefined ? { imageWidth } : {})}
             {...(imageHeight !== undefined ? { imageHeight } : {})}
-            {...(onSwipeAvailabilityChange ? { onSwipeAvailabilityChange } : {})}
+            {...(onSwipeAvailabilityChange
+              ? { onSwipeAvailabilityChange }
+              : {})}
             {...(isDragging !== undefined ? { isDragging } : {})}
           />
           {activePreview}
@@ -188,7 +191,9 @@ export const MediaViewer = React.memo(function MediaViewer({
             onClose={onClose}
             onInitialRenderSettled={handleInitialRenderSettled}
             autoPlay={autoPlay}
-            {...(onSwipeAvailabilityChange ? { onSwipeAvailabilityChange } : {})}
+            {...(onSwipeAvailabilityChange
+              ? { onSwipeAvailabilityChange }
+              : {})}
             {...(isDragging !== undefined ? { isDragging } : {})}
           />
           {activePreview}

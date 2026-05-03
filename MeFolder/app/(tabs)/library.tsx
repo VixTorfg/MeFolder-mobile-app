@@ -155,6 +155,14 @@ export default function LibraryScreen() {
         ...(item.thumbnailUrl != null && {
           thumbnailUrl: item.thumbnailUrl,
         }),
+        ...(item.metadata.imageMetadata != null && {
+          mediaWidth: item.metadata.imageMetadata.width,
+          mediaHeight: item.metadata.imageMetadata.height,
+        }),
+        ...(item.metadata.videoMetadata != null && {
+          mediaWidth: item.metadata.videoMetadata.width,
+          mediaHeight: item.metadata.videoMetadata.height,
+        }),
         displayName: item.name,
         category: item.category,
       };

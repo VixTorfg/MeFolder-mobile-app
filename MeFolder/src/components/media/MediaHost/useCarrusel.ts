@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from "react";
 import { Gesture } from "react-native-gesture-handler";
 import {
   useSharedValue,
@@ -12,13 +18,16 @@ const CAROUSEL_SWIPE_THRESHOLD = 140;
 const CAROUSEL_VERTICAL_TOLERANCE = 80;
 const CAROUSEL_RESET_DURATION = 180;
 const CAROUSEL_CHANGE_DURATION = 220;
-const CAROUSEL_VELOCITY_THRESHOLD = 600;
+const CAROUSEL_VELOCITY_THRESHOLD = 500;
 const SLIDE_GAP = 12;
+const CAROUSEL_THRESHOLD_RATIO = 0.5;
+const CAROUSEL_MIN_SWIPE_THRESHOLD = 72;
 
 interface UseCarruselParams {
   items: MediaHostItem[];
   initialFileId?: MediaHostItem["fileId"];
   screenWidth: number;
+  screenHeight: number;
 }
 
 interface UseCarruselResult {
@@ -42,6 +51,7 @@ export function useCarrusel({
   items,
   initialFileId,
   screenWidth,
+  screenHeight,
 }: UseCarruselParams): UseCarruselResult {
   const slideWidth = screenWidth + SLIDE_GAP;
 
@@ -53,7 +63,9 @@ export function useCarrusel({
   }, [items, initialFileId]);
 
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
-  const [pendingResetIndex, setPendingResetIndex] = useState<number | null>(null);
+  const [pendingResetIndex, setPendingResetIndex] = useState<number | null>(
+    null,
+  );
 
   const translateX = useSharedValue(-slideWidth);
   const isDragging = useSharedValue(false);
@@ -61,6 +73,7 @@ export function useCarrusel({
   const isSwipeEnabledSV = useSharedValue(true);
   const itemsLengthSV = useSharedValue(items.length);
   const slideWidthSV = useSharedValue(slideWidth);
+  const swipeThresholdSV = useSharedValue(CAROUSEL_SWIPE_THRESHOLD);
   const isEnabledSV = useSharedValue(items.length > 1);
 
   const safeIndex = Math.min(currentIndex, Math.max(items.length - 1, 0));
@@ -70,6 +83,33 @@ export function useCarrusel({
   const nextItem =
     currentIndex < items.length - 1 ? (items[currentIndex + 1] ?? null) : null;
   const isEnabled = currentItem != null && items.length > 1;
+
+  const currentSwipeThreshold = useMemo(() => {
+    if (!currentItem) {
+      return CAROUSEL_SWIPE_THRESHOLD;
+    }
+
+    if (
+      currentItem.mediaWidth == null ||
+      currentItem.mediaHeight == null ||
+      currentItem.mediaWidth <= 0 ||
+      currentItem.mediaHeight <= 0
+    ) {
+      return CAROUSEL_SWIPE_THRESHOLD;
+    }
+
+    const scale = Math.min(
+      screenWidth / currentItem.mediaWidth,
+      screenHeight / currentItem.mediaHeight,
+    );
+    const visibleWidth = Math.min(screenWidth, currentItem.mediaWidth * scale);
+
+    return clamp(
+      visibleWidth * CAROUSEL_THRESHOLD_RATIO,
+      CAROUSEL_MIN_SWIPE_THRESHOLD,
+      CAROUSEL_SWIPE_THRESHOLD,
+    );
+  }, [currentItem, screenHeight, screenWidth]);
 
   useEffect(() => {
     currentIndexSV.value = safeIndex;
@@ -83,6 +123,10 @@ export function useCarrusel({
   useEffect(() => {
     slideWidthSV.value = slideWidth;
   }, [slideWidth]);
+
+  useEffect(() => {
+    swipeThresholdSV.value = currentSwipeThreshold;
+  }, [currentSwipeThreshold, swipeThresholdSV]);
 
   useEffect(() => {
     setCurrentIndex(initialIndex);
@@ -173,15 +217,16 @@ export function useCarrusel({
       const idx = currentIndexSV.value;
       const length = itemsLengthSV.value;
       const sw = slideWidthSV.value;
+      const swipeThreshold = swipeThresholdSV.value;
       const hasPrevious = idx > 0;
       const hasNext = idx < length - 1;
       const shouldGoNext =
         hasNext &&
-        (event.translationX <= -CAROUSEL_SWIPE_THRESHOLD ||
+        (event.translationX <= -swipeThreshold ||
           event.velocityX <= -CAROUSEL_VELOCITY_THRESHOLD);
       const shouldGoPrevious =
         hasPrevious &&
-        (event.translationX >= CAROUSEL_SWIPE_THRESHOLD ||
+        (event.translationX >= swipeThreshold ||
           event.velocityX >= CAROUSEL_VELOCITY_THRESHOLD);
 
       if (shouldGoNext) {

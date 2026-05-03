@@ -31,6 +31,10 @@ export interface MediaHostItem extends MediaSource {
   category: MediaHostCategory;
   /** Miniatura ligera para previews inactivos, especialmente útil en video */
   thumbnailUrl?: string;
+  /** Ancho intrínseco del media cuando se conoce */
+  mediaWidth?: number;
+  /** Alto intrínseco del media cuando se conoce */
+  mediaHeight?: number;
 }
 
 export interface CarouselGestureProps {

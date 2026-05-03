@@ -18,7 +18,7 @@ export default function MediaHost({
   imageWidth,
   imageHeight,
 }: MediaHostProps) {
-  const { width: screenWidth } = useWindowDimensions();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const initialSelectedItem = useMemo(() => {
     if (!items || items.length === 0) return null;
@@ -48,6 +48,7 @@ export default function MediaHost({
     items: activeItems,
     initialFileId,
     screenWidth,
+    screenHeight,
   });
 
   // useMemo debe estar antes del early return (Rules of Hooks)
