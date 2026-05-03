@@ -38,7 +38,7 @@ export default function TrashScreen() {
     height: 0,
   });
   const [isRenaming, setIsRenaming] = useState(false);
-  const [activeMedia, setActiveMedia] = useState<MediaHostItem | null>(null);
+  const [activeMedia, setActiveMedia] = useState<MediaHostItem[] | null>(null);
 
   const { showAlert } = useAlert();
   const fs = useFileSystem();
@@ -132,11 +132,14 @@ export default function TrashScreen() {
         ...(item.metadata.mimeType != null && {
           mimeType: item.metadata.mimeType,
         }),
+        ...(item.thumbnailUrl != null && {
+          thumbnailUrl: item.thumbnailUrl,
+        }),
         displayName: item.name,
         category: item.category,
       };
 
-      setActiveMedia(mediaItem);
+      setActiveMedia([mediaItem]);
     }
   };
 
@@ -435,7 +438,7 @@ export default function TrashScreen() {
         />
       )}
 
-      <MediaHost item={activeMedia} onClose={() => setActiveMedia(null)} />
+      <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>
   );
 }

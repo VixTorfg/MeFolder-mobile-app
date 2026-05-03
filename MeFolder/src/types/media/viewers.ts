@@ -1,5 +1,6 @@
 import { UUID } from "../common/base";
 import type { FileCategory } from "../common/file-extensions";
+import type { SharedValue } from "react-native-reanimated";
 
 /** Estado base compartido por todos los reproductores */
 export interface ViewerBaseState {
@@ -28,18 +29,22 @@ export type MediaHostCategory = Extract<
 export interface MediaHostItem extends MediaSource {
   /** Categoría del archivo usada para resolver el viewer apropiado */
   category: MediaHostCategory;
+  /** Miniatura ligera para previews inactivos, especialmente útil en video */
+  thumbnailUrl?: string;
 }
 
-export interface ViewerSwipeHandlers {
-  /** Callback para navegar al siguiente elemento del carrusel */
-  onSwipeNext?: () => void;
-  /** Callback para navegar al elemento anterior del carrusel */
-  onSwipePrevious?: () => void;
+export interface CarouselGestureProps {
+  /** Notifica al host si el carrusel horizontal debe estar habilitado */
+  onSwipeAvailabilityChange?: (enabled: boolean) => void;
+  /** SharedValue del carrusel: true mientras el usuario arrastra entre items */
+  isDragging?: SharedValue<boolean>;
 }
 
-export interface MediaHostProps extends ViewerSwipeHandlers {
-  /** Elemento multimedia activo; cuando es null no se renderiza ningún viewer */
-  item: MediaHostItem | null;
+export interface MediaHostProps {
+  /** Lista de medios activa; cuando es null o está vacía no se renderiza ningún viewer */
+  items: MediaHostItem[] | null;
+  /** ID del archivo que debe abrirse primero dentro del carrusel */
+  initialFileId?: UUID;
   /** Callback al cerrar el viewer activo */
   onClose: () => void;
   /** Iniciar reproducción automáticamente cuando aplique */
@@ -50,13 +55,9 @@ export interface MediaHostProps extends ViewerSwipeHandlers {
   imageHeight?: number;
 }
 
-// ─── Image Viewer ────────────────────────────────────────────
-
-export interface ImageViewerProps extends ViewerSwipeHandlers {
+export interface ImageViewerProps extends CarouselGestureProps {
   /** Fuente de la imagen a mostrar */
   source: MediaSource;
-  /** Visible o no */
-  visible: boolean;
   /** Callback al cerrar el visor */
   onClose: () => void;
   /** Ancho original de la imagen (optimiza el renderizado inicial) */
@@ -70,8 +71,6 @@ export interface ImageViewerState extends ViewerBaseState {
   zoomScale: number;
 }
 
-// ─── Video Player ────────────────────────────────────────────
-
 export type VideoPlaybackStatus =
   | "idle"
   | "playing"
@@ -80,11 +79,9 @@ export type VideoPlaybackStatus =
   | "ended"
   | "error";
 
-export interface VideoPlayerProps extends ViewerSwipeHandlers {
+export interface VideoPlayerProps extends CarouselGestureProps {
   /** Fuente del vídeo */
   source: MediaSource;
-  /** Visible o no */
-  visible: boolean;
   /** Callback al cerrar el reproductor */
   onClose: () => void;
   /** Iniciar reproducción automáticamente */
@@ -103,8 +100,6 @@ export interface VideoPlayerState extends ViewerBaseState {
   isMuted: boolean;
 }
 
-// ─── Audio Player ────────────────────────────────────────────
-
 export type AudioPlaybackStatus =
   | "idle"
   | "playing"
@@ -116,8 +111,6 @@ export type AudioPlaybackStatus =
 export interface AudioPlayerProps {
   /** Fuente del audio */
   source: MediaSource;
-  /** Visible o no */
-  visible: boolean;
   /** Callback al cerrar el reproductor */
   onClose: () => void;
   /** Iniciar reproducción automáticamente */

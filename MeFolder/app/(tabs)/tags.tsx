@@ -23,7 +23,7 @@ import { router } from "expo-router";
 
 export default function TagsScreen() {
   const [showTagCreator, setShowTagCreator] = useState(false);
-  const { items, albums, loading } = useTagsContent();
+  const { items, albums } = useTagsContent();
   const { handleSaveTag } = useTagsActions();
   const styles = useTagsStyles();
 

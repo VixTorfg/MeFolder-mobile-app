@@ -34,7 +34,7 @@ export default function tagsContent() {
   });
   const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
-  const [activeMedia, setActiveMedia] = useState<MediaHostItem | null>(null);
+  const [activeMedia, setActiveMedia] = useState<MediaHostItem[] | null>(null);
 
   const { tagId, tagName } = useLocalSearchParams();
   const { showAlert } = useAlert();
@@ -217,11 +217,14 @@ export default function tagsContent() {
       ...(item.metadata.mimeType != null && {
         mimeType: item.metadata.mimeType,
       }),
+      ...(item.thumbnailUrl != null && {
+        thumbnailUrl: item.thumbnailUrl,
+      }),
       displayName: item.name,
       category: item.category,
     };
 
-    setActiveMedia(mediaItem);
+    setActiveMedia([mediaItem]);
   };
 
   const renderGroupButtons = () => {
@@ -387,7 +390,7 @@ export default function tagsContent() {
         />
       )}
 
-      <MediaHost item={activeMedia} onClose={() => setActiveMedia(null)} />
+      <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>
   );
 }

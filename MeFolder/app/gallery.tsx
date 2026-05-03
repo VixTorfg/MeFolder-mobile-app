@@ -1,8 +1,9 @@
 import { useGalleryContent, useStyles, usePinchColumns } from "@/hooks";
-import { MultiActionButton, MediaCarousel } from "@/components";
+import { MultiActionButton, MediaHost } from "@/components";
 import { FileModel } from "@/models/file";
+import type { MediaHostItem } from "@/types/media/viewers";
 import { useLocalSearchParams, router } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   View,
   Text,
@@ -40,17 +41,41 @@ export default function GalleryScreen() {
   const { width: screenWidth } = useWindowDimensions();
   const itemSize = Math.trunc(screenWidth / columns);
 
-  const [mediaCarouselVisible, setMediaCarouselVisible] = useState(false);
   const [selectedMediaId, setSelectedMediaId] = useState<
     FileModel["id"] | null
   >(null);
+
+  const mediaItems = useMemo<MediaHostItem[]>(
+    () =>
+      items.flatMap((item) => {
+        if (!item.storageUrl) return [];
+        if (item.category !== "image" && item.category !== "video") {
+          return [];
+        }
+
+        return [
+          {
+            uri: item.storageUrl,
+            fileId: item.id,
+            ...(item.metadata.mimeType != null && {
+              mimeType: item.metadata.mimeType,
+            }),
+            ...(item.thumbnailUrl != null && {
+              thumbnailUrl: item.thumbnailUrl,
+            }),
+            displayName: item.name,
+            category: item.category,
+          },
+        ];
+      }),
+    [items],
+  );
 
   const handleOpenItem = useCallback((file: FileModel) => {
     if (!file.storageUrl) return;
     if (file.category !== "image" && file.category !== "video") return;
 
     setSelectedMediaId(file.id);
-    setMediaCarouselVisible(true);
   }, []);
 
   const handleScroll = useCallback(
@@ -149,15 +174,13 @@ export default function GalleryScreen() {
           </Animated.ScrollView>
         </GestureDetector>
 
-        <MediaCarousel
-          items={items}
-          visible={mediaCarouselVisible}
-          {...(selectedMediaId ? { initialFileId: selectedMediaId } : {})}
-          onClose={() => {
-            setMediaCarouselVisible(false);
-            setSelectedMediaId(null);
-          }}
-        />
+        {selectedMediaId && (
+          <MediaHost
+            items={mediaItems}
+            initialFileId={selectedMediaId}
+            onClose={() => setSelectedMediaId(null)}
+          />
+        )}
       </View>
     </GestureHandlerRootView>
   );

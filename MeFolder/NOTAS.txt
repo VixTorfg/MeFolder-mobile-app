@@ -32,3 +32,5 @@ ANTERIOR:
 
     -Lo ultimo que se corrigio era el bug que hacia que cuando se seleccionaba copy y cut 
     paracia que el context menu no respondia.
+
+    -Hacer un plan para crear el carrusel de imagenes.

@@ -1,22 +1,16 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import {
-  Modal,
   View,
   Text,
   Pressable,
   TouchableOpacity,
-  StatusBar,
   ActivityIndicator,
   useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
-import {
-  Gesture,
-  GestureDetector,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -32,22 +26,25 @@ const SKIP_SECONDS = 10;
 const DOUBLE_TAP_DELAY = 300;
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
-const SWIPE_THRESHOLD = 180;
-const SWIPE_VERTICAL_TOLERANCE = 80;
-const SWIPE_BOTTOM_GUARD = 160;
+const SWIPE_SCALE_TOLERANCE = 0.05;
 
 export default function VideoPlayer({
   source,
-  visible,
   onClose,
   autoPlay = false,
-  onSwipeNext,
-  onSwipePrevious,
+  onSwipeAvailabilityChange,
+  isDragging,
 }: VideoPlayerProps) {
   const styles = useVideoPlayerStyles();
   const { width: screenW, height: screenH } = useWindowDimensions();
 
-  /* ── Player ───────────────────────────────────────────────── */
+  const notifySwipeAvailability = useCallback(
+    (enabled: boolean) => {
+      onSwipeAvailabilityChange?.(enabled);
+    },
+    [onSwipeAvailabilityChange],
+  );
+
   const player = useVideoPlayer(source.uri, (p) => {
     p.loop = false;
     p.muted = false;
@@ -62,7 +59,6 @@ export default function VideoPlayer({
 
   const isLoaded = status === "readyToPlay";
 
-  /* ── State ────────────────────────────────────────────────── */
   const [position, setPosition] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
@@ -71,14 +67,12 @@ export default function VideoPlayer({
   const [controlsVisible, setControlsVisible] = useState(true);
   const [skipSide, setSkipSide] = useState<"left" | "right" | null>(null);
 
-  /* ── Refs ──────────────────────────────────────────────────── */
   const trackWidthRef = useRef(1);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef({ time: 0, x: 0 });
   const pendingTapRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  /* ── Shared values ────────────────────────────────────────── */
   const controlsOpacity = useSharedValue(1);
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -87,7 +81,6 @@ export default function VideoPlayer({
   const savedTX = useSharedValue(0);
   const savedTY = useSharedValue(0);
 
-  /* ── Derived ──────────────────────────────────────────────── */
   const playbackRatio = duration > 0 ? position / duration : 0;
   const displayedRatio = isScrubbing ? scrubRatio : playbackRatio;
   const displayedPosition = displayedRatio * duration;
@@ -97,7 +90,6 @@ export default function VideoPlayer({
     [],
   );
 
-  /* ── Controls visibility ──────────────────────────────────── */
   const clearHideTimeout = useCallback(() => {
     if (hideTimeoutRef.current) {
       clearTimeout(hideTimeoutRef.current);
@@ -132,53 +124,70 @@ export default function VideoPlayer({
     }
   }, [controlsVisible, showControls, clearHideTimeout, hideControls]);
 
-  /* ── Skip indicator ───────────────────────────────────────── */
   const flashSkip = useCallback((side: "left" | "right") => {
     if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
     setSkipSide(side);
     skipTimerRef.current = setTimeout(() => setSkipSide(null), 600);
   }, []);
 
-  /* ── Handlers ─────────────────────────────────────────────── */
   const handleSkipBack = useCallback(() => {
     const t = Math.max(0, player.currentTime - SKIP_SECONDS);
-    player.currentTime = t;
+    try {
+      player.currentTime = t;
+    } catch {
+      return;
+    }
     setPosition(t);
     flashSkip("left");
   }, [player, flashSkip]);
 
   const handleSkipForward = useCallback(() => {
     const t = Math.min(duration, player.currentTime + SKIP_SECONDS);
-    player.currentTime = t;
+    try {
+      player.currentTime = t;
+    } catch {
+      return;
+    }
     setPosition(t);
     flashSkip("right");
   }, [player, duration, flashSkip]);
 
   const toggleMute = useCallback(() => {
     const next = !player.muted;
-    player.muted = next;
+    try {
+      player.muted = next;
+    } catch {
+      return;
+    }
     setIsMuted(next);
   }, [player]);
 
   const handlePlayPause = useCallback(() => {
-    if (isPlaying) {
-      player.pause();
-    } else if (duration > 0 && player.currentTime >= duration - 0.5) {
-      player.replay();
-    } else {
-      player.play();
+    try {
+      if (isPlaying) {
+        player.pause();
+      } else if (duration > 0 && player.currentTime >= duration - 0.5) {
+        player.replay();
+      } else {
+        player.play();
+      }
+    } catch {
+      return;
     }
     showControls();
   }, [isPlaying, player, duration, showControls]);
 
   const handleClose = useCallback(() => {
-    player.pause();
+    try {
+      player.pause();
+    } catch {
+      // Ignora players ya liberados por el desmontaje nativo.
+    }
     setIsScrubbing(false);
     clearHideTimeout();
     onClose();
   }, [player, onClose, clearHideTimeout]);
 
-  /* ── Double-tap detection ─────────────────────────────────── */
   const handleTapArea = useCallback(
     (x: number) => {
       const now = Date.now();
@@ -210,15 +219,17 @@ export default function VideoPlayer({
     [screenW, handleSkipBack, handleSkipForward, toggleControls],
   );
 
-  /* ── Effects ──────────────────────────────────────────────── */
-
   // Poll position while playing
   useEffect(() => {
     if (!isPlaying || isScrubbing) return;
     const id = setInterval(() => {
-      setPosition(player.currentTime);
-      if (player.duration > 0 && isFinite(player.duration)) {
-        setDuration(player.duration);
+      try {
+        setPosition(player.currentTime);
+        if (player.duration > 0 && isFinite(player.duration)) {
+          setDuration(player.duration);
+        }
+      } catch {
+        // Player liberado durante el swipe; el interval se limpiará en el cleanup.
       }
     }, 250);
     return () => clearInterval(id);
@@ -245,24 +256,28 @@ export default function VideoPlayer({
 
   // AutoPlay
   useEffect(() => {
-    if (visible && isLoaded && autoPlay) player.play();
-  }, [visible, isLoaded, autoPlay]);
+    if (!isLoaded || !autoPlay) return;
 
-  // Pause when modal hides
-  useEffect(() => {
-    if (!visible && isPlaying) player.pause();
-  }, [visible]);
+    try {
+      player.play();
+    } catch {
+      // Ignora el autoplay si la instancia ya no existe.
+    }
+  }, [isLoaded, autoPlay, player]);
 
-  // Cleanup
+  // Cleanup: pausar antes del desmontaje evita el crash cuando expo-video
+  // libera el player nativo mientras hay callbacks pendientes del swipe.
   useEffect(() => {
     return () => {
+      try {
+        player.pause();
+      } catch {}
       clearHideTimeout();
       if (skipTimerRef.current) clearTimeout(skipTimerRef.current);
       if (pendingTapRef.current) clearTimeout(pendingTapRef.current);
     };
-  }, []);
+  }, [clearHideTimeout, player]);
 
-  /* ── Pinch-to-zoom ────────────────────────────────────────── */
   const clampXY = useCallback(
     (x: number, y: number, s: number) => {
       "worklet";
@@ -298,6 +313,10 @@ export default function VideoPlayer({
       translateY.value = withTiming(c.y);
       savedTX.value = c.x;
       savedTY.value = c.y;
+      scheduleOnRN(
+        notifySwipeAvailability,
+        scale.value <= MIN_SCALE + SWIPE_SCALE_TOLERANCE,
+      );
     });
 
   const panZoom = Gesture.Pan()
@@ -322,28 +341,6 @@ export default function VideoPlayer({
 
   const zoomGesture = Gesture.Simultaneous(pinch, panZoom);
 
-  const swipeGesture = Gesture.Pan()
-    .minPointers(1)
-    .maxPointers(1)
-    .activeOffsetX([-16, 16])
-    .onEnd((e) => {
-      if (scale.value > MIN_SCALE + 0.05) return;
-      if (Math.abs(e.translationY) > SWIPE_VERTICAL_TOLERANCE) return;
-      if (screenH - e.y < SWIPE_BOTTOM_GUARD) return;
-
-      if (e.translationX <= -SWIPE_THRESHOLD && onSwipeNext) {
-        scheduleOnRN(onSwipeNext);
-        return;
-      }
-
-      if (e.translationX >= SWIPE_THRESHOLD && onSwipePrevious) {
-        scheduleOnRN(onSwipePrevious);
-      }
-    });
-
-  const composedGesture = Gesture.Simultaneous(zoomGesture, swipeGesture);
-
-  /* ── Animated styles ──────────────────────────────────────── */
   const animatedVideo = useAnimatedStyle(() => ({
     transform: [
       { translateX: translateX.value },
@@ -356,178 +353,180 @@ export default function VideoPlayer({
     opacity: controlsOpacity.value,
   }));
 
-  /* ── Render ───────────────────────────────────────────────── */
+  // Oculta el header durante el swipe entre items del carrusel
+  const headerDragStyle = useAnimatedStyle(() => ({
+    opacity: isDragging !== undefined ? (isDragging.value ? 0 : 1) : 1,
+  }));
+
+  useEffect(() => {
+    notifySwipeAvailability(true);
+    return () => notifySwipeAvailability(true);
+  }, [notifySwipeAvailability, source.uri]);
+
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      presentationStyle="fullScreen"
-      onRequestClose={handleClose}
-    >
-      <GestureHandlerRootView style={styles.container}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
-
-        <GestureDetector gesture={composedGesture}>
-          <View style={styles.gestureRoot} collapsable={false}>
-            {/* Video surface with zoom */}
-            <Animated.View style={[styles.videoWrapper, animatedVideo]}>
-              <VideoView
-                player={player}
-                style={styles.video}
-                nativeControls={false}
-                contentFit="contain"
-              />
-            </Animated.View>
-
-            {/* Tap detection layer (single tap ↔ controls / double tap ↔ skip) */}
-            <Pressable
-              style={styles.tapLayer}
-              onPress={(e) => handleTapArea(e.nativeEvent.locationX)}
+    <View style={styles.container}>
+      <GestureDetector gesture={zoomGesture}>
+        <View style={styles.gestureRoot} collapsable={false}>
+          {/* Video surface with zoom */}
+          <Animated.View style={[styles.videoWrapper, animatedVideo]}>
+            <VideoView
+              player={player}
+              style={styles.video}
+              nativeControls={false}
+              contentFit="contain"
             />
+          </Animated.View>
 
-            {/* Skip indicator */}
-            {skipSide !== null && (
-              <View
-                style={[
-                  styles.skipIndicator,
-                  skipSide === "left" ? styles.skipLeft : styles.skipRight,
-                ]}
-                pointerEvents="none"
+          {/* Tap detection layer (single tap ↔ controls / double tap ↔ skip) */}
+          <Pressable
+            style={styles.tapLayer}
+            onPress={(e) => handleTapArea(e.nativeEvent.locationX)}
+          />
+
+          {/* Skip indicator */}
+          {skipSide !== null && (
+            <View
+              style={[
+                styles.skipIndicator,
+                skipSide === "left" ? styles.skipLeft : styles.skipRight,
+              ]}
+              pointerEvents="none"
+            >
+              <Ionicons
+                name={skipSide === "left" ? "play-back" : "play-forward"}
+                size={28}
+                color="#FFFFFF"
+              />
+              <Text style={styles.skipText}>10s</Text>
+            </View>
+          )}
+
+          {/* Loading */}
+          {!isLoaded && (
+            <View style={styles.loadingOverlay} pointerEvents="none">
+              <ActivityIndicator size="large" color="#FFFFFF" />
+            </View>
+          )}
+
+          {/* Controls overlay */}
+          <Animated.View
+            style={[styles.controlsOverlay, animatedControls]}
+            pointerEvents={controlsVisible ? "box-none" : "none"}
+          >
+            {/* Header: oculto mientras el usuario arrastra entre items */}
+            <Animated.View
+              style={[styles.header, headerDragStyle]}
+              pointerEvents="box-none"
+            >
+              <TouchableOpacity
+                style={styles.headerBtn}
+                onPress={handleClose}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="close" size={28} color="#FFFFFF" />
+              </TouchableOpacity>
+
+              <Text style={styles.headerTitle} numberOfLines={1}>
+                {source.displayName ?? "Video"}
+              </Text>
+
+              <TouchableOpacity
+                style={styles.headerBtn}
+                onPress={toggleMute}
+                activeOpacity={0.7}
               >
                 <Ionicons
-                  name={skipSide === "left" ? "play-back" : "play-forward"}
-                  size={28}
+                  name={isMuted ? "volume-mute" : "volume-high"}
+                  size={24}
                   color="#FFFFFF"
                 />
-                <Text style={styles.skipText}>10s</Text>
-              </View>
-            )}
-
-            {/* Loading */}
-            {!isLoaded && (
-              <View style={styles.loadingOverlay} pointerEvents="none">
-                <ActivityIndicator size="large" color="#FFFFFF" />
-              </View>
-            )}
-
-            {/* Controls overlay */}
-            <Animated.View
-              style={[styles.controlsOverlay, animatedControls]}
-              pointerEvents={controlsVisible ? "box-none" : "none"}
-            >
-              {/* Header */}
-              <View style={styles.header} pointerEvents="box-none">
-                <TouchableOpacity
-                  style={styles.headerBtn}
-                  onPress={handleClose}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons name="close" size={28} color="#FFFFFF" />
-                </TouchableOpacity>
-
-                <Text style={styles.headerTitle} numberOfLines={1}>
-                  {source.displayName ?? "Video"}
-                </Text>
-
-                <TouchableOpacity
-                  style={styles.headerBtn}
-                  onPress={toggleMute}
-                  activeOpacity={0.7}
-                >
-                  <Ionicons
-                    name={isMuted ? "volume-mute" : "volume-high"}
-                    size={24}
-                    color="#FFFFFF"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Center play / pause */}
-              <View style={styles.centerRow} pointerEvents="box-none">
-                <TouchableOpacity
-                  style={styles.centerPlay}
-                  onPress={handlePlayPause}
-                  activeOpacity={0.8}
-                  disabled={!isLoaded}
-                >
-                  <Ionicons
-                    name={isPlaying ? "pause" : "play"}
-                    size={44}
-                    color="#FFFFFF"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Bottom: progress bar + time */}
-              <View style={styles.bottom}>
-                <View
-                  style={styles.progressTouchArea}
-                  onLayout={(e) => {
-                    trackWidthRef.current = e.nativeEvent.layout.width;
-                  }}
-                  onStartShouldSetResponder={() => isLoaded}
-                  onResponderGrant={(e) => {
-                    clearHideTimeout();
-                    const ratio = getRatioFromX(e.nativeEvent.locationX);
-                    setIsScrubbing(true);
-                    setScrubRatio(ratio);
-                  }}
-                  onResponderMove={(e) => {
-                    setScrubRatio(getRatioFromX(e.nativeEvent.locationX));
-                  }}
-                  onResponderRelease={(e) => {
-                    const ratio = getRatioFromX(e.nativeEvent.locationX);
-                    const target = ratio * duration;
-                    player.currentTime = target;
-                    setPosition(target);
-                    setIsScrubbing(false);
-                    scheduleHide();
-                  }}
-                  onResponderTerminate={() => {
-                    setIsScrubbing(false);
-                    scheduleHide();
-                  }}
-                >
-                  <View style={styles.progressTrack}>
-                    <View
-                      style={[
-                        styles.progressFill,
-                        {
-                          width:
-                            `${Math.min(displayedRatio * 100, 100)}%` as any,
-                        },
-                      ]}
-                    />
-                    <View
-                      style={[
-                        styles.progressThumb,
-                        isScrubbing && styles.progressThumbActive,
-                        {
-                          left: `${Math.min(displayedRatio * 100, 100)}%` as any,
-                        },
-                      ]}
-                    />
-                  </View>
-                </View>
-
-                <View style={styles.timeRow}>
-                  <Text
-                    style={[
-                      styles.timeText,
-                      isScrubbing && styles.timeTextActive,
-                    ]}
-                  >
-                    {formatAudioDuration(displayedPosition)}
-                  </Text>
-                  <Text style={styles.timeText}>
-                    {formatAudioDuration(duration)}
-                  </Text>
-                </View>
-              </View>
+              </TouchableOpacity>
             </Animated.View>
-          </View>
-        </GestureDetector>
-      </GestureHandlerRootView>
-    </Modal>
+
+            {/* Center play / pause */}
+            <View style={styles.centerRow} pointerEvents="box-none">
+              <TouchableOpacity
+                style={styles.centerPlay}
+                onPress={handlePlayPause}
+                activeOpacity={0.8}
+                disabled={!isLoaded}
+              >
+                <Ionicons
+                  name={isPlaying ? "pause" : "play"}
+                  size={44}
+                  color="#FFFFFF"
+                />
+              </TouchableOpacity>
+            </View>
+
+            {/* Bottom: progress bar + time */}
+            <View style={styles.bottom}>
+              <View
+                style={styles.progressTouchArea}
+                onLayout={(e) => {
+                  trackWidthRef.current = e.nativeEvent.layout.width;
+                }}
+                onStartShouldSetResponder={() => isLoaded}
+                onResponderGrant={(e) => {
+                  clearHideTimeout();
+                  const ratio = getRatioFromX(e.nativeEvent.locationX);
+                  setIsScrubbing(true);
+                  setScrubRatio(ratio);
+                }}
+                onResponderMove={(e) => {
+                  setScrubRatio(getRatioFromX(e.nativeEvent.locationX));
+                }}
+                onResponderRelease={(e) => {
+                  const ratio = getRatioFromX(e.nativeEvent.locationX);
+                  const target = ratio * duration;
+                  player.currentTime = target;
+                  setPosition(target);
+                  setIsScrubbing(false);
+                  scheduleHide();
+                }}
+                onResponderTerminate={() => {
+                  setIsScrubbing(false);
+                  scheduleHide();
+                }}
+              >
+                <View style={styles.progressTrack}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      {
+                        width: `${Math.min(displayedRatio * 100, 100)}%` as any,
+                      },
+                    ]}
+                  />
+                  <View
+                    style={[
+                      styles.progressThumb,
+                      isScrubbing && styles.progressThumbActive,
+                      {
+                        left: `${Math.min(displayedRatio * 100, 100)}%` as any,
+                      },
+                    ]}
+                  />
+                </View>
+              </View>
+
+              <View style={styles.timeRow}>
+                <Text
+                  style={[
+                    styles.timeText,
+                    isScrubbing && styles.timeTextActive,
+                  ]}
+                >
+                  {formatAudioDuration(displayedPosition)}
+                </Text>
+                <Text style={styles.timeText}>
+                  {formatAudioDuration(duration)}
+                </Text>
+              </View>
+            </View>
+          </Animated.View>
+        </View>
+      </GestureDetector>
+    </View>
   );
 }

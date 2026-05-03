@@ -1,69 +1,111 @@
-import React from "react";
-import type { MediaHostProps } from "@/types/media/viewers";
-import { AudioPlayer } from "../AudioPlayer";
-import { ImageViewer } from "../ImageViewer";
-import { VideoPlayer } from "../VideoPlayer";
+import React, { useMemo } from "react";
+import { Modal, StatusBar, useWindowDimensions } from "react-native";
+
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import type { MediaHostItem, MediaHostProps } from "@/types/media/viewers";
+import MediaCarousel from "./MediaCarousel";
+import { MediaViewer, type MediaViewerSharedProps } from "./MediaViewer";
+import { useCarrusel } from "./useCarrusel";
+
+const isCarouselItem = (item: MediaHostItem) =>
+  item.category === "image" || item.category === "video";
 
 export default function MediaHost({
-  item,
+  items,
   onClose,
   autoPlay = false,
-  onSwipeNext,
-  onSwipePrevious,
+  initialFileId,
   imageWidth,
   imageHeight,
 }: MediaHostProps) {
-  if (!item) {
-    return null;
-  }
+  const { width: screenWidth } = useWindowDimensions();
 
-  const mediaKey = item.fileId ?? `${item.category}:${item.uri}`;
-  const swipeProps = {
-    ...(onSwipeNext ? { onSwipeNext } : {}),
-    ...(onSwipePrevious ? { onSwipePrevious } : {}),
-  };
-  const imageSizeProps = {
-    ...(imageWidth != null ? { imageWidth } : {}),
-    ...(imageHeight != null ? { imageHeight } : {}),
-  };
+  const initialSelectedItem = useMemo(() => {
+    if (!items || items.length === 0) return null;
+    if (!initialFileId) return items[0] ?? null;
+    return (
+      items.find((item) => item.fileId === initialFileId) ?? items[0] ?? null
+    );
+  }, [items, initialFileId]);
 
-  switch (item.category) {
-    case "image":
-      return (
-        <ImageViewer
-          key={mediaKey}
-          source={item}
-          visible
-          onClose={onClose}
-          {...swipeProps}
-          {...imageSizeProps}
-        />
-      );
+  const activeItems = useMemo(() => {
+    if (!items || items.length === 0 || !initialSelectedItem) return [];
+    if (!isCarouselItem(initialSelectedItem)) return [initialSelectedItem];
+    return items.filter(isCarouselItem);
+  }, [items, initialSelectedItem]);
 
-    case "video":
-      return (
-        <VideoPlayer
-          key={mediaKey}
-          source={item}
-          visible
-          onClose={onClose}
-          autoPlay={autoPlay}
-          {...swipeProps}
-        />
-      );
+  const {
+    currentItem,
+    previousItem,
+    nextItem,
+    isEnabled: isCarouselEnabled,
+    gesture: carouselGesture,
+    translateX: carouselTranslateX,
+    isDragging: carouselIsDragging,
+    slideGap,
+    setSwipeEnabled,
+  } = useCarrusel({
+    items: activeItems,
+    initialFileId,
+    screenWidth,
+  });
 
-    case "audio":
-      return (
-        <AudioPlayer
-          key={mediaKey}
-          source={item}
-          visible
-          onClose={onClose}
-          autoPlay={autoPlay}
-        />
-      );
+  // useMemo debe estar antes del early return (Rules of Hooks)
+  const sharedViewerProps = useMemo<MediaViewerSharedProps>(
+    () => ({
+      onClose,
+      autoPlay,
+      onSwipeAvailabilityChange: setSwipeEnabled,
+      isDragging: carouselIsDragging,
+      ...(imageWidth !== undefined ? { imageWidth } : {}),
+      ...(imageHeight !== undefined ? { imageHeight } : {}),
+    }),
+    [
+      onClose,
+      autoPlay,
+      setSwipeEnabled,
+      carouselIsDragging,
+      imageWidth,
+      imageHeight,
+    ],
+  );
 
-    default:
-      return null;
-  }
+  if (!currentItem) return null;
+
+  const modalAnimation = currentItem.category === "audio" ? "slide" : "fade";
+  const statusBarBackgroundColor =
+    currentItem.category === "audio" ? "#121212" : "#000000";
+
+  const content = isCarouselEnabled ? (
+    <MediaCarousel
+      previousItem={previousItem}
+      currentItem={currentItem}
+      nextItem={nextItem}
+      screenWidth={screenWidth}
+      slideGap={slideGap}
+      gesture={carouselGesture}
+      translateX={carouselTranslateX}
+      sharedViewerProps={sharedViewerProps}
+    />
+  ) : (
+    <MediaViewer item={currentItem} isActive {...sharedViewerProps} />
+  );
+
+  return (
+    <Modal
+      visible
+      animationType={modalAnimation}
+      presentationStyle="fullScreen"
+      onRequestClose={onClose}
+    >
+      <StatusBar
+        barStyle="light-content"
+        backgroundColor={statusBarBackgroundColor}
+      />
+      {/* Sin key: no desmontar el árbol de gestos al cambiar de item */}
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        {content}
+      </GestureHandlerRootView>
+    </Modal>
+  );
 }

@@ -1,20 +1,14 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
-  Modal,
   View,
   Text,
   TouchableOpacity,
   ActivityIndicator,
-  StatusBar,
   useWindowDimensions,
 } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
-import {
-  GestureDetector,
-  Gesture,
-  GestureHandlerRootView,
-} from "react-native-gesture-handler";
+import { GestureDetector, Gesture } from "react-native-gesture-handler";
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -26,20 +20,29 @@ import { scheduleOnRN } from "react-native-worklets";
 
 const MIN_SCALE = 1;
 const MAX_SCALE = 5;
-const SWIPE_THRESHOLD = 180;
-const SWIPE_VERTICAL_TOLERANCE = 80;
+const SWIPE_SCALE_TOLERANCE = 0.05;
 
 export default function ImageViewer({
   source,
-  visible,
   onClose,
-  onSwipeNext,
-  onSwipePrevious,
+  onSwipeAvailabilityChange,
+  isDragging,
 }: ImageViewerProps) {
   const styles = useImageViewerStyles();
   const { width: screenW, height: screenH } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  // Controla si el pan interno está activo: solo cuando hay zoom
+  const [isPanEnabled, setIsPanEnabled] = useState(false);
+
+  const notifySwipeAvailability = useCallback(
+    (enabled: boolean) => {
+      // swipeEnabled=true → zoom=1 → pan interno deshabilitado (carrusel gestiona el swipe)
+      setIsPanEnabled(!enabled);
+      onSwipeAvailabilityChange?.(enabled);
+    },
+    [onSwipeAvailabilityChange],
+  );
 
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
@@ -56,7 +59,9 @@ export default function ImageViewer({
     translateY.value = withTiming(0);
     savedTranslateX.value = 0;
     savedTranslateY.value = 0;
+    scheduleOnRN(notifySwipeAvailability, true);
   }, [
+    notifySwipeAvailability,
     scale,
     savedScale,
     translateX,
@@ -102,11 +107,17 @@ export default function ImageViewer({
       translateY.value = withTiming(clamped.y);
       savedTranslateX.value = clamped.x;
       savedTranslateY.value = clamped.y;
+      scheduleOnRN(
+        notifySwipeAvailability,
+        scale.value <= MIN_SCALE + SWIPE_SCALE_TOLERANCE,
+      );
     });
 
   const panGesture = Gesture.Pan()
     .minPointers(1)
     .maxPointers(2)
+    // Deshabilitado a zoom=1 para que el carrusel reciba el gesto horizontal
+    .enabled(isPanEnabled)
     .onStart(() => {
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
@@ -133,23 +144,7 @@ export default function ImageViewer({
       } else {
         scale.value = withTiming(3);
         savedScale.value = 3;
-      }
-    });
-
-  const swipeGesture = Gesture.Pan()
-    .minPointers(1)
-    .maxPointers(1)
-    .onEnd((e) => {
-      if (scale.value > MIN_SCALE + 0.05) return;
-      if (Math.abs(e.translationY) > SWIPE_VERTICAL_TOLERANCE) return;
-
-      if (e.translationX <= -SWIPE_THRESHOLD && onSwipeNext) {
-        scheduleOnRN(onSwipeNext);
-        return;
-      }
-
-      if (e.translationX >= SWIPE_THRESHOLD && onSwipePrevious) {
-        scheduleOnRN(onSwipePrevious);
+        scheduleOnRN(notifySwipeAvailability, false);
       }
     });
 
@@ -157,7 +152,6 @@ export default function ImageViewer({
     pinchGesture,
     panGesture,
     doubleTapGesture,
-    swipeGesture,
   );
 
   const animatedImageStyle = useAnimatedStyle(() => ({
@@ -166,6 +160,11 @@ export default function ImageViewer({
       { translateY: translateY.value },
       { scale: scale.value },
     ],
+  }));
+
+  // Oculta el header durante el swipe entre items del carrusel
+  const headerDragStyle = useAnimatedStyle(() => ({
+    opacity: isDragging !== undefined ? (isDragging.value ? 0 : 1) : 1,
   }));
 
   const handleLoad = useCallback(() => {
@@ -185,62 +184,58 @@ export default function ImageViewer({
     onClose();
   }, [onClose, resetTransform]);
 
+  useEffect(() => {
+    notifySwipeAvailability(true);
+    return () => notifySwipeAvailability(true);
+  }, [notifySwipeAvailability, source.uri]);
+
   return (
-    <Modal
-      visible={visible}
-      animationType="fade"
-      presentationStyle="fullScreen"
-      onRequestClose={handleClose}
-    >
-      <GestureHandlerRootView style={styles.overlay}>
-        <StatusBar barStyle="light-content" backgroundColor="#000" />
+    <View style={styles.overlay}>
+      {/* Header: oculto mientras el usuario arrastra entre items */}
+      <Animated.View style={[styles.header, headerDragStyle]}>
+        <TouchableOpacity
+          style={styles.headerButton}
+          onPress={handleClose}
+          activeOpacity={0.7}
+        >
+          <Ionicons name="close" size={28} color="#FFFFFF" />
+        </TouchableOpacity>
 
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.headerButton}
-            onPress={handleClose}
-            activeOpacity={0.7}
-          >
-            <Ionicons name="close" size={28} color="#FFFFFF" />
-          </TouchableOpacity>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {source.displayName ?? "Imagen"}
+        </Text>
 
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            {source.displayName ?? "Imagen"}
-          </Text>
+        {/* Placeholder derecho para centrar el título */}
+        <View style={styles.headerButton} />
+      </Animated.View>
 
-          {/* Placeholder derecho para centrar el título */}
-          <View style={styles.headerButton} />
-        </View>
-
-        {/* Imagen con zoom */}
-        <View style={styles.imageContainer}>
-          {hasError ? (
-            <View style={styles.errorContainer}>
-              <Ionicons name="image-outline" size={64} color="#666" />
-              <Text style={styles.errorText}>No se pudo cargar la imagen</Text>
-            </View>
-          ) : (
-            <GestureDetector gesture={composedGesture}>
-              <Animated.View style={[styles.image, animatedImageStyle]}>
-                <Image
-                  source={{ uri: source.uri }}
-                  style={styles.image}
-                  contentFit="contain"
-                  onLoad={handleLoad}
-                  onError={handleError}
-                  transition={200}
-                />
-              </Animated.View>
-            </GestureDetector>
-          )}
-          {isLoading && !hasError && (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#FFFFFF" />
-            </View>
-          )}
-        </View>
-      </GestureHandlerRootView>
-    </Modal>
+      {/* Imagen con zoom */}
+      <View style={styles.imageContainer}>
+        {hasError ? (
+          <View style={styles.errorContainer}>
+            <Ionicons name="image-outline" size={64} color="#666" />
+            <Text style={styles.errorText}>No se pudo cargar la imagen</Text>
+          </View>
+        ) : (
+          <GestureDetector gesture={composedGesture}>
+            <Animated.View style={[styles.image, animatedImageStyle]}>
+              <Image
+                source={{ uri: source.uri }}
+                style={styles.image}
+                contentFit="contain"
+                onLoad={handleLoad}
+                onError={handleError}
+                transition={200}
+              />
+            </Animated.View>
+          </GestureDetector>
+        )}
+        {isLoading && !hasError && (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#FFFFFF" />
+          </View>
+        )}
+      </View>
+    </View>
   );
 }

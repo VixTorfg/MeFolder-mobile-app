@@ -44,7 +44,7 @@ export default function LibraryScreen() {
   });
   const [isRenaming, setIsRenaming] = useState(false);
   const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
-  const [activeMedia, setActiveMedia] = useState<MediaHostItem | null>(null);
+  const [activeMedia, setActiveMedia] = useState<MediaHostItem[] | null>(null);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
 
   const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
@@ -152,11 +152,14 @@ export default function LibraryScreen() {
         ...(item.metadata.mimeType != null && {
           mimeType: item.metadata.mimeType,
         }),
+        ...(item.thumbnailUrl != null && {
+          thumbnailUrl: item.thumbnailUrl,
+        }),
         displayName: item.name,
         category: item.category,
       };
 
-      setActiveMedia(mediaItem);
+      setActiveMedia([mediaItem]);
     }
   };
 
@@ -551,7 +554,7 @@ export default function LibraryScreen() {
         />
       )}
 
-      <MediaHost item={activeMedia} onClose={() => setActiveMedia(null)} />
+      <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>
   );
 }
