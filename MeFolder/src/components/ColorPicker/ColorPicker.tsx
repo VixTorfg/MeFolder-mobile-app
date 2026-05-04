@@ -173,7 +173,7 @@ export default function ColorPicker({
   const [selectedR, setSelectedR] = useState(initRgb.r);
   const [selectedG, setSelectedG] = useState(initRgb.g);
   const [selectedB, setSelectedB] = useState(initRgb.b);
-  const [hexText, setHexText] = useState(
+  const [hexText, setHexText] = useState(() =>
     rgbToHex(initRgb.r, initRgb.g, initRgb.b),
   );
   const [colorName, setColorName] = useState(initialData?.name ?? "");

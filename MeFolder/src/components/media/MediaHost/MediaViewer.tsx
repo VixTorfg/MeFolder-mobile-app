@@ -8,12 +8,16 @@ import { AudioPlayer } from "../AudioPlayer";
 import type { MediaHostItem } from "@/types/media/viewers";
 import type { SharedValue } from "react-native-reanimated";
 
+interface MediaPreviewProps {
+  item: MediaHostItem;
+  showVideoOverlay?: boolean;
+}
+
 /**
- * Placeholder ligero para los slides prev/next del carrusel.
- * Evita montar instancias nativas de VideoPlayer en slots inactivos,
- * que es la principal causa de crash al deslizar.
+ * Placeholder ligero para slides inactivos y para el overlay inicial del slide activo.
+ * Evita montar instancias nativas adicionales mientras el viewer real termina de asentarse.
  */
-function MediaPreview({ item }: { item: MediaHostItem }) {
+function MediaPreview({ item, showVideoOverlay = true }: MediaPreviewProps) {
   if (item.category === "image") {
     return (
       <View style={{ flex: 1, backgroundColor: "#000" }}>
@@ -36,30 +40,32 @@ function MediaPreview({ item }: { item: MediaHostItem }) {
           contentFit="contain"
           transition={0}
         />
-        <View
-          style={{
-            position: "absolute",
-            top: 0,
-            right: 0,
-            bottom: 0,
-            left: 0,
-            alignItems: "center",
-            justifyContent: "center",
-          }}
-        >
+        {showVideoOverlay ? (
           <View
             style={{
-              width: 60,
-              height: 60,
-              borderRadius: 30,
-              backgroundColor: "rgba(0,0,0,0.55)",
+              position: "absolute",
+              top: 0,
+              right: 0,
+              bottom: 0,
+              left: 0,
               alignItems: "center",
               justifyContent: "center",
             }}
           >
-            <Ionicons name="play" size={30} color="#fff" />
+            <View
+              style={{
+                width: 60,
+                height: 60,
+                borderRadius: 30,
+                backgroundColor: "rgba(0,0,0,0.55)",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <Ionicons name="play" size={30} color="#fff" />
+            </View>
           </View>
-        </View>
+        ) : null}
       </View>
     );
   }
@@ -100,6 +106,8 @@ function MediaPreview({ item }: { item: MediaHostItem }) {
 export interface MediaViewerSharedProps {
   onClose: () => void;
   autoPlay?: boolean;
+  viewportWidth: number;
+  viewportHeight: number;
   imageWidth?: number;
   imageHeight?: number;
   onSwipeAvailabilityChange?: (enabled: boolean) => void;
@@ -110,6 +118,8 @@ interface MediaViewerProps {
   item: MediaHostItem;
   isActive: boolean;
   onClose: () => void;
+  viewportWidth: number;
+  viewportHeight: number;
   onSwipeAvailabilityChange?: (enabled: boolean) => void;
   autoPlay?: boolean;
   imageWidth?: number;
@@ -118,31 +128,12 @@ interface MediaViewerProps {
   onItemSettled?: (itemKey: string) => void;
 }
 
-function ActiveMediaPreview({ item }: { item: MediaHostItem }) {
-  if (item.category === "image") {
-    return <MediaPreview item={item} />;
-  }
-
-  if (item.category === "video" && item.thumbnailUrl) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
-        <Image
-          source={{ uri: item.thumbnailUrl }}
-          style={{ width: "100%", height: "100%" }}
-          contentFit="contain"
-          transition={0}
-        />
-      </View>
-    );
-  }
-
-  return <MediaPreview item={item} />;
-}
-
 export const MediaViewer = React.memo(function MediaViewer({
   item,
   isActive,
   onClose,
+  viewportWidth,
+  viewportHeight,
   onSwipeAvailabilityChange,
   autoPlay = false,
   imageWidth,
@@ -177,7 +168,7 @@ export const MediaViewer = React.memo(function MediaViewer({
           zIndex: 1,
         }}
       >
-        <ActiveMediaPreview item={item} />
+        <MediaPreview item={item} showVideoOverlay={false} />
       </View>
     );
   }, [item, showActivePreview]);
@@ -196,6 +187,8 @@ export const MediaViewer = React.memo(function MediaViewer({
             source={item}
             onClose={onClose}
             onInitialRenderSettled={handleInitialRenderSettled}
+            viewportWidth={viewportWidth}
+            viewportHeight={viewportHeight}
             {...(imageWidth !== undefined ? { imageWidth } : {})}
             {...(imageHeight !== undefined ? { imageHeight } : {})}
             {...(onSwipeAvailabilityChange
@@ -215,6 +208,8 @@ export const MediaViewer = React.memo(function MediaViewer({
             onClose={onClose}
             onInitialRenderSettled={handleInitialRenderSettled}
             autoPlay={autoPlay}
+            viewportWidth={viewportWidth}
+            viewportHeight={viewportHeight}
             {...(onSwipeAvailabilityChange
               ? { onSwipeAvailabilityChange }
               : {})}

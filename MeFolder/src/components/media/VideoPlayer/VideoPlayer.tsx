@@ -5,7 +5,6 @@ import {
   Pressable,
   TouchableOpacity,
   ActivityIndicator,
-  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
@@ -35,9 +34,10 @@ export default function VideoPlayer({
   onSwipeAvailabilityChange,
   onInitialRenderSettled,
   isDragging,
+  viewportWidth,
+  viewportHeight,
 }: VideoPlayerProps) {
   const styles = useVideoPlayerStyles();
-  const { width: screenW, height: screenH } = useWindowDimensions();
 
   const notifySwipeAvailability = useCallback(
     (enabled: boolean) => {
@@ -193,8 +193,8 @@ export default function VideoPlayer({
   const handleTapArea = useCallback(
     (x: number) => {
       const now = Date.now();
-      const right = x > screenW / 2;
-      const wasRight = lastTapRef.current.x > screenW / 2;
+      const right = x > viewportWidth / 2;
+      const wasRight = lastTapRef.current.x > viewportWidth / 2;
       const isDouble =
         now - lastTapRef.current.time < DOUBLE_TAP_DELAY && right === wasRight;
 
@@ -218,7 +218,7 @@ export default function VideoPlayer({
         }, DOUBLE_TAP_DELAY);
       }
     },
-    [screenW, handleSkipBack, handleSkipForward, toggleControls],
+    [viewportWidth, handleSkipBack, handleSkipForward, toggleControls],
   );
 
   // Poll position while playing
@@ -295,14 +295,14 @@ export default function VideoPlayer({
   const clampXY = useCallback(
     (x: number, y: number, s: number) => {
       "worklet";
-      const mx = ((s - 1) * screenW) / 2;
-      const my = ((s - 1) * screenH) / 2;
+      const mx = ((s - 1) * viewportWidth) / 2;
+      const my = ((s - 1) * viewportHeight) / 2;
       return {
         x: Math.min(Math.max(x, -mx), mx),
         y: Math.min(Math.max(y, -my), my),
       };
     },
-    [screenW, screenH],
+    [viewportWidth, viewportHeight],
   );
 
   const pinch = Gesture.Pinch()

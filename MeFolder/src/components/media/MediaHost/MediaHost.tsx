@@ -2,13 +2,17 @@ import React, { useCallback, useMemo } from "react";
 import { Modal, StatusBar, useWindowDimensions } from "react-native";
 
 import { GestureHandlerRootView } from "react-native-gesture-handler";
-import type { MediaHostItem, MediaHostProps } from "@/types/media/viewers";
+import type { MediaHostProps } from "@/types/media/viewers";
 import MediaCarousel from "./MediaCarousel";
 import { MediaViewer, type MediaViewerSharedProps } from "./MediaViewer";
+import {
+  buildSharedViewerProps,
+  getMediaHostItemKey,
+  getMediaHostPresentation,
+  resolveActiveCarouselItems,
+  resolveInitialSelectedItem,
+} from "./mediaHostModel";
 import { useCarrusel } from "./useCarrusel";
-
-const isCarouselItem = (item: MediaHostItem) =>
-  item.category === "image" || item.category === "video";
 
 export default function MediaHost({
   items,
@@ -21,17 +25,11 @@ export default function MediaHost({
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const initialSelectedItem = useMemo(() => {
-    if (!items || items.length === 0) return null;
-    if (!initialFileId) return items[0] ?? null;
-    return (
-      items.find((item) => item.fileId === initialFileId) ?? items[0] ?? null
-    );
+    return resolveInitialSelectedItem(items, initialFileId);
   }, [items, initialFileId]);
 
   const activeItems = useMemo(() => {
-    if (!items || items.length === 0 || !initialSelectedItem) return [];
-    if (!isCarouselItem(initialSelectedItem)) return [initialSelectedItem];
-    return items.filter(isCarouselItem);
+    return resolveActiveCarouselItems(items, initialSelectedItem);
   }, [items, initialSelectedItem]);
 
   const {
@@ -57,17 +55,22 @@ export default function MediaHost({
 
   // useMemo debe estar antes del early return (Rules of Hooks)
   const sharedViewerProps = useMemo<MediaViewerSharedProps>(
-    () => ({
-      onClose,
-      autoPlay,
-      onSwipeAvailabilityChange: setSwipeEnabled,
-      isDragging: carouselIsDragging,
-      ...(imageWidth !== undefined ? { imageWidth } : {}),
-      ...(imageHeight !== undefined ? { imageHeight } : {}),
-    }),
+    () =>
+      buildSharedViewerProps({
+        onClose,
+        autoPlay,
+        viewportWidth: screenWidth,
+        viewportHeight: screenHeight,
+        onSwipeAvailabilityChange: setSwipeEnabled,
+        isDragging: carouselIsDragging,
+        ...(imageWidth !== undefined ? { imageWidth } : {}),
+        ...(imageHeight !== undefined ? { imageHeight } : {}),
+      }),
     [
       onClose,
       autoPlay,
+      screenWidth,
+      screenHeight,
       setSwipeEnabled,
       carouselIsDragging,
       imageWidth,
@@ -77,11 +80,7 @@ export default function MediaHost({
 
   if (!currentItem) return null;
 
-  const transitionItemKey =
-    transitionItem?.fileId ??
-    (transitionItem
-      ? `${transitionItem.category}:${transitionItem.uri}`
-      : null);
+  const transitionItemKey = getMediaHostItemKey(transitionItem);
 
   const handleCurrentItemSettled = useCallback(
     (itemKey: string) => {
@@ -92,22 +91,24 @@ export default function MediaHost({
     [clearTransition, transitionItemKey],
   );
 
-  const modalAnimation = currentItem.category === "audio" ? "slide" : "fade";
-  const statusBarBackgroundColor =
-    currentItem.category === "audio" ? "#121212" : "#000000";
+  const { modalAnimation, statusBarBackgroundColor } = getMediaHostPresentation(
+    currentItem.category,
+  );
 
   const content = isCarouselEnabled ? (
     <MediaCarousel
-      previousItem={previousItem}
-      currentItem={currentItem}
-      nextItem={nextItem}
-      transitionItem={transitionItem}
-      transitionDirection={transitionDirection}
-      screenWidth={screenWidth}
-      slideGap={slideGap}
-      gesture={carouselGesture}
-      translateX={carouselTranslateX}
-      transitionOverlayOpacity={transitionOverlayOpacity}
+      slides={{ previousItem, currentItem, nextItem }}
+      motion={{
+        screenWidth,
+        slideGap,
+        gesture: carouselGesture,
+        translateX: carouselTranslateX,
+      }}
+      transition={{
+        transitionItem,
+        transitionDirection,
+        transitionOverlayOpacity,
+      }}
       sharedViewerProps={sharedViewerProps}
       onCurrentItemSettled={handleCurrentItemSettled}
     />

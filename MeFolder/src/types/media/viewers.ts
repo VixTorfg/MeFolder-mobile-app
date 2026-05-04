@@ -66,6 +66,10 @@ export interface ImageViewerProps extends CarouselGestureProps {
   onClose: () => void;
   /** Notifica cuando el viewer ya puede reemplazar el preview superpuesto */
   onInitialRenderSettled?: () => void;
+  /** Ancho visible del viewport del host */
+  viewportWidth: number;
+  /** Alto visible del viewport del host */
+  viewportHeight: number;
   /** Ancho original de la imagen (optimiza el renderizado inicial) */
   imageWidth?: number;
   /** Alto original de la imagen */
@@ -92,6 +96,10 @@ export interface VideoPlayerProps extends CarouselGestureProps {
   onClose: () => void;
   /** Notifica cuando el viewer ya puede reemplazar el preview superpuesto */
   onInitialRenderSettled?: () => void;
+  /** Ancho visible del viewport del host */
+  viewportWidth: number;
+  /** Alto visible del viewport del host */
+  viewportHeight: number;
   /** Iniciar reproducción automáticamente */
   autoPlay?: boolean;
 }

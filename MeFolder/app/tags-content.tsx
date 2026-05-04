@@ -23,7 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useContentTagActions } from "@/hooks/tags/useContentTagActions";
 import { useTagContentStore } from "@/stores/useTagContentStore";
 
-export default function tagsContent() {
+export default function TagsContent() {
   const [showMenu, setShowMenu] = useState(false);
   const [clickedItem, setClickedItem] = useState<FileModel | null>(null);
   const [menuPosition, setMenuPosition] = useState({

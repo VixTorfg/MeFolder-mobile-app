@@ -1,11 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ActivityIndicator,
-  useWindowDimensions,
-} from "react-native";
+import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { Ionicons } from "@expo/vector-icons";
 import { GestureDetector, Gesture } from "react-native-gesture-handler";
@@ -28,9 +22,10 @@ export default function ImageViewer({
   onSwipeAvailabilityChange,
   onInitialRenderSettled,
   isDragging,
+  viewportWidth,
+  viewportHeight,
 }: ImageViewerProps) {
   const styles = useImageViewerStyles();
-  const { width: screenW, height: screenH } = useWindowDimensions();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   // Controla si el pan interno está activo: solo cuando hay zoom
@@ -74,14 +69,14 @@ export default function ImageViewer({
   const clampTranslation = useCallback(
     (tx: number, ty: number, s: number) => {
       "worklet";
-      const maxX = ((s - 1) * screenW) / 2;
-      const maxY = ((s - 1) * screenH) / 2;
+      const maxX = ((s - 1) * viewportWidth) / 2;
+      const maxY = ((s - 1) * viewportHeight) / 2;
       return {
         x: Math.min(Math.max(tx, -maxX), maxX),
         y: Math.min(Math.max(ty, -maxY), maxY),
       };
     },
-    [screenW, screenH],
+    [viewportWidth, viewportHeight],
   );
 
   const pinchGesture = Gesture.Pinch()

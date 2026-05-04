@@ -8,35 +8,44 @@ import Animated, {
 import type { MediaHostItem } from "@/types/media/viewers";
 import { MediaViewer, type MediaViewerSharedProps } from "./MediaViewer";
 
-interface MediaCarouselProps {
+interface MediaCarouselSlides {
   previousItem: MediaHostItem | null;
   currentItem: MediaHostItem;
   nextItem: MediaHostItem | null;
-  transitionItem: MediaHostItem | null;
-  transitionDirection: -1 | 0 | 1;
+}
+
+interface MediaCarouselMotion {
   screenWidth: number;
   slideGap: number;
   gesture: ReturnType<typeof Gesture.Pan>;
   translateX: SharedValue<number>;
+}
+
+interface MediaCarouselTransition {
+  transitionItem: MediaHostItem | null;
+  transitionDirection: -1 | 0 | 1;
   transitionOverlayOpacity: SharedValue<number>;
+}
+
+interface MediaCarouselProps {
+  slides: MediaCarouselSlides;
+  motion: MediaCarouselMotion;
+  transition: MediaCarouselTransition;
   sharedViewerProps: MediaViewerSharedProps;
   onCurrentItemSettled?: (itemKey: string) => void;
 }
 
 export default function MediaCarousel({
-  previousItem,
-  currentItem,
-  nextItem,
-  transitionItem,
-  transitionDirection,
-  screenWidth,
-  slideGap,
-  gesture,
-  translateX,
-  transitionOverlayOpacity,
+  slides,
+  motion,
+  transition,
   sharedViewerProps,
   onCurrentItemSettled,
 }: MediaCarouselProps) {
+  const { previousItem, currentItem, nextItem } = slides;
+  const { screenWidth, slideGap, gesture, translateX } = motion;
+  const { transitionItem, transitionDirection, transitionOverlayOpacity } =
+    transition;
   const slideWidth = screenWidth + slideGap;
 
   const animatedStyle = useAnimatedStyle(() => ({
