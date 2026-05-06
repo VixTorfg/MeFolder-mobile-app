@@ -40,7 +40,8 @@
         }
       ],
       "expo-audio",
-      "expo-video"
+      "expo-video",
+      "expo-media-library"
     ],
     "experiments": {
       "typedRoutes": true,

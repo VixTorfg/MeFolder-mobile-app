@@ -38,11 +38,13 @@ export type NewFile = {
 interface FileCreatorProps {
   onSave: (data: NewFile) => Promise<void> | void;
   currentFolderId?: string;
+  onStartExternalFlow?: () => void;
 }
 
 export default function FileCreator({
   onSave,
   currentFolderId,
+  onStartExternalFlow,
 }: FileCreatorProps) {
   const { theme } = useTheme();
   const { showAlert } = useAlert();
@@ -83,28 +85,13 @@ export default function FileCreator({
    * En el futuro se conectará con expo-media-library.
    */
   const handlePickFromGallery = async (): Promise<void> => {
-    // TODO: Conectar con expo-media-library
-    const mockFiles: SelectedFile[] = [
-      {
-        id: `file_${Date.now()}_1`,
-        name: "IMG_20260219_001.jpg",
-        originalName: "IMG_20260219_001.jpg",
-        uri: "mock://gallery/photo1.jpg",
-        size: 3456789,
-        mimeType: "image/jpeg",
-        type: "image",
-      },
-      {
-        id: `file_${Date.now()}_2`,
-        name: "VID_20260219_002.mp4",
-        originalName: "VID_20260219_002.mp4",
-        uri: "mock://gallery/video1.mp4",
-        size: 15678900,
-        mimeType: "video/mp4",
-        type: "video",
-      },
-    ];
-    setSelectedFiles(mockFiles);
+    onStartExternalFlow?.();
+    setSelectedSource(null);
+    setSelectedFiles([]);
+    router.push({
+      pathname: "/media-library-import",
+      ...(currentFolderId ? { params: { folderId: currentFolderId } } : {}),
+    });
   };
 
   const handlePickDocument = async (): Promise<void> => {
@@ -158,7 +145,6 @@ export default function FileCreator({
   };
 
   const handleSourceSelect = async (source: FileSource): Promise<void> => {
-    setSelectedSource(source);
     setSelectedFiles([]);
 
     switch (source) {
@@ -166,9 +152,11 @@ export default function FileCreator({
         await handlePickFromGallery();
         break;
       case "document":
+        setSelectedSource(source);
         await handlePickDocument();
         break;
       case "camera":
+        setSelectedSource(source);
         await handleCaptureFromCamera();
         break;
     }

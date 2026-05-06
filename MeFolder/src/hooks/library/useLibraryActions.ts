@@ -1,75 +1,12 @@
 import { FileModel, FolderModel } from "@/models";
 import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useClipboardStore, useNavigationStore } from "@/stores";
-import { useAlert } from "@/providers";
+import { useAlert, useServices } from "@/providers";
 import { useFileSystem } from "@/hooks/useFileSystem";
-import { useMedia } from "@/hooks/useMedia";
 import * as Sharing from "expo-sharing";
-import mime from "mime";
-import type {
-  CreateFileInput,
-  FileCategory,
-  FileMetadata,
-  FSFileInfo,
-} from "@/types";
-import { FILE_CATEGORY_MAP } from "@/types/common/file-extensions";
-import type { FileExtension } from "@/types/common/file-extensions";
 import type { NewFile } from "@/components/ItemCreator/FileCreator";
 import type { NewFolder } from "@/components/ItemCreator/FolderCreator";
 import { FileService, FolderService } from "@/services";
-import { SYSTEM_TAG_IDS } from "@/database/seeds/systemTags";
-
-/**
- * Casos donde la librería `mime` devuelve una extensión que no corresponde
- * a la categoría real del tipo MIME (p.ej. audio/mp4 → "mp4" es vídeo).
- */
-const MIME_EXT_OVERRIDES: Record<string, string> = {
-  "audio/mp4": "m4a",
-  "audio/x-m4a": "m4a",
-  "audio/m4a": "m4a",
-};
-
-/**
- * Resuelve la extensión correcta para un archivo dado su mimeType y nombre.
- * Prioridad:
- *  1. Override manual (para casos que mime.js resuelve mal)
- *  2. mime.getExtension si la categoría del resultado coincide con la del MIME
- *  3. Extensión original del nombre del archivo
- */
-function resolveExtension(
-  mimeType: string | undefined,
-  fileName: string,
-): string {
-  const nameExt =
-    fileName.lastIndexOf(".") > 0
-      ? fileName.slice(fileName.lastIndexOf(".") + 1).toLowerCase()
-      : "";
-
-  if (!mimeType) return nameExt;
-
-  const mimeNorm = mimeType.toLowerCase();
-
-  // 1. Override manual
-  if (MIME_EXT_OVERRIDES[mimeNorm]) return MIME_EXT_OVERRIDES[mimeNorm];
-
-  // 2. mime.getExtension — verificar que su categoría coincida con el prefijo del MIME
-  const extFromMime = mime.getExtension(mimeType) ?? "";
-  if (extFromMime) {
-    const catFromMime = FILE_CATEGORY_MAP[extFromMime as FileExtension];
-    const mimePrefix = mimeNorm.split("/")[0] + "/";
-    const expectedCat: Record<string, FileCategory> = {
-      "image/": "image",
-      "video/": "video",
-      "audio/": "audio",
-    };
-    const expected = expectedCat[mimePrefix];
-    // Si la categoría concuerda (o no hay prefijo conocido), usar la extensión del mime
-    if (!expected || catFromMime === expected) return extFromMime;
-  }
-
-  // 3. Fallback: extensión original del nombre
-  return nameExt;
-}
 
 interface UseLibraryActionsParams {
   folderService: FolderService;
@@ -92,43 +29,9 @@ export const useLibraryActions = ({
   const { setItems, addItem, updateItem } = useLibraryStore();
   const { currentFolderId } = useNavigationStore();
   const { copy, cut, paste, hasItems } = useClipboardStore();
+  const { services } = useServices();
   const { showAlert } = useAlert();
   const fs = useFileSystem();
-  const media = useMedia();
-
-  const buildFileMetadata = async (
-    category: FileCategory,
-    uri: string,
-    fsInfo: FSFileInfo | null,
-    fileMimeType?: string,
-  ): Promise<FileMetadata> => {
-    const mimeType = fileMimeType || fsInfo?.mimeType || "";
-    const base: FileMetadata = {
-      size: fsInfo?.size ?? 0,
-      ...(mimeType && { mimeType }),
-      ...(fsInfo?.md5 && { checksum: fsInfo.md5 }),
-    };
-
-    switch (category) {
-      case "video": {
-        const videoMeta = await media.getVideoMetadata(uri);
-        if (videoMeta) return { ...base, videoMetadata: videoMeta };
-        return base;
-      }
-      case "audio": {
-        const audioMeta = await media.getAudioMetadata(uri);
-        if (audioMeta) return { ...base, audioMetadata: audioMeta };
-        return base;
-      }
-      case "image": {
-        const imageMeta = await media.getImageMetadata(uri);
-        if (imageMeta) return { ...base, imageMetadata: imageMeta };
-        return base;
-      }
-      default:
-        return base;
-    }
-  };
 
   const handleShare = (item: FileModel | FolderModel) => {
     if (!Sharing.isAvailableAsync()) {
@@ -270,113 +173,14 @@ export const useLibraryActions = ({
   const handleSaveFile = async (data: NewFile): Promise<void> => {
     const { files, tags, folderId } = data;
     const resolvedFolderId = folderId ?? currentFolderId;
-    const targetPath = await fileService.resolveStoragePath(resolvedFolderId);
-    const failed: { name: string; error: string }[] = [];
+    const { importedFiles, failed } =
+      await services.mediaImportService.importFiles({
+        files,
+        tagIds: tags,
+        folderId: resolvedFolderId,
+      });
 
-    for (const file of files) {
-      let copiedUri: string | null = null;
-
-      try {
-        const resolvedExt = resolveExtension(file.mimeType, file.name);
-        const dotIndex = file.name.lastIndexOf(".");
-        const baseName =
-          dotIndex > 0 ? file.name.slice(0, dotIndex) : file.name;
-        const fileNameWithExt = resolvedExt
-          ? `${baseName}.${resolvedExt}`
-          : file.name;
-
-        const targetDirUri = fs.resolveUri(targetPath);
-        fs.ensureDirectory(targetDirUri);
-
-        const destinationUri = fs.resolveUri(
-          `${targetPath}/${fileNameWithExt}`,
-        );
-        const copyResult = fs.copyFile(file.uri, destinationUri);
-
-        if (!copyResult.success || !copyResult.toUri) {
-          failed.push({
-            name: file.name,
-            error: copyResult.error ?? "Error al copiar el archivo",
-          });
-          continue;
-        }
-
-        copiedUri = copyResult.toUri;
-        const metadata = fs.getFileInfo(copiedUri);
-
-        if (!metadata) {
-          throw new Error("No se pudo obtener información del archivo");
-        }
-
-        const fileMetadata = await buildFileMetadata(
-          file.type,
-          copiedUri,
-          metadata,
-          file.mimeType,
-        );
-
-        // Generar thumbnail para imágenes y videos
-        let thumbnailUrl: string | undefined;
-        if (file.type === "image" || file.type === "video") {
-          const thumbId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-          const thumbUri = await media.generateThumbnail(
-            copiedUri,
-            thumbId,
-            file.type,
-          );
-          if (thumbUri) {
-            thumbnailUrl = thumbUri;
-          }
-        }
-
-        const allTags = [...tags];
-
-        switch (file.type) {
-          case "image":
-            allTags.push(SYSTEM_TAG_IDS.photo);
-            allTags.push(SYSTEM_TAG_IDS.album);
-            break;
-          case "video":
-            allTags.push(SYSTEM_TAG_IDS.video);
-            allTags.push(SYSTEM_TAG_IDS.album);
-            break;
-          case "audio":
-            allTags.push(SYSTEM_TAG_IDS.audio);
-            break;
-          case "document":
-            allTags.push(SYSTEM_TAG_IDS.document);
-            break;
-          default:
-            break;
-        }
-
-        const fileResult = await fileService?.createFile({
-          name: file.name,
-          originalName: file.originalName,
-          extension: (resolvedExt ||
-            metadata.extension ||
-            "") as CreateFileInput["extension"],
-          folderId: resolvedFolderId,
-          visibility: "public",
-          metadata: fileMetadata,
-          tagIds: allTags,
-          storageUrl: copiedUri,
-          ...(thumbnailUrl && { thumbnailUrl }),
-        } as CreateFileInput);
-
-        addItem(fileResult);
-      } catch (error) {
-        console.warn(`Error al guardar el archivo ${file.name}:`, error);
-        if (copiedUri) {
-          try {
-            fs.deleteFile(copiedUri);
-          } catch (cleanupError) {
-            console.warn(`Rollback fallido para ${file.name}:`, cleanupError);
-          }
-        }
-        failed.push({ name: file.name, error: String(error) });
-      }
-    }
+    importedFiles.forEach((fileItem) => addItem(fileItem));
 
     if (failed.length > 0) {
       showAlert({
