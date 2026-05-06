@@ -78,12 +78,13 @@ export default function TagsScreen() {
   const renderSectionHeader = (
     title: string,
     action?: string | React.ReactNode,
+    onActionPress?: () => void,
   ) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {action &&
         (typeof action === "string" ? (
-          <TouchableOpacity>
+          <TouchableOpacity onPress={onActionPress}>
             <Text style={styles.sectionAction}>{action}</Text>
           </TouchableOpacity>
         ) : (
@@ -156,6 +157,7 @@ export default function TagsScreen() {
             {renderSectionHeader(
               "Álbumes",
               albums.length > 0 ? "Ver todos" : undefined,
+              albums.length > 0 ? () => router.push("/albums-list") : undefined,
             )}
             {renderAlbumsGrid()}
 
