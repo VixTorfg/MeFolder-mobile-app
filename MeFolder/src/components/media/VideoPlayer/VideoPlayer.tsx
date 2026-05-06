@@ -367,9 +367,13 @@ export default function VideoPlayer({
     opacity: controlsOpacity.value,
   }));
 
-  // Oculta el header durante el swipe entre items del carrusel
   const headerDragStyle = useAnimatedStyle(() => ({
-    opacity: isDragging !== undefined ? (isDragging.value ? 0 : 1) : 1,
+    opacity: withTiming(
+      isDragging !== undefined ? (isDragging.value ? 0 : 1) : 1,
+      {
+        duration: 180,
+      },
+    ),
   }));
 
   useEffect(() => {

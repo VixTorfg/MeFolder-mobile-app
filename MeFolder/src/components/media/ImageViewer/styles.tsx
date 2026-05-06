@@ -12,12 +12,17 @@ export const useImageViewerStyles = () => {
       left: 0,
       right: 0,
       zIndex: 10,
+
+      paddingTop: 50,
+      paddingBottom: theme.spacing.sm,
+    },
+    headerRow: {
+      width: "100%",
+      paddingHorizontal: theme.spacing.md,
       flexDirection: "row" as const,
       alignItems: "center" as const,
       justifyContent: "space-between" as const,
-      paddingTop: 50,
-      paddingHorizontal: theme.spacing.md,
-      paddingBottom: theme.spacing.sm,
+      backgroundColor: "rgba(80, 80, 80, 0.45)",
     },
     headerButton: {
       width: 44,

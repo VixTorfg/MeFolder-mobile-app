@@ -1,9 +1,7 @@
 TODOS
 
 Orden de prioridades:
-
--corregir el carrusel de imagenes para que sea optimo y escalable
--Crear el componente para elegir imagenes y albumes de la galeria
+    -Ver todos los albumes
 
 Mejoras en general
     Seccion de inicio:
@@ -30,7 +28,4 @@ CORREGIR:
 
 ANTERIOR:
 
-    -Lo ultimo que se corrigio era el bug que hacia que cuando se seleccionaba copy y cut 
-    paracia que el context menu no respondia.
 
-    -Hacer un plan para crear el carrusel de imagenes.

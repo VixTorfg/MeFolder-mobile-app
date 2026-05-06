@@ -22,6 +22,8 @@ import {
 } from "react-native-gesture-handler";
 import Animated, { LinearTransition, FadeIn } from "react-native-reanimated";
 
+const SPACING_HORIZONTAL_SM = 10;
+
 export default function GalleryScreen() {
   const { tagId, albumName } = useLocalSearchParams();
   const styles = useGalleryStyles();
@@ -39,7 +41,9 @@ export default function GalleryScreen() {
   });
 
   const { width: screenWidth } = useWindowDimensions();
-  const itemSize = Math.trunc(screenWidth / columns);
+  const itemSize = Math.trunc(
+    (screenWidth - 2 * SPACING_HORIZONTAL_SM) / columns,
+  );
 
   const [selectedMediaId, setSelectedMediaId] = useState<
     FileModel["id"] | null
@@ -199,6 +203,7 @@ const useGalleryStyles = () => {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+      paddingHorizontal: SPACING_HORIZONTAL_SM,
     },
     header: {
       flexDirection: "row",

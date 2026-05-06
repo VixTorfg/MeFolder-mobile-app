@@ -158,9 +158,13 @@ export default function ImageViewer({
     ],
   }));
 
-  // Oculta el header durante el swipe entre items del carrusel
   const headerDragStyle = useAnimatedStyle(() => ({
-    opacity: isDragging !== undefined ? (isDragging.value ? 0 : 1) : 1,
+    opacity: withTiming(
+      isDragging !== undefined ? (isDragging.value ? 0 : 1) : 1,
+      {
+        duration: 180,
+      },
+    ),
   }));
 
   const handleLoad = useCallback(() => {
@@ -189,25 +193,24 @@ export default function ImageViewer({
 
   return (
     <View style={styles.overlay}>
-      {/* Header: oculto mientras el usuario arrastra entre items */}
       <Animated.View style={[styles.header, headerDragStyle]}>
-        <TouchableOpacity
-          style={styles.headerButton}
-          onPress={handleClose}
-          activeOpacity={0.7}
-        >
-          <Ionicons name="close" size={28} color="#FFFFFF" />
-        </TouchableOpacity>
+        <View style={styles.headerRow}>
+          <TouchableOpacity
+            style={styles.headerButton}
+            onPress={handleClose}
+            activeOpacity={0.7}
+          >
+            <Ionicons name="close" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
 
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {source.displayName ?? "Imagen"}
-        </Text>
+          <Text style={styles.headerTitle} numberOfLines={1}>
+            {source.displayName ?? "Imagen"}
+          </Text>
 
-        {/* Placeholder derecho para centrar el título */}
-        <View style={styles.headerButton} />
+          <View style={styles.headerButton} />
+        </View>
       </Animated.View>
 
-      {/* Imagen con zoom */}
       <View style={styles.imageContainer}>
         {hasError ? (
           <View style={styles.errorContainer}>
