@@ -197,7 +197,7 @@ export class TagRepositoryImplementation implements TagRepository {
         WHERE id = ?
       `,
         [
-          tag.updatedAt.toISOString(),
+          tag.updatedAt.getTime(),
           tag.name,
           tag.description,
           tag.type,
@@ -226,7 +226,7 @@ export class TagRepositoryImplementation implements TagRepository {
     try {
       const result = await this.db.execute(
         "UPDATE tags SET is_active = ?, updated_at = ? WHERE id = ?",
-        [false, Date.now(), id],
+        [false, new Date().getTime(), id],
       );
 
       return result.changes > 0;
@@ -328,7 +328,7 @@ export class TagRepositoryImplementation implements TagRepository {
           updated_at = ?
         WHERE id = ?
       `,
-        [increment, Date.now(), Date.now(), tagId],
+        [increment, new Date().getTime(), new Date().getTime(), tagId],
       );
     } catch (error) {
       console.error("Error updating usage count:", error);
@@ -357,7 +357,7 @@ export class TagRepositoryImplementation implements TagRepository {
     try {
       await this.db.execute(
         "UPDATE tags SET last_used_at = ?, updated_at = ? WHERE id = ?",
-        [Date.now(), Date.now(), tagId],
+        [new Date().getTime(), new Date().getTime(), tagId],
       );
     } catch (error) {
       console.error("Error updating last used:", error);
@@ -372,7 +372,7 @@ export class TagRepositoryImplementation implements TagRepository {
     try {
       const updates = childIds.map((childId) => ({
         sql: "UPDATE tags SET parent_id = ?, updated_at = ? WHERE id = ?",
-        params: [parentId, Date.now(), childId],
+        params: [parentId, new Date().getTime(), childId],
       }));
 
       await this.db.transaction(updates);
@@ -490,7 +490,7 @@ export class TagRepositoryImplementation implements TagRepository {
       const placeholders = ids.map(() => "?").join(",");
       const result = await this.db.execute(
         `UPDATE tags SET is_active = ?, updated_at = ? WHERE id IN (${placeholders})`,
-        [false, Date.now(), ...ids],
+        [false, new Date().getTime(), ...ids],
       );
 
       return result.changes;

@@ -43,7 +43,7 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
 
       const queries = newTagIds.map((tagId) => ({
         sql: "INSERT INTO file_tags (file_id, tag_id, created_at) VALUES (?, ?, ?)",
-        params: [fileId, tagId, new Date()],
+        params: [fileId, tagId, new Date().getTime()],
       }));
 
       await this.db.transaction(queries);
@@ -60,7 +60,7 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
     try {
       if (fileIds.length === 0) return;
 
-      const now = new Date();
+      const now = new Date().getTime();
       const CHUNK_SIZE = 300; // ~900 params, bajo el límite de 999
 
       for (let i = 0; i < fileIds.length; i += CHUNK_SIZE) {
@@ -224,7 +224,7 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
         const placeholders = unusedTagIds.map(() => "?").join(",");
         await this.db.execute(
           `UPDATE tags SET is_active = ?, updated_at = ? WHERE id IN (${placeholders})`,
-          [false, new Date(), ...unusedTagIds],
+          [false, new Date().getTime(), ...unusedTagIds],
         );
       }
 

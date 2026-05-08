@@ -1,4 +1,4 @@
-import { Database } from '../sqlite/Database';
+import { Database } from "../sqlite/Database";
 
 /**
  * Crea la tabla user_colors para almacenar colores personalizados del usuario
@@ -9,8 +9,8 @@ export const createUserColorsTable = async (): Promise<void> => {
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS user_colors (
       id TEXT PRIMARY KEY NOT NULL,
-      created_at DATETIME NOT NULL,
-      updated_at DATETIME NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
 
       name TEXT,
       
@@ -26,25 +26,25 @@ export const createUserColorsTable = async (): Promise<void> => {
   `;
 
   const createIndexesSQL = [
-    'CREATE INDEX IF NOT EXISTS idx_user_colors_hex ON user_colors(color_hex);',
-    'CREATE INDEX IF NOT EXISTS idx_user_colors_favorite ON user_colors(is_favorite);',
-    'CREATE INDEX IF NOT EXISTS idx_user_colors_created_at ON user_colors(created_at);',
+    "CREATE INDEX IF NOT EXISTS idx_user_colors_hex ON user_colors(color_hex);",
+    "CREATE INDEX IF NOT EXISTS idx_user_colors_favorite ON user_colors(is_favorite);",
+    "CREATE INDEX IF NOT EXISTS idx_user_colors_created_at ON user_colors(created_at);",
   ];
 
   try {
-    console.log('Creando tabla user_colors...');
+    console.log("Creando tabla user_colors...");
 
     await db.execute(createTableSQL);
-    console.log('Tabla user_colors creada');
+    console.log("Tabla user_colors creada");
 
     for (const indexSQL of createIndexesSQL) {
       await db.execute(indexSQL);
     }
-    console.log('Índices de user_colors creados');
+    console.log("Índices de user_colors creados");
 
-    console.log('Sistema de colores personalizados creado exitosamente');
+    console.log("Sistema de colores personalizados creado exitosamente");
   } catch (error) {
-    console.error('Error al crear tabla user_colors:', error);
+    console.error("Error al crear tabla user_colors:", error);
     throw error;
   }
 };

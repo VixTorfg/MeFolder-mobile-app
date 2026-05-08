@@ -1,17 +1,17 @@
-import { Database } from '../sqlite/Database';
+import { Database } from "../sqlite/Database";
 
 /**
  * Crea la tabla files con todas las columnas para metadatos de archivos e índices para optimizar búsquedas
  */
 export const createFilesTable = async (): Promise<void> => {
   const db = Database.getInstance();
-  
+
   const createTableSQL = `
     CREATE TABLE IF NOT EXISTS files (
       
       id TEXT PRIMARY KEY NOT NULL,
-      created_at DATETIME NOT NULL,
-      updated_at DATETIME NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
       
       name TEXT NOT NULL,
       original_name TEXT NOT NULL,
@@ -49,8 +49,8 @@ export const createFilesTable = async (): Promise<void> => {
       color_rgb_g INTEGER CHECK (color_rgb_g >= 0 AND color_rgb_g <= 255),
       color_rgb_b INTEGER CHECK (color_rgb_b >= 0 AND color_rgb_b <= 255),
       
-      last_accessed_at DATETIME,
-      archived_at DATETIME,
+      last_accessed_at INTEGER,
+      archived_at INTEGER,
       
       storage_url TEXT,
       thumbnail_url TEXT,
@@ -64,47 +64,46 @@ export const createFilesTable = async (): Promise<void> => {
   `;
 
   const createIndexesSQL = [
-    'CREATE INDEX IF NOT EXISTS idx_files_folder_id ON files(folder_id);',
-    'CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);',
-    'CREATE INDEX IF NOT EXISTS idx_files_visibility ON files(visibility);',
-    'CREATE INDEX IF NOT EXISTS idx_files_name ON files(name);',
-    'CREATE INDEX IF NOT EXISTS idx_files_original_name ON files(original_name);',
-    'CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at);',
-    'CREATE INDEX IF NOT EXISTS idx_files_updated_at ON files(updated_at);',
-    'CREATE INDEX IF NOT EXISTS idx_files_metadata_size ON files(metadata_size);',
-    'CREATE INDEX IF NOT EXISTS idx_files_extension ON files(extension);',
-    'CREATE INDEX IF NOT EXISTS idx_files_category ON files(category);'
+    "CREATE INDEX IF NOT EXISTS idx_files_folder_id ON files(folder_id);",
+    "CREATE INDEX IF NOT EXISTS idx_files_status ON files(status);",
+    "CREATE INDEX IF NOT EXISTS idx_files_visibility ON files(visibility);",
+    "CREATE INDEX IF NOT EXISTS idx_files_name ON files(name);",
+    "CREATE INDEX IF NOT EXISTS idx_files_original_name ON files(original_name);",
+    "CREATE INDEX IF NOT EXISTS idx_files_created_at ON files(created_at);",
+    "CREATE INDEX IF NOT EXISTS idx_files_updated_at ON files(updated_at);",
+    "CREATE INDEX IF NOT EXISTS idx_files_metadata_size ON files(metadata_size);",
+    "CREATE INDEX IF NOT EXISTS idx_files_extension ON files(extension);",
+    "CREATE INDEX IF NOT EXISTS idx_files_category ON files(category);",
   ];
 
   try {
-    console.log('Creando tabla files...');
-    
+    console.log("Creando tabla files...");
+
     await db.execute(createTableSQL);
-    
+
     for (const indexSQL of createIndexesSQL) {
       await db.execute(indexSQL);
     }
-    
-    console.log('Tabla files creada exitosamente');
-    
+
+    console.log("Tabla files creada exitosamente");
   } catch (error) {
-    console.error('Error al crear tabla files:', error);
+    console.error("Error al crear tabla files:", error);
     throw error;
   }
 };
 
 /**
  * Elimina completamente la tabla files
- */ 
+ */
 export const dropFilesTable = async (): Promise<void> => {
   const db = Database.getInstance();
-  
+
   try {
-    console.log('Eliminando tabla files...');
-    await db.execute('DROP TABLE IF EXISTS files;');
-    console.log('Tabla files eliminada');
+    console.log("Eliminando tabla files...");
+    await db.execute("DROP TABLE IF EXISTS files;");
+    console.log("Tabla files eliminada");
   } catch (error) {
-    console.error('Error al eliminar tabla files:', error);
+    console.error("Error al eliminar tabla files:", error);
     throw error;
   }
 };

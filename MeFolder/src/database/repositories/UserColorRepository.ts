@@ -72,7 +72,7 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
 
   async create(input: CreateUserColorInput): Promise<UserColor> {
     try {
-      const now = Date.now();
+      const now = new Date().getTime();
       const id = this.generateId();
 
       const userColor: UserColor = {
@@ -121,7 +121,7 @@ export class UserColorRepositoryImplementation implements UserColorRepository {
         throw new Error("Color no encontrado");
       }
 
-      const updatedAt = Date.now();
+      const updatedAt = new Date().getTime();
 
       const updated: UserColor = {
         ...existing,

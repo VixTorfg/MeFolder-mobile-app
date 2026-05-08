@@ -1,5 +1,8 @@
 import { Database } from "../sqlite/Database";
 
+const SQLITE_NOW_MS =
+  "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)";
+
 /**
  * Crea las tablas tags y file_tags para el sistema de etiquetado con soporte para jerarquías, colores y contadores de uso
  */
@@ -10,8 +13,8 @@ export const createTagsTable = async (): Promise<void> => {
     CREATE TABLE IF NOT EXISTS tags (
 
       id TEXT PRIMARY KEY NOT NULL,
-      created_at DATETIME NOT NULL,
-      updated_at DATETIME NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
       
       name TEXT NOT NULL UNIQUE,
       description TEXT,
@@ -39,7 +42,7 @@ export const createTagsTable = async (): Promise<void> => {
       color_rgb_b INTEGER NOT NULL CHECK (color_rgb_b >= 0 AND color_rgb_b <= 255),
       
       usage_count INTEGER NOT NULL DEFAULT 0,
-      last_used_at DATETIME,
+      last_used_at INTEGER,
       
       parent_id TEXT REFERENCES tags(id) ON DELETE CASCADE,
       
@@ -51,7 +54,7 @@ export const createTagsTable = async (): Promise<void> => {
     CREATE TABLE IF NOT EXISTS file_tags (
       file_id TEXT NOT NULL REFERENCES files(id) ON DELETE CASCADE,
       tag_id TEXT NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
-      created_at DATETIME NOT NULL DEFAULT (DATETIME('now')),
+      created_at INTEGER NOT NULL DEFAULT (${SQLITE_NOW_MS}),
       
       PRIMARY KEY (file_id, tag_id)
     );
@@ -107,8 +110,8 @@ export const createTagTriggers = async (): Promise<void> => {
      BEGIN
        UPDATE tags 
        SET usage_count = usage_count + 1, 
-           last_used_at = DATETIME('now'),
-           updated_at = DATETIME('now')
+           last_used_at = ${SQLITE_NOW_MS},
+           updated_at = ${SQLITE_NOW_MS}
        WHERE id = NEW.tag_id;
      END;`,
 
@@ -118,7 +121,7 @@ export const createTagTriggers = async (): Promise<void> => {
      BEGIN
        UPDATE tags 
        SET usage_count = MAX(usage_count - 1, 0),
-           updated_at = DATETIME('now')
+           updated_at = ${SQLITE_NOW_MS}
        WHERE id = OLD.tag_id;
      END;`,
   ];

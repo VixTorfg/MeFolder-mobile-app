@@ -209,8 +209,8 @@ export class FolderRepositoryImplementation implements FolderRepository {
           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           params: [
             folder.id,
-            folder.createdAt,
-            folder.updatedAt,
+            folder.createdAt.getTime(),
+            folder.updatedAt.getTime(),
             folder.name,
             folder.description,
             folder.parentId,
@@ -232,8 +232,8 @@ export class FolderRepositoryImplementation implements FolderRepository {
             folder.viewSettings.viewMode,
             folder.viewSettings.options?.showHiddenFiles,
             folder.viewSettings.options?.showExtension,
-            folder.lastAccessedAt,
-            folder.archivedAt,
+            folder.lastAccessedAt?.getTime(),
+            folder.archivedAt?.getTime(),
           ],
         },
       ]);
@@ -356,7 +356,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
         WHERE id = ?
       `,
         [
-          folder.updatedAt,
+          folder.updatedAt.getTime(),
           folder.name,
           folder.description,
           folder.parentId,
@@ -377,8 +377,8 @@ export class FolderRepositoryImplementation implements FolderRepository {
           folder.viewSettings.viewMode,
           folder.viewSettings.options?.showHiddenFiles,
           folder.viewSettings.options?.showExtension,
-          folder.lastAccessedAt,
-          folder.archivedAt,
+          folder.lastAccessedAt?.getTime(),
+          folder.archivedAt?.getTime(),
           id,
         ],
       );
@@ -397,7 +397,7 @@ export class FolderRepositoryImplementation implements FolderRepository {
     try {
       const result = await this.db.execute(
         "UPDATE folders SET status = ?, updated_at = ? WHERE id = ?",
-        ["deleted", new Date(), id],
+        ["deleted", new Date().getTime(), id],
       );
 
       return result.changes > 0;
