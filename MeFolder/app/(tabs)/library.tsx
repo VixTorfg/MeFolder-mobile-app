@@ -9,6 +9,7 @@ import {
   OptionDropDown,
   PropertyMenu,
   MediaHost,
+  CustomPopup,
 } from "@/components";
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
@@ -17,6 +18,7 @@ import {
   Text,
   ActivityIndicator,
   Keyboard,
+  Pressable,
 } from "react-native";
 import { useNavigationStore } from "@/stores";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
@@ -25,10 +27,15 @@ import type { MediaHostItem } from "@/types/media/viewers";
 import { useLibraryStyles } from "@/screenStyles/libraryStyle";
 import EmptyFolder from "@/components/svgIcons/emptyFolder";
 import { SortDropDown } from "@/components/SortDropDown";
-import { useLibraryContent, useLibraryActions } from "@/hooks/library";
+import {
+  useLibraryContent,
+  useLibraryActions,
+  useLibraryArchiveActions,
+} from "@/hooks/library";
 import { useFileSystem, useSearch, useSelection } from "@/hooks";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
+import { ArchiveFormat } from "@/types";
 
 export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
@@ -96,6 +103,15 @@ export default function LibraryScreen() {
     clearSelection,
     setIsRenaming,
   });
+  const {
+    archiveDialog,
+    archiveLoading,
+    closeArchiveDialog,
+    confirmArchiveAction,
+    requestCompressItem,
+    requestExtractItem,
+    setExtractHere,
+  } = useLibraryArchiveActions();
 
   const styles = useLibraryStyles();
   const fs = useFileSystem();
@@ -170,6 +186,55 @@ export default function LibraryScreen() {
       setActiveMedia([mediaItem]);
     }
   };
+
+  const validarComprimir = useCallback(
+    (item: FileModel | FolderModel | null) => {
+      if (!item) return false;
+
+      if (item instanceof FolderModel) return true;
+
+      const archiveExtensions: readonly ArchiveFormat[] = [
+        "zip",
+        "rar",
+        "7z",
+        "tar",
+        "gz",
+      ];
+
+      return !archiveExtensions.includes(item.extension as ArchiveFormat);
+    },
+    [],
+  );
+
+  const handleCompressWrapper = useCallback(() => {
+    if (!clickedItem) return;
+
+    setShowMenu(false);
+    requestCompressItem(clickedItem);
+  }, [clickedItem, requestCompressItem]);
+
+  const handleExtractWrapper = useCallback(() => {
+    if (!(clickedItem instanceof FileModel)) return;
+
+    setShowMenu(false);
+    requestExtractItem(clickedItem);
+  }, [clickedItem, requestExtractItem]);
+
+  const handleArchiveMenuAction = useCallback(() => {
+    if (!clickedItem) return;
+
+    if (validarComprimir(clickedItem)) {
+      handleCompressWrapper();
+      return;
+    }
+
+    handleExtractWrapper();
+  }, [
+    clickedItem,
+    handleCompressWrapper,
+    handleExtractWrapper,
+    validarComprimir,
+  ]);
 
   const menuOptions = useMemo(
     () => [
@@ -287,6 +352,20 @@ export default function LibraryScreen() {
       },
       {
         hierarchy: "8",
+        label: validarComprimir(clickedItem) ? "Comprimir" : "Descomprimir",
+        onPress: handleArchiveMenuAction,
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name={validarComprimir(clickedItem) ? "zip-box" : "folder-download"}
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "9",
         label: "Eliminar",
         onPress: () => {
           clickedItem && handleDeleteElements([clickedItem]);
@@ -302,7 +381,7 @@ export default function LibraryScreen() {
         ),
       },
       {
-        hierarchy: "9",
+        hierarchy: "10",
         label: "Propiedades",
         onPress: () => {
           setShowItemPropertyMenu(true);
@@ -318,7 +397,12 @@ export default function LibraryScreen() {
         ),
       },
     ],
-    [clickedItem],
+    [
+      clickedItem,
+      handleArchiveMenuAction,
+      styles.iconColor.primaryColor,
+      validarComprimir,
+    ],
   );
 
   const renderGroupButtons = () => {
@@ -561,6 +645,75 @@ export default function LibraryScreen() {
           onClose={closePropertyMenu}
         />
       )}
+
+      <CustomPopup
+        title={
+          archiveDialog.action === "compress"
+            ? "Confirmar compresión"
+            : "Confirmar extracción"
+        }
+        isVisible={archiveDialog.isVisible}
+        onDismiss={closeArchiveDialog}
+      >
+        <Text style={styles.popupMessage}>
+          {archiveDialog.action === "compress"
+            ? `Se va a comprimir ${archiveDialog.item?.name ?? "el elemento seleccionado"}.`
+            : `Se va a proceder a descomprimir ${archiveDialog.item?.name ?? "el archivo seleccionado"}.`}
+        </Text>
+
+        {archiveDialog.action === "extract" ? (
+          <Pressable
+            style={styles.popupCheckboxRow}
+            onPress={() => setExtractHere(!archiveDialog.extractHere)}
+          >
+            <MaterialCommunityIcons
+              name={
+                archiveDialog.extractHere
+                  ? "checkbox-marked-outline"
+                  : "checkbox-blank-outline"
+              }
+              size={22}
+              color={styles.iconColor.primaryColor}
+            />
+            <Text style={styles.popupCheckboxLabel}>Extraer aquí</Text>
+          </Pressable>
+        ) : null}
+
+        <View style={styles.popupFooterButtons}>
+          <TouchableOpacity
+            style={styles.popupCancelButton}
+            onPress={closeArchiveDialog}
+          >
+            <Text style={styles.popupCancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.popupConfirmButton}
+            onPress={() => {
+              void confirmArchiveAction();
+            }}
+          >
+            <Text style={styles.popupConfirmButtonText}>Confirmar</Text>
+          </TouchableOpacity>
+        </View>
+      </CustomPopup>
+
+      <CustomPopup
+        title={archiveLoading.title}
+        isVisible={archiveLoading.isVisible}
+        onDismiss={() => undefined}
+        dismissOnBackdropPress={false}
+      >
+        <View style={styles.popupLoadingContent}>
+          <ActivityIndicator
+            size="large"
+            color={styles.iconColor.primaryColor}
+          />
+          <Text style={styles.popupLoadingText}>{archiveLoading.message}</Text>
+          <Text style={styles.popupLoadingHint}>
+            La operación puede tardar unos segundos.
+          </Text>
+        </View>
+      </CustomPopup>
 
       <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>

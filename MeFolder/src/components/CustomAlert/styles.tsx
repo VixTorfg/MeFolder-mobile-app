@@ -1,18 +1,18 @@
-import { useStyles } from '@/hooks/useStyles';
-import { basicCard } from '@/constants/styles/cards';
+import { useStyles } from "@/hooks/useStyles";
+import { basicCard } from "@/constants/styles/cards";
 
 export const useCustomAlertStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     overlay: {
       flex: 1,
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      justifyContent: 'center',
-      alignItems: 'center',
+      backgroundColor: "rgba(0, 0, 0, 0.5)",
+      justifyContent: "center",
+      alignItems: "center",
       padding: theme.spacing.lg,
     },
     container: {
       ...basicCard(theme),
-      width: '100%',
+      width: "100%",
       maxWidth: 340,
       padding: theme.spacing.lg,
     },
@@ -22,17 +22,21 @@ export const useCustomAlertStyles = () => {
       color: theme.colors.textPrimary,
       marginBottom: theme.spacing.sm,
     },
+    content: {
+      gap: theme.spacing.sm,
+    },
     message: {
       fontFamily: theme.typography.fontFamily.primary.regular,
       fontSize: 14,
       color: theme.colors.textSecondary,
-      marginBottom: theme.spacing.md,
+    },
+    footer: {
+      marginTop: theme.spacing.md,
     },
     buttonContainer: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
+      flexDirection: "row",
+      justifyContent: "flex-end",
       gap: theme.spacing.sm,
-      marginTop: theme.spacing.sm,
     },
     cancelButton: {
       paddingVertical: theme.spacing.sm,
@@ -60,7 +64,7 @@ export const useCustomAlertStyles = () => {
       fontFamily: theme.typography.fontFamily.primary.semiBold,
     },
     destructiveButtonText: {
-      color: '#FFFFFF',
+      color: "#FFFFFF",
       fontFamily: theme.typography.fontFamily.primary.semiBold,
     },
   }));

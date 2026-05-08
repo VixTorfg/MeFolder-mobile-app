@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import { useDatabase } from "./DatabaseProvider";
 import {
+  ArchiveService,
   FileService,
   FolderService,
   TagService,
@@ -16,6 +17,7 @@ import {
 } from "@/services";
 
 interface Services {
+  archiveService: ArchiveService;
   fileService: FileService;
   folderService: FolderService;
   tagService: TagService;
@@ -73,11 +75,13 @@ const createServices = (): Services => {
   const folderService = new FolderService();
   const tagService = new TagService();
   const userColorService = new UserColorService();
+  const archiveService = new ArchiveService(fileService, folderService);
   const mediaImportService = new MediaImportService(fileService, tagService);
 
   console.log("AppBootstrap: Servicios creados");
 
   return {
+    archiveService,
     fileService,
     folderService,
     tagService,

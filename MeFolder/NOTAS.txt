@@ -1,7 +1,10 @@
 TODOS
 
 Orden de prioridades:
-    -Ver todos los albumes
+    -Crear un servicio nuevo para creacion de .zip y descomprimir
+    -Acciones en el album
+        -Poder exportar generando un .zip
+        -poder borrar
 
 Mejoras en general
     Seccion de inicio:
@@ -18,6 +21,7 @@ Mejoras en general
         -reglas de auto etiquetado
         -compartir archivos por tags
 
+ 
 
 - Decidirme si mostrar el album padre o no
 -Poder comprimir y descomprimir un archivo zip

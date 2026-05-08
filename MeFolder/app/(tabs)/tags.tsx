@@ -20,11 +20,13 @@ import { useTagsActions } from "@/hooks/tags/useTagsActions";
 import { TagModel } from "@/models/tag";
 import { useTagsContent } from "@/hooks/tags/useTagsContent";
 import { router } from "expo-router";
+import { useAlert } from "@/providers";
 
 export default function TagsScreen() {
   const [showTagCreator, setShowTagCreator] = useState(false);
   const { items, albums } = useTagsContent();
   const { handleSaveTag } = useTagsActions();
+  const { showAlert } = useAlert();
   const styles = useTagsStyles();
 
   const favoriteTags = items.filter((t) => t.isFavorite);
@@ -98,9 +100,14 @@ export default function TagsScreen() {
       return <AlbumEmptyState />;
     }
 
+    let newAlbums = albums;
+    if (albums.length > 4) {
+      newAlbums = albums.slice(0, 4);
+    }
+
     const rows: TagModel[][] = [];
-    for (let i = 0; i < albums.length; i += 2) {
-      rows.push(albums.slice(i, i + 2));
+    for (let i = 0; i < newAlbums.length; i += 2) {
+      rows.push(newAlbums.slice(i, i + 2));
     }
     return (
       <View style={styles.albumsGrid}>
@@ -172,10 +179,8 @@ export default function TagsScreen() {
               </>
             )}
 
-            {/* Divider */}
             <View style={styles.divider} />
 
-            {/* All tags section header with search icon */}
             {renderSectionHeader(
               "Todas las etiquetas",
               <TouchableOpacity>
@@ -183,6 +188,13 @@ export default function TagsScreen() {
                   name="search-outline"
                   size={20}
                   color={styles.iconColor.color}
+                  onPress={() =>
+                    showAlert({
+                      title: "Función no implementada",
+                      message:
+                        "La función de búsqueda aún no está implementada.",
+                    })
+                  }
                 />
               </TouchableOpacity>,
             )}

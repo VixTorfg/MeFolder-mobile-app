@@ -28,6 +28,8 @@ export const useLibraryStyles = () => {
       fontSize: 34,
       fontFamily: theme.typography.fontFamily.title.semiBold,
       color: theme.colors.textPrimary,
+      maxWidth: "80%",
+      textAlign: "center",
     },
     section: {
       padding: 16,
@@ -116,6 +118,66 @@ export const useLibraryStyles = () => {
       paddingBottom: 120,
       gap: 10,
       padding: 16,
+    },
+    popupMessage: {
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      lineHeight: 20,
+    },
+    popupCheckboxRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.xs,
+    },
+    popupCheckboxLabel: {
+      flex: 1,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      fontSize: 14,
+      color: theme.colors.textPrimary,
+    },
+    popupFooterButtons: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.md,
+    },
+    popupCancelButton: {
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: 8,
+    },
+    popupConfirmButton: {
+      backgroundColor: theme.colors.primary,
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: 8,
+    },
+    popupCancelButtonText: {
+      color: theme.colors.textSecondary,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+    },
+    popupConfirmButtonText: {
+      color: theme.colors.textOnColor,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+    },
+    popupLoadingContent: {
+      alignItems: "center",
+      gap: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+    },
+    popupLoadingText: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      fontSize: 14,
+      color: theme.colors.textPrimary,
+      textAlign: "center",
+    },
+    popupLoadingHint: {
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      fontSize: 13,
+      color: theme.colors.textSecondary,
+      textAlign: "center",
     },
   }));
 };

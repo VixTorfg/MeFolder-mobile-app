@@ -13,6 +13,7 @@ import {
   ROOT_FOLDER_ID,
   ROOT_FOLDER_PATH,
 } from "../database/seeds/systemFolders";
+import { SYSTEM_COLORS } from "@/constants/themes/colors";
 
 export class FolderModel extends BaseModel<Folder> {
   constructor(data: Folder) {
@@ -317,13 +318,13 @@ export class FolderFactory {
       isSystemFolder: input.type === "system",
       createdAt: now,
       updatedAt: now,
+      icon: input.icon ?? "folder",
+      color: input.color ?? SYSTEM_COLORS.yellow,
 
       ...(input.parentId && { parentId: input.parentId }),
-      ...(input.color && { color: input.color }),
       ...(input.description?.trim() && {
         description: input.description.trim(),
       }),
-      ...(input.icon && { icon: input.icon }),
     };
 
     return new FolderModel(folder);
@@ -363,7 +364,7 @@ export class FolderFactory {
     const folder = this.create({
       name,
       type: "system",
-      ...(icon && { icon }),
+      icon: icon ?? "folder",
     });
 
     folder.protect();
