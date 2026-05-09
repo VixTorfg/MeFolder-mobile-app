@@ -1,11 +1,18 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
-import { CustomAlert } from '@/components/CustomAlert/CustomAlert';
-import { CustomAlertButton } from '@/types/ui/components';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
+  ReactNode,
+} from "react";
+import { CustomAlert } from "@/components/CustomAlert/CustomAlert";
+import { CustomAlertButton } from "@/types/ui/components";
 
 interface CustomAlertOptions {
   title: string;
   message?: string;
   buttons?: CustomAlertButton[];
+  onDismiss?: () => void;
 }
 
 interface AlertContextType {
@@ -14,12 +21,12 @@ interface AlertContextType {
 
 const AlertContext = createContext<AlertContextType | null>(null);
 
-const DEFAULT_BUTTON: CustomAlertButton = { text: 'Vale' };
+const DEFAULT_BUTTON: CustomAlertButton = { text: "Vale" };
 
 export const AlertProvider = ({ children }: { children: ReactNode }) => {
   const [visible, setVisible] = useState(false);
   const [alertOptions, setAlertOptions] = useState<CustomAlertOptions>({
-    title: '',
+    title: "",
     buttons: [DEFAULT_BUTTON],
   });
 
@@ -33,7 +40,8 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
 
   const handleDismiss = useCallback(() => {
     setVisible(false);
-  }, []);
+    alertOptions.onDismiss?.();
+  }, [alertOptions]);
 
   return (
     <AlertContext.Provider value={{ showAlert }}>
@@ -52,7 +60,7 @@ export const AlertProvider = ({ children }: { children: ReactNode }) => {
 export const useAlert = (): AlertContextType => {
   const context = useContext(AlertContext);
   if (!context) {
-    throw new Error('useAlert debe usarse dentro de un <AlertProvider>');
+    throw new Error("useAlert debe usarse dentro de un <AlertProvider>");
   }
   return context;
 };

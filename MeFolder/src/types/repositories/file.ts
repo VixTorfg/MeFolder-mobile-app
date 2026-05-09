@@ -1,4 +1,4 @@
-import type { FileExtension, UUID } from "../common";
+import type { FileCategory, FileExtension, UUID } from "../common";
 import { File, CreateFileInput, UpdateFileInput } from "../entities/file";
 import { BaseRepository } from "./base";
 
@@ -28,6 +28,7 @@ export interface FileRepository extends BaseRepository<
   exists(id: UUID): Promise<boolean>;
 
   restore(fileId: UUID): Promise<void>;
+  obtainSizePerCategory(): Promise<Partial<Record<FileCategory, number>>>;
 
   //TODO
   /*markAsAccessed(fileId: UUID);

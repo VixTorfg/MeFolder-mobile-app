@@ -48,3 +48,19 @@ export const createUserColorsTable = async (): Promise<void> => {
     throw error;
   }
 };
+
+/**
+ * Elimina completamente la tabla user_colors
+ */
+export const dropUserColorsTable = async (): Promise<void> => {
+  const db = Database.getInstance();
+
+  try {
+    console.log("Eliminando tabla user_colors...");
+    await db.execute("DROP TABLE IF EXISTS user_colors;");
+    console.log("Tabla user_colors eliminada");
+  } catch (error) {
+    console.error("Error al eliminar tabla user_colors:", error);
+    throw error;
+  }
+};

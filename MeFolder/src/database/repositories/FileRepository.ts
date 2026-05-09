@@ -231,6 +231,32 @@ export class FileRepositoryImplementation implements FileRepository {
     }
   }
 
+  async obtainSizePerCategory(): Promise<
+    Partial<Record<FileCategory, number>>
+  > {
+    try {
+      const rows = await this.db.query<{
+        category: FileCategory;
+        totalSize: number | null;
+      }>(
+        `SELECT category, SUM(metadata_size) as totalSize
+         FROM files
+         WHERE status != 'deleted'
+         GROUP BY category`,
+      );
+
+      const result: Partial<Record<FileCategory, number>> = {};
+      rows.forEach((row) => {
+        result[row.category] = Number(row.totalSize ?? 0);
+      });
+
+      return result;
+    } catch (error) {
+      console.error("Error obtaining size per category:", error);
+      throw new Error(`Error al obtener tamaño por categoría: ${error}`);
+    }
+  }
+
   /**
    * Actualizar archivo existente
    */

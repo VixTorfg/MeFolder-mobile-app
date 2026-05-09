@@ -4,6 +4,7 @@ import { OptionsIds } from "@/types";
 import type { UUID } from "@/types/common/base";
 import { useServices } from "@/providers";
 import { FolderModel, TagModel } from "@/models";
+import { router } from "expo-router";
 
 interface Selectable {
   id: UUID;
@@ -96,6 +97,7 @@ export const useSelection = <T extends Selectable>(
         openPropertyMenu();
         break;
       case OptionsIds.SETTINGS:
+        router.push("/settings");
         break;
     }
   };

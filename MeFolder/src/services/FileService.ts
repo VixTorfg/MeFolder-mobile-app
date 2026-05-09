@@ -5,6 +5,17 @@ import { FileModel, FileFactory } from "../models/file";
 import { ROOT_FOLDER_ID } from "../database/seeds/systemFolders";
 import { FileSystemService } from "./filesystem/FileSystemService";
 import { SYSTEM_TAG_IDS } from "@/database/seeds/systemTags";
+import { dropFilesTable } from "@/database/migrations/files";
+import { dropFoldersTable } from "@/database/migrations/folders";
+import { dropTagsSystem } from "@/database/migrations/tags";
+import { dropUserColorsTable } from "@/database/migrations/userColors";
+
+type StorageUsageGroup = "image" | "video" | "audio" | "documents" | "other";
+
+export interface FileStorageUsageSummary {
+  totalAppBytes: number;
+  sizeByGroup: Record<StorageUsageGroup, number>;
+}
 
 /**
  * FileService MVP - Funcionalidades básicas para desarrollo inicial
@@ -21,6 +32,8 @@ import { SYSTEM_TAG_IDS } from "@/database/seeds/systemTags";
  */
 export class FileService extends BaseService {
   private fs = new FileSystemService();
+  private static readonly THUMBNAILS_DIR = ".thumbnails";
+
   /**
    * Crear nuevo archivo (operación básica sin auto-tags).
    * Resuelve automáticamente el path completo a partir de la carpeta padre.
@@ -177,6 +190,69 @@ export class FileService extends BaseService {
       return files.map((f) => FileFactory.fromJSON(f));
     } catch (error) {
       return this.handleError(error, "buscar archivos");
+    }
+  }
+
+  /** Obtiene un resumen agregado del espacio ocupado por la app por grupos de contenido. */
+  async getStorageUsageSummary(): Promise<FileStorageUsageSummary> {
+    try {
+      this.ensureDbInitialized();
+
+      const sizeByCategory = await this.fileRepo.obtainSizePerCategory();
+      const sizeByGroup: Record<StorageUsageGroup, number> = {
+        image: sizeByCategory.image ?? 0,
+        video: sizeByCategory.video ?? 0,
+        audio: sizeByCategory.audio ?? 0,
+        documents:
+          (sizeByCategory.document ?? 0) +
+          (sizeByCategory.code ?? 0) +
+          (sizeByCategory.spreadsheet ?? 0) +
+          (sizeByCategory.archive ?? 0),
+        other: sizeByCategory.other ?? 0,
+      };
+
+      const totalAppBytes = Object.values(sizeByGroup).reduce(
+        (total, current) => total + current,
+        0,
+      );
+
+      return {
+        totalAppBytes,
+        sizeByGroup,
+      };
+    } catch (error) {
+      return this.handleError(error, "obtener resumen de almacenamiento");
+    }
+  }
+
+  /** Borra todo el contenido persistido de la app para forzar una reinicialización limpia en el siguiente arranque. */
+  async clearAllStoredContent(): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+
+      await dropTagsSystem();
+      await dropFilesTable();
+      await dropFoldersTable();
+      await dropUserColorsTable();
+
+      const directoryCandidates = [
+        this.fs.resolveUri("root"),
+        this.fs.resolveUri(ROOT_FOLDER_ID),
+        this.fs.resolveUri(FileService.THUMBNAILS_DIR),
+      ];
+
+      directoryCandidates.forEach((uri) => {
+        const result = this.fs.deleteDirectory(uri);
+        if (!result.success) {
+          console.warn(
+            `No se pudo eliminar el directorio ${uri}: ${result.error}`,
+          );
+        }
+      });
+
+      await this.db.close();
+    } catch (error) {
+      return this.handleError(error, "borrar todo el contenido");
     }
   }
 
