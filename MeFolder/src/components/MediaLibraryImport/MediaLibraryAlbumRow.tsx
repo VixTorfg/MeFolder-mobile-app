@@ -1,8 +1,8 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { Animated, View, Text, TouchableOpacity } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 import { Ionicons } from "@expo/vector-icons";
-import { useStyles } from "@/hooks";
+import { usePressScaleAnimation, useStyles } from "@/hooks";
 
 interface MediaLibraryAlbumRowProps {
   album: MediaLibrary.Album;
@@ -16,36 +16,42 @@ export function MediaLibraryAlbumRow({
   onPress,
 }: MediaLibraryAlbumRowProps) {
   const styles = useMediaLibraryAlbumRowStyles();
+  const { animatedStyle, handlePressIn, handlePressOut } =
+    usePressScaleAnimation();
 
   return (
-    <TouchableOpacity
-      style={[styles.container, isSelected && styles.containerSelected]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <View style={styles.iconWrapper}>
-        <Ionicons
-          name="images-outline"
-          size={20}
-          color={styles.iconColor.color}
-        />
-      </View>
-      <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={1}>
-          {album.title}
-        </Text>
-        <Text style={styles.subtitle}>
-          {album.assetCount ?? 0} archivos disponibles
-        </Text>
-      </View>
-      {isSelected ? (
-        <Ionicons
-          name="checkmark-circle"
-          size={24}
-          color={styles.selectedColor.color}
-        />
-      ) : null}
-    </TouchableOpacity>
+    <Animated.View style={animatedStyle}>
+      <TouchableOpacity
+        style={[styles.container, isSelected && styles.containerSelected]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.8}
+      >
+        <View style={styles.iconWrapper}>
+          <Ionicons
+            name="images-outline"
+            size={20}
+            color={styles.iconColor.color}
+          />
+        </View>
+        <View style={styles.content}>
+          <Text style={styles.title} numberOfLines={1}>
+            {album.title}
+          </Text>
+          <Text style={styles.subtitle}>
+            {album.assetCount ?? 0} archivos disponibles
+          </Text>
+        </View>
+        {isSelected ? (
+          <Ionicons
+            name="checkmark-circle"
+            size={24}
+            color={styles.selectedColor.color}
+          />
+        ) : null}
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 

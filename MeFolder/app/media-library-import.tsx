@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -51,6 +51,14 @@ export default function MediaLibraryImportScreen() {
     importSelectedAssets,
     importAlbum,
   } = useMediaLibraryImport(folderId ? { folderId } : {});
+
+  useEffect(() => {
+    if (permission?.granted) {
+      refresh();
+    } else {
+      void requestPermission();
+    }
+  }, [permission, refresh]);
 
   const closeWithSummary = useCallback(
     (title: string, failed: { name: string; error: string }[]) => {
@@ -411,7 +419,7 @@ const useMediaLibraryImportScreenStyles = () => {
       justifyContent: "center",
       backgroundColor: theme.colors.primary,
       borderRadius: theme.effects.radius.lg,
-      paddingVertical: theme.spacing.md,
+      padding: theme.spacing.md,
     },
     primaryButtonDisabled: {
       backgroundColor: theme.colors.borderSoft,

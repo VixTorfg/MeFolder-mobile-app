@@ -8,6 +8,7 @@ export * from "./useMedia";
 export * from "./useColors";
 export * from "./useDeviceOrientation";
 export * from "./useSelection";
+export * from "./usePressScaleAnimation";
 export * from "./useViewSettings";
 export * from "./usePinchColumns";
 export * from "./usePagination";

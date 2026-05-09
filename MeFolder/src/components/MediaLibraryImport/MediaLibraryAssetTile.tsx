@@ -1,9 +1,9 @@
 import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import { Animated, View, TouchableOpacity } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 import { Image } from "expo-image";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useStyles } from "@/hooks";
+import { usePressScaleAnimation, useStyles } from "@/hooks";
 import { useMediaLibraryVideoThumbnail } from "@/hooks/mediaLibrary";
 
 interface MediaLibraryAssetTileProps {
@@ -18,49 +18,55 @@ export function MediaLibraryAssetTile({
   onPress,
 }: MediaLibraryAssetTileProps) {
   const styles = useMediaLibraryAssetTileStyles();
+  const { animatedStyle, handlePressIn, handlePressOut } =
+    usePressScaleAnimation();
   const isVideo = asset.mediaType === MediaLibrary.MediaType.video;
   const videoThumbnailUri = useMediaLibraryVideoThumbnail(asset);
   const previewUri = isVideo ? videoThumbnailUri : asset.uri;
 
   return (
-    <TouchableOpacity
-      style={[styles.container, isSelected && styles.containerSelected]}
-      onPress={onPress}
-      activeOpacity={0.82}
-    >
-      {!previewUri ? (
-        <View style={styles.videoPlaceholder}>
-          <MaterialCommunityIcons
-            name="play-circle"
-            size={22}
-            color="#FFFFFF"
+    <Animated.View style={animatedStyle}>
+      <TouchableOpacity
+        style={[styles.container, isSelected && styles.containerSelected]}
+        onPress={onPress}
+        onPressIn={handlePressIn}
+        onPressOut={handlePressOut}
+        activeOpacity={0.82}
+      >
+        {!previewUri ? (
+          <View style={styles.videoPlaceholder}>
+            <MaterialCommunityIcons
+              name="play-circle"
+              size={22}
+              color="#FFFFFF"
+            />
+          </View>
+        ) : (
+          <Image
+            source={{ uri: previewUri }}
+            style={styles.image}
+            contentFit="cover"
+            recyclingKey={asset.id}
           />
-        </View>
-      ) : (
-        <Image
-          source={{ uri: previewUri }}
-          style={styles.image}
-          contentFit="cover"
-          recyclingKey={asset.id}
-        />
-      )}
+        )}
 
-      {isVideo ? (
-        <View style={styles.videoInfo}>
-          <MaterialCommunityIcons
-            name="play-circle"
-            size={16}
-            color="#FFFFFF"
-          />
-        </View>
-      ) : null}
+        {isVideo ? (
+          <View style={styles.videoInfo}>
+            <MaterialCommunityIcons
+              name="play-circle"
+              size={16}
+              color="#FFFFFF"
+            />
+          </View>
+        ) : null}
 
-      {isSelected ? (
-        <View style={styles.selectionBadge}>
-          <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-        </View>
-      ) : null}
-    </TouchableOpacity>
+        {isSelected ? (
+          <View style={styles.selectionBadge}>
+            <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+          </View>
+        ) : null}
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 

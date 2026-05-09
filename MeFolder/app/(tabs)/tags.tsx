@@ -46,13 +46,15 @@ export default function TagsScreen() {
           setShowTagCreator(true);
         }}
       />
+
+      {/*
       <MultiActionButton
         icon="ellipsis-vertical"
         backgroundColor="transparent"
         iconColor={styles.iconColor.color}
         size={42}
         onPress={() => {}}
-      />
+      />*/}
     </View>
   );
 
