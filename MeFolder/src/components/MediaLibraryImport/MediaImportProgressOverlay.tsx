@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator, Modal } from "react-native";
 import type { MediaImportProgress } from "@/types/media";
 import { useStyles } from "@/hooks";
 
@@ -23,25 +23,27 @@ export function MediaImportProgressOverlay({
   const ratio = progress.total > 0 ? progress.completed / progress.total : 0;
 
   return (
-    <View style={styles.overlay}>
-      <View style={styles.card}>
-        <ActivityIndicator size="large" color={styles.spinnerColor.color} />
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.subtitle}>
-          {progress.completed} / {progress.total || 0}
-        </Text>
-        {progress.currentFileName ? (
-          <Text style={styles.currentFile} numberOfLines={1}>
-            {progress.currentFileName}
+    <Modal transparent animationType="none" visible statusBarTranslucent>
+      <View style={styles.overlay}>
+        <View style={styles.card}>
+          <ActivityIndicator size="large" color={styles.spinnerColor.color} />
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.subtitle}>
+            {progress.completed} / {progress.total || 0}
           </Text>
-        ) : null}
-        <View style={styles.track}>
-          <View
-            style={[styles.fill, { width: `${Math.min(ratio * 100, 100)}%` }]}
-          />
+          {progress.currentFileName ? (
+            <Text style={styles.currentFile} numberOfLines={1}>
+              {progress.currentFileName}
+            </Text>
+          ) : null}
+          <View style={styles.track}>
+            <View
+              style={[styles.fill, { width: `${Math.min(ratio * 100, 100)}%` }]}
+            />
+          </View>
         </View>
       </View>
-    </View>
+    </Modal>
   );
 }
 

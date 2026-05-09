@@ -206,7 +206,7 @@ export class TagService extends BaseService {
   }
 
   /**
-   * Eliminar tag (soft delete)
+   * Eliminar tag
    */
   async deleteTag(tagId: UUID): Promise<boolean> {
     try {
@@ -220,12 +220,7 @@ export class TagService extends BaseService {
         throw new Error("No se pueden eliminar tags del sistema");
       }
 
-      // Cambiar status a inactivo
-      await this.tagRepo.update(tagId, {
-        isActive: false,
-      });
-
-      return true;
+      return await this.tagRepo.permanentDelete(tagId);
     } catch (error) {
       return this.handleError(error, "eliminar tag");
     }

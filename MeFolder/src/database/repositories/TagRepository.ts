@@ -237,6 +237,24 @@ export class TagRepositoryImplementation implements TagRepository {
   }
 
   /**
+   * Eliminar etiqueta permanentemente de la base de datos
+   */
+  async permanentDelete(id: UUID): Promise<boolean> {
+    try {
+      const result = await this.db.execute("DELETE FROM tags WHERE id = ?", [
+        id,
+      ]);
+
+      return result.changes > 0;
+    } catch (error) {
+      console.error("Error permanently deleting tag:", error);
+      throw new Error(
+        `Error al eliminar permanentemente la etiqueta: ${error}`,
+      );
+    }
+  }
+
+  /**
    * Buscar etiquetas por tipo
    */
   async findByType(type: TagType): Promise<Tag[]> {

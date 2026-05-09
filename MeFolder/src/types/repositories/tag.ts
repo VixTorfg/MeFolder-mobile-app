@@ -17,6 +17,7 @@ export interface TagRepository extends BaseRepository<
   CreateTagInput,
   UpdateTagInput
 > {
+  permanentDelete(id: UUID): Promise<boolean>;
   findByName(name: string): Promise<Tag | null>;
   findByType(type: TagType): Promise<Tag[]>;
   findByPriority(priority: TagPriority): Promise<Tag[]>;

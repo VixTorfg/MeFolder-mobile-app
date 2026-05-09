@@ -19,6 +19,7 @@ import { useTagsStore } from "@/stores/useTagsStore";
 import { ColorInfo } from "@/types/common/colors";
 import { PRIORITY_CONFIG } from "@/types";
 import { ColorList } from "../ColorPicker";
+import { router } from "expo-router";
 
 const TYPE_LABELS: Record<string, string> = {
   system: "Sistema",
@@ -71,14 +72,16 @@ const InfoRow = React.memo(
 export const TagPropertyMenu = ({
   item,
   section,
+  onClose,
 }: {
   item: TagModel;
   section: "details" | "customize";
+  onClose: () => void;
 }) => {
   const { theme } = useTheme();
   const { services } = useServices();
   const { showAlert } = useAlert();
-  const { updateItem: updateTag } = useTagsStore();
+  const { updateItem: updateTag, removeItem, removeAlbum } = useTagsStore();
   const styles = useFilePropertyMenuStyles();
   const folderStyles = useFolderPropertyMenuStyles();
 
@@ -192,6 +195,44 @@ export const TagPropertyMenu = ({
         message: "No se pudo actualizar la descripción",
       });
     }
+  };
+
+  const handleDeleteTag = () => {
+    showAlert({
+      title: tag.isAlbum() ? "Eliminar álbum" : "Eliminar etiqueta",
+      message: tag.isAlbum()
+        ? `Se eliminará el álbum \"${tag.name}\". Sus archivos no se borrarán.`
+        : `Se eliminará la etiqueta \"${tag.name}\".`,
+      buttons: [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await services.tagService.deleteTag(tag.id);
+
+              if (tag.isAlbum()) {
+                removeAlbum(tag.id);
+              } else {
+                removeItem(tag.id);
+              }
+
+              onClose();
+              router.back();
+            } catch (error) {
+              showAlert({
+                title: "Error",
+                message:
+                  error instanceof Error
+                    ? error.message
+                    : "No se pudo eliminar el elemento.",
+              });
+            }
+          },
+        },
+      ],
+    });
   };
 
   if (section === "customize") {
@@ -453,6 +494,36 @@ export const TagPropertyMenu = ({
           />
         </View>
       </View>
+
+      {!isSystemTag && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>Acciones</Text>
+          <View style={styles.tagActions}>
+            <TouchableOpacity
+              style={[
+                styles.tagButton,
+                {
+                  borderColor: theme.colors.error,
+                  backgroundColor: theme.colors.errorSoft,
+                },
+              ]}
+              onPress={handleDeleteTag}
+              activeOpacity={0.7}
+            >
+              <Ionicons
+                name="trash-outline"
+                size={18}
+                color={theme.colors.error}
+              />
+              <Text
+                style={[styles.tagButtonText, { color: theme.colors.error }]}
+              >
+                {tag.isAlbum() ? "Eliminar álbum" : "Eliminar etiqueta"}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
     </View>
   );
 };

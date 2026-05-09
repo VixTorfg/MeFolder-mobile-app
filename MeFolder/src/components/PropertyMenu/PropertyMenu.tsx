@@ -110,7 +110,13 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
         {isFolder && (
           <FolderPropertyMenu item={item} section={selectedSection} />
         )}
-        {isTag && <TagPropertyMenu item={item} section={selectedSection} />}
+        {isTag && (
+          <TagPropertyMenu
+            item={item}
+            section={selectedSection}
+            onClose={onClose}
+          />
+        )}
       </ScrollView>
     </BottomSheet>
   );

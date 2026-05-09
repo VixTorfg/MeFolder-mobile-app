@@ -19,6 +19,7 @@ export interface CustomAlertButton {
 
 export const OptionsIds = {
   EXPORT_ALBUM: "export_album",
+  DELETE_ALBUM: "delete_album",
   SELECT_ALL: "select_all",
   NO_SELECT: "no_select",
   INVERT_SELECT: "invert_select",

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { MultiActionButton } from "@/components";
@@ -37,9 +37,11 @@ export default function AlbumsListScreen() {
     }
   }, [services.tagService]);
 
-  useEffect(() => {
-    void loadAlbums();
-  }, [loadAlbums]);
+  useFocusEffect(
+    useCallback(() => {
+      void loadAlbums();
+    }, [loadAlbums]),
+  );
 
   const handleOpenAlbum = useCallback((album: TagModel) => {
     router.push(`/gallery?tagId=${album.id}&albumName=${album.name}`);

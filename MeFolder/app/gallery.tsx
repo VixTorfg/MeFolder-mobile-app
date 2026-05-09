@@ -68,6 +68,11 @@ const galleryOptions: OptionsType[] = [
     icon: "share-outline",
   },
   {
+    id: OptionsIds.DELETE_ALBUM,
+    name: "Eliminar álbum",
+    icon: "trash-outline",
+  },
+  {
     id: OptionsIds.PROPERTIES,
     name: "Propiedades",
     icon: "build-outline",
@@ -448,6 +453,49 @@ export default function GalleryScreen() {
     }
   }, [handleArchiveProgress, services, showAlert, tagId]);
 
+  const handleDeleteAlbum = useCallback(() => {
+    if (!tagId) {
+      showAlert({
+        title: "Error al eliminar álbum",
+        message: "No se pudo identificar el álbum actual.",
+      });
+      return;
+    }
+
+    showAlert({
+      title: "Eliminar álbum",
+      message:
+        "Se eliminará el álbum, pero los archivos seguirán existiendo. Solo se quitará la etiqueta del álbum.",
+      buttons: [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: () => {
+            void (async () => {
+              try {
+                await services.tagService.deleteTag(tagId as string);
+                clearSelection();
+                router.back();
+              } catch (error) {
+                showAlert({
+                  title: "Error al eliminar álbum",
+                  message:
+                    error instanceof Error
+                      ? error.message
+                      : "No se pudo eliminar el álbum.",
+                });
+              }
+            })();
+          },
+        },
+      ],
+    });
+  }, [clearSelection, services.tagService, showAlert, tagId]);
+
   const handleShareSelected = useCallback(async () => {
     if (!(await Sharing.isAvailableAsync())) {
       showAlert({
@@ -586,9 +634,14 @@ export default function GalleryScreen() {
         return;
       }
 
+      if (option.id === OptionsIds.DELETE_ALBUM) {
+        handleDeleteAlbum();
+        return;
+      }
+
       handleOnSelectOption(option);
     },
-    [handleExportAlbum, handleOnSelectOption],
+    [handleDeleteAlbum, handleExportAlbum, handleOnSelectOption],
   );
 
   const selectionActionBarOffset = insets.bottom + 12;
