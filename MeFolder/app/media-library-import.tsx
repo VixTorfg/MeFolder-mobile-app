@@ -21,7 +21,11 @@ export default function MediaLibraryImportScreen() {
   const insets = useSafeAreaInsets();
   const styles = useMediaLibraryImportScreenStyles();
   const { showAlert } = useAlert();
-  const { folderId } = useLocalSearchParams<{ folderId?: string }>();
+  const { folderId, albumId, initialMode } = useLocalSearchParams<{
+    folderId?: string;
+    albumId?: string;
+    initialMode?: string;
+  }>();
 
   const {
     permission,
@@ -42,7 +46,7 @@ export default function MediaLibraryImportScreen() {
     toggleAssetSelection,
     selectAlbum,
     loadMoreAssets,
-  } = useMediaLibraryAssets();
+  } = useMediaLibraryAssets(initialMode === "albums" ? "albums" : "assets");
 
   const {
     isImporting,
@@ -50,7 +54,10 @@ export default function MediaLibraryImportScreen() {
     progress,
     importSelectedAssets,
     importAlbum,
-  } = useMediaLibraryImport(folderId ? { folderId } : {});
+  } = useMediaLibraryImport({
+    ...(folderId ? { folderId } : {}),
+    ...(albumId ? { albumId } : {}),
+  });
 
   useEffect(() => {
     if (permission?.granted) {

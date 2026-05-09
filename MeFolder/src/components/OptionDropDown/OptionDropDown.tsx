@@ -12,11 +12,13 @@ import { MultiActionButton } from "../MultiActionButton";
 import { useRef, useState } from "react";
 import { useOptionDropDownStyles } from "./styles";
 import { OptionsType } from "@/types/ui/components";
+import { OptionsIds } from "@/types";
 
 export interface OptionDropDownProps {
   disabled?: boolean;
   size?: number;
   showProperties?: boolean;
+  options?: OptionsType[];
   onSelect?: (options: OptionsType) => void;
 }
 
@@ -27,22 +29,51 @@ export default function OptionDropDown({
   disabled = false,
   size = 38,
   showProperties = true,
+  options: customOptions,
   onSelect,
 }: OptionDropDownProps = {}) {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   const allOptions: OptionsType[] = [
-    { id: "select_all", name: "Seleccionar todo", icon: "menu-outline" },
-    { id: "no_select", name: "No seleccionar", icon: "grid-outline" },
-    { id: "invert_select", name: "Invertir selección", icon: "stop-outline" },
-    { id: "properties", name: "Propiedades", icon: "build-outline" },
-    { id: "settings", name: "Configuración", icon: "settings-outline" },
+    {
+      id: OptionsIds.SELECT_ALL,
+      name: "Seleccionar todo",
+      icon: "menu-outline",
+    },
+    {
+      id: OptionsIds.NO_SELECT,
+      name: "No seleccionar",
+      icon: "grid-outline",
+    },
+    {
+      id: OptionsIds.INVERT_SELECT,
+      name: "Invertir selección",
+      icon: "stop-outline",
+    },
+    {
+      id: OptionsIds.PROPERTIES,
+      name: "Propiedades",
+      icon: "build-outline",
+    },
+    {
+      id: OptionsIds.SETTINGS,
+      name: "Configuración",
+      icon: "settings-outline",
+    },
   ];
 
-  const options = showProperties
-    ? allOptions
-    : allOptions.filter((o) => o.id !== "properties");
+  const options =
+    customOptions ??
+    (showProperties
+      ? allOptions
+      : allOptions.filter((o) => o.id !== OptionsIds.PROPERTIES));
+
+  const selectionOptionIds = new Set<OptionsType["id"]>([
+    OptionsIds.SELECT_ALL,
+    OptionsIds.NO_SELECT,
+    OptionsIds.INVERT_SELECT,
+  ]);
 
   const styles = useOptionDropDownStyles(responsive);
 
@@ -71,6 +102,16 @@ export default function OptionDropDown({
   const handleSelect = (option: OptionsType) => {
     onSelect?.(option);
     toggleDropdown();
+  };
+
+  const shouldShowGroupSeparator = (option: OptionsType) => {
+    if (option.id !== OptionsIds.PROPERTIES) {
+      return false;
+    }
+
+    return options.some((currentOption) =>
+      selectionOptionIds.has(currentOption.id),
+    );
   };
 
   return (
@@ -117,11 +158,11 @@ export default function OptionDropDown({
               {options.map((option) => (
                 <TouchableOpacity
                   key={option.id}
-                  style={
-                    option.id === "invert_select"
-                      ? styles.optionDropdownItem
-                      : styles.dropdownItem
-                  }
+                  style={[
+                    styles.dropdownItem,
+                    shouldShowGroupSeparator(option) &&
+                      styles.groupSeparatorItem,
+                  ]}
                   onPress={() => handleSelect(option)}
                 >
                   <Ionicons

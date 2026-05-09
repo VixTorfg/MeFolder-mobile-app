@@ -1,4 +1,5 @@
 export { BaseService } from "./base/BaseService";
+export { AlbumArchiveService } from "./archive/AlbumArchiveService";
 export { ArchiveService } from "./archive/ArchiveService";
 export { FileService } from "./FileService";
 export { FolderService } from "./FolderService";

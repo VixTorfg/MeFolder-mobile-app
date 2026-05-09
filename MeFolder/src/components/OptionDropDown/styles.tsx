@@ -45,14 +45,9 @@ export const useOptionDropDownStyles = (responsive: {
       paddingVertical: responsive.padding / 2,
       gap: 12,
     },
-    optionDropdownItem: {
-      flexDirection: "row",
-      alignItems: "center",
-      paddingHorizontal: horizantalPadding,
-      paddingVertical: responsive.padding / 2,
-      borderBottomWidth: theme.effects.borderWidth.md,
-      borderBottomColor: theme.colors.borderSoft,
-      gap: 12,
+    groupSeparatorItem: {
+      borderTopWidth: theme.effects.borderWidth.md,
+      borderTopColor: theme.colors.borderSoft,
     },
     selectedItem: {
       backgroundColor: theme.colors.primarySoft,

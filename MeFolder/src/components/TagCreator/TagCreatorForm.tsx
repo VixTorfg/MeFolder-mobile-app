@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { View, Text, TouchableOpacity, TextInput } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTheme } from "@/providers";
 import { useColors } from "@/hooks";
 import { useTagCreatorFormStyles } from "./styles";
@@ -9,6 +10,8 @@ import { ToggleAlbum, ToggleFavourite, PrioritySelector } from "../Toggles";
 import { ColorList } from "@/components/ColorPicker";
 import { TagPreview } from "./TagPreview";
 
+export type AlbumCreationMode = "empty";
+
 export interface NewTag {
   name: string;
   description: string | null;
@@ -16,13 +19,18 @@ export interface NewTag {
   type: TagType;
   priority: TagPriority;
   isFavorite: boolean;
+  albumCreationMode: AlbumCreationMode;
 }
 
 interface TagCreatorFormProps {
   onSave: (data: NewTag) => Promise<void> | void;
+  onImportZipAlbum?: () => Promise<void> | void;
 }
 
-export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
+export default function TagCreatorForm({
+  onSave,
+  onImportZipAlbum,
+}: TagCreatorFormProps) {
   const { theme } = useTheme();
   const styles = useTagCreatorFormStyles();
   const {
@@ -38,6 +46,8 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
   const [tagName, setTagName] = useState("");
   const [description, setDescription] = useState("");
   const [isAlbum, setIsAlbum] = useState(false);
+  const [albumCreationMode, setAlbumCreationMode] =
+    useState<AlbumCreationMode>("empty");
   const [isFavorite, setIsFavorite] = useState(false);
   const [priority, setPriority] = useState<TagPriority>("normal");
   const [nameFocused, setNameFocused] = useState(false);
@@ -55,11 +65,43 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
       type: isAlbum ? "album" : "user",
       priority,
       isFavorite,
+      albumCreationMode: isAlbum ? albumCreationMode : "empty",
+    });
+  };
+
+  const handleToggleAlbum = (): void => {
+    setIsAlbum((prev) => {
+      const next = !prev;
+
+      if (!next) {
+        setAlbumCreationMode("empty");
+      }
+
+      return next;
     });
   };
 
   return (
     <View style={styles.container}>
+      <View style={styles.importRow}>
+        <Text style={styles.label}>Importar álbum</Text>
+        <TouchableOpacity
+          style={styles.importIconButton}
+          onPress={() => {
+            void onImportZipAlbum?.();
+          }}
+          activeOpacity={0.8}
+          accessibilityRole="button"
+          accessibilityLabel="Importar álbum desde ZIP"
+        >
+          <MaterialCommunityIcons
+            name="archive-arrow-up-outline"
+            size={20}
+            color={styles.importIconColor.color}
+          />
+        </TouchableOpacity>
+      </View>
+
       {/* Nombre */}
       <View style={styles.inputGroup}>
         <Text style={styles.label}>Nombre</Text>
@@ -131,7 +173,7 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
 
       <View style={styles.optionsSection}>
         <Text style={styles.label}>Opciones</Text>
-        <ToggleAlbum onToggle={() => setIsAlbum(!isAlbum)} isActive={isAlbum} />
+        <ToggleAlbum onToggle={handleToggleAlbum} isActive={isAlbum} />
         <ToggleFavourite
           onToggle={() => setIsFavorite(!isFavorite)}
           isActive={isFavorite}
@@ -144,7 +186,9 @@ export default function TagCreatorForm({ onSave }: TagCreatorFormProps) {
         disabled={!canSave}
         activeOpacity={0.8}
       >
-        <Text style={styles.saveButtonText}>Crear etiqueta</Text>
+        <Text style={styles.saveButtonText}>
+          {isAlbum ? "Crear álbum" : "Crear etiqueta"}
+        </Text>
       </TouchableOpacity>
     </View>
   );

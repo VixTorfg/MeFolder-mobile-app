@@ -31,6 +31,7 @@ interface ArchiveLoadingState {
   isVisible: boolean;
   title: string;
   message: string;
+  progress: ArchiveProgress | null;
 }
 
 export const useLibraryArchiveActions = () => {
@@ -45,6 +46,7 @@ export const useLibraryArchiveActions = () => {
     isVisible: false,
     title: "",
     message: "",
+    progress: null,
   });
 
   const showArchiveError = useCallback(
@@ -84,6 +86,7 @@ export const useLibraryArchiveActions = () => {
       isVisible: false,
       title: "",
       message: "",
+      progress: null,
     });
   }, []);
 
@@ -101,6 +104,7 @@ export const useLibraryArchiveActions = () => {
         isVisible: true,
         title,
         message: progress.totalEntries > 0 ? detail : fallbackMessage,
+        progress,
       });
     },
     [],
@@ -138,6 +142,7 @@ export const useLibraryArchiveActions = () => {
         isVisible: true,
         title: "Comprimiendo",
         message: "Preparando los archivos para crear el ZIP...",
+        progress: null,
       });
 
       try {
@@ -211,6 +216,7 @@ export const useLibraryArchiveActions = () => {
         isVisible: true,
         title: "Descomprimiendo",
         message: "Preparando el contenido del ZIP...",
+        progress: null,
       });
 
       try {

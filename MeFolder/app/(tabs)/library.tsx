@@ -10,6 +10,7 @@ import {
   PropertyMenu,
   MediaHost,
   CustomPopup,
+  MediaImportProgressOverlay,
 } from "@/components";
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
@@ -697,23 +698,16 @@ export default function LibraryScreen() {
         </View>
       </CustomPopup>
 
-      <CustomPopup
+      <MediaImportProgressOverlay
+        visible={archiveLoading.isVisible}
         title={archiveLoading.title}
-        isVisible={archiveLoading.isVisible}
-        onDismiss={() => undefined}
-        dismissOnBackdropPress={false}
-      >
-        <View style={styles.popupLoadingContent}>
-          <ActivityIndicator
-            size="large"
-            color={styles.iconColor.primaryColor}
-          />
-          <Text style={styles.popupLoadingText}>{archiveLoading.message}</Text>
-          <Text style={styles.popupLoadingHint}>
-            La operación puede tardar unos segundos.
-          </Text>
-        </View>
-      </CustomPopup>
+        progress={{
+          completed: archiveLoading.progress?.processedEntries ?? 0,
+          total: Math.max(archiveLoading.progress?.totalEntries ?? 0, 1),
+          currentFileName:
+            archiveLoading.progress?.currentEntryName ?? archiveLoading.message,
+        }}
+      />
 
       <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>

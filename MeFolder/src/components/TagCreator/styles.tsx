@@ -1,12 +1,31 @@
-import { useStyles } from '@/hooks/useStyles';
+import { useStyles } from "@/hooks/useStyles";
 
 export const useTagCreatorFormStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     container: {
       flex: 1,
     },
     colorSection: {
       marginBottom: theme.spacing.lg,
+    },
+    importRow: {
+      marginBottom: theme.spacing.lg,
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
+    },
+    importIconButton: {
+      width: 40,
+      height: 40,
+      borderRadius: 20,
+      backgroundColor: theme.colors.primarySoft,
+      borderWidth: theme.effects.borderWidth.md,
+      borderColor: theme.colors.primary,
+      alignItems: "center",
+      justifyContent: "center",
+    },
+    importIconColor: {
+      color: theme.colors.primary,
     },
     inputGroup: {
       marginBottom: theme.spacing.lg,
@@ -33,8 +52,8 @@ export const useTagCreatorFormStyles = () => {
     },
     descriptionInput: {
       minHeight: 80,
-      textAlignVertical: 'top',
-    },  
+      textAlignVertical: "top",
+    },
     optionsSection: {
       marginBottom: theme.spacing.lg,
       gap: theme.spacing.sm,
@@ -44,8 +63,8 @@ export const useTagCreatorFormStyles = () => {
       paddingVertical: theme.spacing.md,
       borderRadius: theme.effects.radius.md,
       backgroundColor: theme.colors.primary,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
     saveButtonDisabled: {
       backgroundColor: theme.colors.borderSoft,
@@ -56,37 +75,37 @@ export const useTagCreatorFormStyles = () => {
       color: theme.colors.textOnColor,
     },
     nameInputAndPreview: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: theme.spacing.lg,
     },
     nameInput: {
-      width: '60%',
+      width: "60%",
     },
     namePreview: {
-      width: '32%',
+      width: "32%",
     },
   }));
 };
 
 export const useTagPreviewStyles = () => {
-  return useStyles(theme => ({
-     previewContainer: {
-      flexDirection: 'row',
+  return useStyles((theme) => ({
+    previewContainer: {
+      flexDirection: "row",
     },
     previewSection: {
       marginBottom: theme.spacing.lg,
     },
     previewTag: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       gap: theme.spacing.xs,
       paddingVertical: theme.spacing.xs + 2,
       paddingHorizontal: theme.spacing.md,
       borderRadius: theme.effects.radius.lg,
       backgroundColor: theme.colors.subCard,
       borderWidth: theme.effects.borderWidth.md,
-      maxWidth: '100%',
+      maxWidth: "100%",
     },
     previewDot: {
       width: 10,
@@ -100,10 +119,10 @@ export const useTagPreviewStyles = () => {
       flexShrink: 1,
     },
     isAlbum: {
-        color: theme.colors.textSecondary,
+      color: theme.colors.textSecondary,
     },
     isFavorite: {
-        color: theme.colors.primary,
-    }
-  }))
-}
+      color: theme.colors.primary,
+    },
+  }));
+};

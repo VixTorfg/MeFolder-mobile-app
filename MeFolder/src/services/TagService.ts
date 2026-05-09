@@ -335,6 +335,23 @@ export class TagService extends BaseService {
     }
   }
 
+  /** Obtener archivos completos asociados a un tag. */
+  async getFilesInTag(tagId: UUID): Promise<FileModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      const tag = await this.tagRepo.findById(tagId);
+      if (!tag) {
+        throw new Error("Tag no encontrado");
+      }
+
+      const files = await this.fileRepo.findByTagIds([tagId]);
+      return files.map((file) => new FileModel(file));
+    } catch (error) {
+      return this.handleError(error, "obtener archivos completos del tag");
+    }
+  }
+
   /**
    * Limpiar tags no utilizados (maintenance)
    */

@@ -5,6 +5,7 @@ import { SYSTEM_COLORS } from "@/constants/themes/colors";
 export const ROOT_FOLDER_PATH =
   "file:///data/user/0/host.exp.exponent/files/sys_root" as const;
 export const ROOT_FOLDER_ID = "sys_root" as const;
+export const SYSTEM_GALLERY_FOLDER_ID = "sys_gallery" as const;
 
 /**
  * Carpetas del sistema predeterminadas (hijas de root).

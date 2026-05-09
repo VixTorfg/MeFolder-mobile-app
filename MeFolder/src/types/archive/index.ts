@@ -52,9 +52,16 @@ export interface ArchiveSourceFile {
   extension: FileExtension;
   path: string;
   metadata: FileMetadata;
+  archivePath?: string | undefined;
   folderId?: UUID | undefined;
   visibility?: FileVisibility | undefined;
   storageUrl?: string | undefined;
+}
+
+export interface ArchiveVirtualEntry {
+  path: string;
+  content: string;
+  encoding?: "utf8" | "base64" | undefined;
 }
 
 export interface ArchiveEntryDescriptor {
@@ -103,6 +110,26 @@ export interface CreateArchiveFromFilesParams extends ArchiveBaseParams {
   outputName: string;
   destinationFolderId?: UUID | undefined;
   rootFolderName?: string | undefined;
+  virtualEntries?: ArchiveVirtualEntry[] | undefined;
+  visibility?: FileVisibility | undefined;
+}
+
+export interface ExportAlbumArchiveParams extends ArchiveBaseParams {
+  albumId: UUID;
+  outputName?: string | undefined;
+  destinationFolderId?: UUID | undefined;
+  visibility?: FileVisibility | undefined;
+}
+
+export interface ImportAlbumArchiveSource {
+  name: string;
+  uri: string;
+  mimeType?: string | undefined;
+}
+
+export interface ImportAlbumArchiveParams extends ArchiveBaseParams {
+  archiveFile: ImportAlbumArchiveSource;
+  destinationFolderId?: UUID | undefined;
   visibility?: FileVisibility | undefined;
 }
 
@@ -141,6 +168,20 @@ export interface ArchiveCreationSummary {
   archiveFile: ArchiveCreatedRecord;
   entryCount: number;
   format: ArchiveFormat;
+}
+
+export interface ExportAlbumArchiveSummary extends ArchiveCreationSummary {
+  albumId: UUID;
+  albumName: string;
+  archiveUri: string;
+}
+
+export interface ImportAlbumArchiveSummary {
+  albumId: UUID;
+  albumName: string;
+  destinationFolder: ArchiveCreatedRecord;
+  importedFileCount: number;
+  thumbnailCount: number;
 }
 
 export interface ArchiveExtractionSummary {

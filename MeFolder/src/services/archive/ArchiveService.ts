@@ -9,12 +9,11 @@ import type {
   ArchiveExtractMode,
   ArchiveExtractionSummary,
   ArchiveFormat,
-  ArchiveFutureOptions,
   ArchiveInspection,
   ArchiveOperationError,
   ArchiveOperationResult,
   ArchiveSourceFile,
-  ArchiveUnsupportedFeature,
+  ArchiveVirtualEntry,
   CreateArchiveFromFilesParams,
   CreateArchiveFromFolderParams,
   CreateFileInput,
@@ -26,23 +25,30 @@ import type {
   SupportedArchiveFormat,
   UUID,
 } from "@/types";
-import {
-  EXTENSION_MIME_MAP,
-  FILE_CATEGORY_MAP,
-} from "@/types/common/file-extensions";
+import { EXTENSION_MIME_MAP } from "@/types/common/file-extensions";
 import { FileService } from "../FileService";
 import { FolderService } from "../FolderService";
 import { FileSystemService } from "../filesystem/FileSystemService";
-import { MediaService } from "../media/MediaService";
+import {
+  buildArchiveEntries,
+  getParentArchivePath,
+  indexZipFiles,
+  joinArchivePath,
+  loadZipFromUri,
+  normalizeArchivePath,
+  validateArchiveFutureOptions,
+} from "./archiveUtils";
 
 const SUPPORTED_FORMATS: readonly SupportedArchiveFormat[] = ["zip"];
 
+interface PreparedArchiveFileEntry {
+  zipPath: string;
+  sourceFile: ArchiveSourceFile;
+}
+
 interface CollectedArchiveFiles {
   directories: string[];
-  files: Array<{
-    zipPath: string;
-    sourceFile: ArchiveSourceFile;
-  }>;
+  files: PreparedArchiveFileEntry[];
 }
 
 interface CreatedFolderContext {
@@ -52,7 +58,6 @@ interface CreatedFolderContext {
 
 export class ArchiveService {
   private readonly fs = new FileSystemService();
-  private readonly media = new MediaService();
 
   constructor(
     private readonly fileService: FileService = new FileService(),
@@ -64,7 +69,7 @@ export class ArchiveService {
     params: CreateArchiveFromFolderParams,
   ): Promise<ArchiveOperationResult<ArchiveCreationSummary>> {
     try {
-      const optionError = this.validateFutureOptions(params.futureOptions);
+      const optionError = validateArchiveFutureOptions(params.futureOptions);
       if (optionError) {
         return this.fail(optionError);
       }
@@ -79,104 +84,22 @@ export class ArchiveService {
       );
       const destinationFolderId =
         params.destinationFolderId ?? sourceFolder.parentId ?? ROOT_FOLDER_ID;
-      const destinationPath =
-        await this.fileService.resolveStoragePath(destinationFolderId);
-      const outputName = this.ensureArchiveFileName(
-        params.outputName ?? sourceFolder.name,
-        format,
-      );
-
-      const conflict = await this.checkOutputArchiveConflict(
-        destinationFolderId,
-        outputName,
-      );
-      if (conflict) {
-        return this.fail({ code: conflict.type, message: conflict.message });
-      }
 
       const collected = await this.collectFolderFiles(
         sourceFolder.id,
         sourceFolder.name,
       );
-      const zip = new JSZip();
 
-      for (const directory of collected.directories) {
-        zip.file(this.ensureDirectoryEntryPath(directory), "", { dir: true });
-      }
-
-      const totalEntries = collected.files.length;
-      for (const [index, entry] of collected.files.entries()) {
-        params.onProgress?.({
-          phase: "compress",
-          processedEntries: index,
-          totalEntries,
-          currentEntryName: entry.sourceFile.name,
-        });
-
-        const fileContent = await this.readSourceFileAsBase64(entry.sourceFile);
-        if (!fileContent.success || !fileContent.data) {
-          return this.fail(
-            fileContent.error ?? {
-              code: "unknown",
-              message: `No se pudo leer ${entry.sourceFile.name}`,
-            },
-          );
-        }
-
-        zip.file(entry.zipPath, fileContent.data, { base64: true });
-      }
-
-      const zipBase64 = await zip.generateAsync(
-        this.buildZipGenerationOptions(params.compressionLevel),
-      );
-      const archiveUri = this.fs.resolveUri(`${destinationPath}/${outputName}`);
-      const writeResult = this.fs.writeFile({
-        uri: archiveUri,
-        content: zipBase64,
-        encoding: "base64",
-      });
-
-      if (!writeResult.success) {
-        return this.fail({
-          code: "unknown",
-          message: writeResult.error ?? "No se pudo escribir el ZIP generado",
-        });
-      }
-
-      const fileInfo = this.fs.getFileInfo(archiveUri);
-      if (!fileInfo.success || !fileInfo.data) {
-        return this.fail({
-          code: "unknown",
-          message:
-            fileInfo.error ?? "No se pudo obtener metadata del ZIP generado",
-        });
-      }
-
-      const archiveFile = await this.fileService.createFile({
-        name: outputName,
-        originalName: outputName,
-        extension: format as CreateFileInput["extension"],
-        folderId: destinationFolderId,
+      return this.createArchiveFromPreparedEntries({
+        format,
+        outputName: params.outputName ?? sourceFolder.name,
+        destinationFolderId,
         visibility: params.visibility ?? "private",
-        metadata: this.buildExtractedFileMetadata(fileInfo.data.size, format),
-        storageUrl: archiveUri,
+        compressionLevel: params.compressionLevel,
+        ...(params.onProgress ? { onProgress: params.onProgress } : {}),
+        directories: collected.directories,
+        files: collected.files,
       });
-
-      params.onProgress?.({
-        phase: "compress",
-        processedEntries: totalEntries,
-        totalEntries,
-        currentEntryName: outputName,
-      });
-
-      return {
-        success: true,
-        data: {
-          archiveFile: this.toRecord(archiveFile),
-          entryCount: collected.files.length,
-          format,
-        },
-      };
     } catch (error) {
       return this.fail(this.toOperationError(error, "No se pudo crear el ZIP"));
     }
@@ -187,7 +110,7 @@ export class ArchiveService {
     params: CreateArchiveFromFilesParams,
   ): Promise<ArchiveOperationResult<ArchiveCreationSummary>> {
     try {
-      const optionError = this.validateFutureOptions(params.futureOptions);
+      const optionError = validateArchiveFutureOptions(params.futureOptions);
       if (optionError) {
         return this.fail(optionError);
       }
@@ -197,120 +120,23 @@ export class ArchiveService {
         return this.failUnsupportedFormat(format);
       }
 
-      if (params.files.length === 0) {
-        return this.fail({
-          code: "invalid_archive",
-          message: "Debes indicar al menos un archivo para comprimir",
-        });
-      }
-
+      const virtualEntries = params.virtualEntries ?? [];
       const destinationFolderId = params.destinationFolderId ?? ROOT_FOLDER_ID;
-      const destinationPath =
-        await this.fileService.resolveStoragePath(destinationFolderId);
-      const outputName = this.ensureArchiveFileName(params.outputName, format);
 
-      const conflict = await this.checkOutputArchiveConflict(
+      return this.createArchiveFromPreparedEntries({
+        format,
+        outputName: params.outputName,
         destinationFolderId,
-        outputName,
-      );
-      if (conflict) {
-        return this.fail({ code: conflict.type, message: conflict.message });
-      }
-
-      const zip = new JSZip();
-      const totalEntries = params.files.length;
-      const usedZipPaths = new Set<string>();
-
-      if (params.rootFolderName) {
-        zip.file(this.ensureDirectoryEntryPath(params.rootFolderName), "", {
-          dir: true,
-        });
-      }
-
-      for (const [index, sourceFile] of params.files.entries()) {
-        const zipPath = params.rootFolderName
-          ? this.joinArchivePath(params.rootFolderName, sourceFile.name)
-          : sourceFile.name;
-
-        if (usedZipPaths.has(zipPath)) {
-          return this.fail({
-            code: "invalid_archive",
-            message: `Hay rutas duplicadas dentro del ZIP: ${zipPath}`,
-          });
-        }
-        usedZipPaths.add(zipPath);
-
-        params.onProgress?.({
-          phase: "compress",
-          processedEntries: index,
-          totalEntries,
-          currentEntryName: sourceFile.name,
-        });
-
-        const fileContent = await this.readSourceFileAsBase64(sourceFile);
-        if (!fileContent.success || !fileContent.data) {
-          return this.fail(
-            fileContent.error ?? {
-              code: "unknown",
-              message: `No se pudo leer ${sourceFile.name}`,
-            },
-          );
-        }
-
-        zip.file(zipPath, fileContent.data, { base64: true });
-      }
-
-      const zipBase64 = await zip.generateAsync(
-        this.buildZipGenerationOptions(params.compressionLevel),
-      );
-      const archiveUri = this.fs.resolveUri(`${destinationPath}/${outputName}`);
-      const writeResult = this.fs.writeFile({
-        uri: archiveUri,
-        content: zipBase64,
-        encoding: "base64",
-      });
-
-      if (!writeResult.success) {
-        return this.fail({
-          code: "unknown",
-          message: writeResult.error ?? "No se pudo escribir el ZIP generado",
-        });
-      }
-
-      const fileInfo = this.fs.getFileInfo(archiveUri);
-      if (!fileInfo.success || !fileInfo.data) {
-        return this.fail({
-          code: "unknown",
-          message:
-            fileInfo.error ?? "No se pudo obtener metadata del ZIP generado",
-        });
-      }
-
-      const archiveFile = await this.fileService.createFile({
-        name: outputName,
-        originalName: outputName,
-        extension: format as CreateFileInput["extension"],
-        folderId: destinationFolderId,
         visibility: params.visibility ?? "private",
-        metadata: this.buildExtractedFileMetadata(fileInfo.data.size, format),
-        storageUrl: archiveUri,
+        compressionLevel: params.compressionLevel,
+        ...(params.onProgress ? { onProgress: params.onProgress } : {}),
+        directories: params.rootFolderName ? [params.rootFolderName] : [],
+        files: this.prepareArchiveFileEntries(
+          params.files,
+          params.rootFolderName,
+        ),
+        virtualEntries,
       });
-
-      params.onProgress?.({
-        phase: "compress",
-        processedEntries: totalEntries,
-        totalEntries,
-        currentEntryName: outputName,
-      });
-
-      return {
-        success: true,
-        data: {
-          archiveFile: this.toRecord(archiveFile),
-          entryCount: params.files.length,
-          format,
-        },
-      };
     } catch (error) {
       return this.fail(this.toOperationError(error, "No se pudo crear el ZIP"));
     }
@@ -321,7 +147,7 @@ export class ArchiveService {
     params: InspectArchiveParams,
   ): Promise<ArchiveOperationResult<ArchiveInspection>> {
     try {
-      const optionError = this.validateFutureOptions(params.futureOptions);
+      const optionError = validateArchiveFutureOptions(params.futureOptions);
       if (optionError) {
         return this.fail(optionError);
       }
@@ -371,25 +197,14 @@ export class ArchiveService {
     const createdFiles: ArchiveCreatedRecord[] = [];
 
     try {
-      const inspectionResult = await this.inspectArchive(params);
-      if (!inspectionResult.success || !inspectionResult.data) {
-        return this.fail(
-          inspectionResult.error ?? {
-            code: "invalid_archive",
-            message: "No se pudo inspeccionar el ZIP antes de extraerlo",
-          },
-        );
+      const optionError = validateArchiveFutureOptions(params.futureOptions);
+      if (optionError) {
+        return this.fail(optionError);
       }
 
-      const inspection = inspectionResult.data;
-      if (!inspection.canExtract) {
-        const firstConflict = inspection.conflicts[0];
-        return this.fail({
-          code: firstConflict?.type ?? "invalid_archive",
-          message:
-            firstConflict?.message ??
-            "No se puede extraer el ZIP por conflictos en destino",
-        });
+      const format = this.resolveArchiveFormat(params.archiveFile);
+      if (!this.isSupportedFormat(format)) {
+        return this.failUnsupportedFormat(format);
       }
 
       const parentFolder = await this.folderService.getFolder(
@@ -406,6 +221,25 @@ export class ArchiveService {
       }
 
       const zip = zipResult.data;
+      const inspection = await this.buildInspection({
+        zip,
+        format,
+        parentFolder,
+        mode: params.mode,
+        createFolderName: params.createFolderName,
+        archiveFile: params.archiveFile,
+      });
+
+      if (!inspection.canExtract) {
+        const firstConflict = inspection.conflicts[0];
+        return this.fail({
+          code: firstConflict?.type ?? "invalid_archive",
+          message:
+            firstConflict?.message ??
+            "No se puede extraer el ZIP por conflictos en destino",
+        });
+      }
+
       const folderMap = new Map<string, CreatedFolderContext>();
       let destinationFolder = this.toRecord(parentFolder);
       let destinationFolderId = parentFolder.id;
@@ -448,9 +282,7 @@ export class ArchiveService {
       let processedEntries = 0;
 
       for (const directoryEntry of directoryEntries) {
-        const parentArchivePath = this.getParentArchivePath(
-          directoryEntry.path,
-        );
+        const parentArchivePath = getParentArchivePath(directoryEntry.path);
         const folderParentId = parentArchivePath
           ? folderMap.get(parentArchivePath)?.record.id
           : destinationFolderId;
@@ -496,7 +328,7 @@ export class ArchiveService {
       }
 
       for (const fileEntry of fileEntries) {
-        const parentArchivePath = this.getParentArchivePath(fileEntry.path);
+        const parentArchivePath = getParentArchivePath(fileEntry.path);
         const parentContext = parentArchivePath
           ? folderMap.get(parentArchivePath)
           : undefined;
@@ -512,7 +344,7 @@ export class ArchiveService {
         }
 
         const targetUri = this.fs.resolveUri(
-          this.joinArchivePath(fileFolderPath, fileEntry.name),
+          joinArchivePath(fileFolderPath, fileEntry.name),
         );
         const base64Content = await zipFile.async("base64");
         const writeResult = this.fs.writeFile({
@@ -539,18 +371,6 @@ export class ArchiveService {
           fileEntry.name,
           fileInfo.data.extension,
         );
-        const fileCategory =
-          FILE_CATEGORY_MAP[
-            resolvedExtension as keyof typeof FILE_CATEGORY_MAP
-          ];
-        const thumbnailUrl =
-          fileCategory === "image" || fileCategory === "video"
-            ? ((await this.media.generateThumbnail(
-                targetUri,
-                `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-                fileCategory,
-              )) ?? undefined)
-            : undefined;
 
         const extractedFile = await this.fileService.createFile({
           name: fileEntry.name,
@@ -561,7 +381,6 @@ export class ArchiveService {
             "private") as FileVisibility,
           metadata: this.buildFileMetadataFromInfo(fileInfo.data),
           storageUrl: targetUri,
-          ...(thumbnailUrl ? { thumbnailUrl } : {}),
         });
 
         const record = this.toRecord(extractedFile);
@@ -605,7 +424,7 @@ export class ArchiveService {
     createFolderName?: string | undefined;
     archiveFile: ArchiveSourceFile;
   }): Promise<ArchiveInspection> {
-    const entries = this.buildArchiveEntries(args.zip);
+    const entries = buildArchiveEntries(args.zip);
     const rootEntries = entries.filter((entry) => entry.depth === 1);
     const hasSingleRootDirectory =
       rootEntries.length === 1 && rootEntries[0]?.type === "directory";
@@ -641,58 +460,6 @@ export class ArchiveService {
       unsupportedFeatures: [],
       canExtract: conflicts.length === 0,
     };
-  }
-
-  /** Convierte las entradas del ZIP en una vista plana de carpetas y archivos. */
-  private buildArchiveEntries(zip: JSZip): ArchiveEntryDescriptor[] {
-    const directories = new Map<string, ArchiveEntryDescriptor>();
-    const files: ArchiveEntryDescriptor[] = [];
-
-    for (const zipEntry of Object.values(zip.files)) {
-      const normalizedPath = this.normalizeArchivePath(zipEntry.name);
-      if (!normalizedPath) {
-        continue;
-      }
-
-      const segments = normalizedPath.split("/");
-      for (let index = 0; index < segments.length - 1; index += 1) {
-        const dirPath = segments.slice(0, index + 1).join("/");
-        if (!directories.has(dirPath)) {
-          directories.set(dirPath, {
-            path: dirPath,
-            name: segments[index] ?? dirPath,
-            type: "directory",
-            depth: index + 1,
-          });
-        }
-      }
-
-      if (zipEntry.dir) {
-        if (!directories.has(normalizedPath)) {
-          directories.set(normalizedPath, {
-            path: normalizedPath,
-            name: segments[segments.length - 1] ?? normalizedPath,
-            type: "directory",
-            depth: segments.length,
-          });
-        }
-        continue;
-      }
-
-      files.push({
-        path: normalizedPath,
-        name: segments[segments.length - 1] ?? normalizedPath,
-        type: "file",
-        depth: segments.length,
-      });
-    }
-
-    return [...directories.values(), ...files].sort((left, right) => {
-      if (left.depth !== right.depth) {
-        return left.depth - right.depth;
-      }
-      return left.path.localeCompare(right.path);
-    });
   }
 
   /** Detecta colisiones en destino antes de crear carpetas o archivos extraídos. */
@@ -773,22 +540,182 @@ export class ArchiveService {
 
     for (const folderFile of folderFiles) {
       files.push({
-        zipPath: this.joinArchivePath(archiveRootPath, folderFile.name),
+        zipPath: joinArchivePath(archiveRootPath, folderFile.name),
         sourceFile: this.toArchiveSourceFile(folderFile),
       });
     }
 
     for (const subfolder of subfolders) {
-      const subfolderPath = this.joinArchivePath(
-        archiveRootPath,
-        subfolder.name,
-      );
+      const subfolderPath = joinArchivePath(archiveRootPath, subfolder.name);
       const nested = await this.collectFolderFiles(subfolder.id, subfolderPath);
       directories.push(...nested.directories);
       files.push(...nested.files);
     }
 
     return { directories, files };
+  }
+
+  /** Prepara rutas definitivas del ZIP para una colección explícita de archivos. */
+  private prepareArchiveFileEntries(
+    files: ArchiveSourceFile[],
+    rootFolderName?: string,
+  ): PreparedArchiveFileEntry[] {
+    return files.map((sourceFile) => ({
+      zipPath: this.resolveArchiveEntryPath(
+        sourceFile.archivePath ?? sourceFile.name,
+        rootFolderName,
+      ),
+      sourceFile,
+    }));
+  }
+
+  /** Genera y persiste un ZIP a partir de entradas ya normalizadas. */
+  private async createArchiveFromPreparedEntries(args: {
+    format: SupportedArchiveFormat;
+    outputName: string;
+    destinationFolderId: UUID;
+    visibility: FileVisibility;
+    compressionLevel?: CreateArchiveFromFilesParams["compressionLevel"];
+    onProgress?: CreateArchiveFromFilesParams["onProgress"];
+    directories?: string[];
+    files: PreparedArchiveFileEntry[];
+    virtualEntries?: ArchiveVirtualEntry[];
+  }): Promise<ArchiveOperationResult<ArchiveCreationSummary>> {
+    const virtualEntries = args.virtualEntries ?? [];
+
+    if (args.files.length === 0 && virtualEntries.length === 0) {
+      return this.fail({
+        code: "invalid_archive",
+        message: "Debes indicar al menos un archivo para comprimir",
+      });
+    }
+
+    const outputName = this.ensureArchiveFileName(args.outputName, args.format);
+    const conflict = await this.checkOutputArchiveConflict(
+      args.destinationFolderId,
+      outputName,
+    );
+    if (conflict) {
+      return this.fail({ code: conflict.type, message: conflict.message });
+    }
+
+    const destinationPath = await this.fileService.resolveStoragePath(
+      args.destinationFolderId,
+    );
+    const zip = new JSZip();
+    const usedZipPaths = new Set<string>();
+
+    for (const directory of args.directories ?? []) {
+      zip.file(this.ensureDirectoryEntryPath(directory), "", { dir: true });
+    }
+
+    const totalEntries = args.files.length + virtualEntries.length;
+
+    for (const [index, entry] of args.files.entries()) {
+      const duplicatePathError = this.ensureUniqueArchiveEntryPath(
+        usedZipPaths,
+        entry.zipPath,
+      );
+      if (duplicatePathError) {
+        return this.fail(duplicatePathError);
+      }
+
+      args.onProgress?.({
+        phase: "compress",
+        processedEntries: index,
+        totalEntries,
+        currentEntryName: entry.sourceFile.name,
+      });
+
+      const fileContent = await this.readSourceFileAsBase64(entry.sourceFile);
+      if (!fileContent.success || !fileContent.data) {
+        return this.fail(
+          fileContent.error ?? {
+            code: "unknown",
+            message: `No se pudo leer ${entry.sourceFile.name}`,
+          },
+        );
+      }
+
+      zip.file(entry.zipPath, fileContent.data, { base64: true });
+    }
+
+    for (const [index, virtualEntry] of virtualEntries.entries()) {
+      const zipPath = normalizeArchivePath(virtualEntry.path);
+      const duplicatePathError = this.ensureUniqueArchiveEntryPath(
+        usedZipPaths,
+        zipPath,
+      );
+      if (duplicatePathError) {
+        return this.fail(duplicatePathError);
+      }
+
+      args.onProgress?.({
+        phase: "compress",
+        processedEntries: args.files.length + index,
+        totalEntries,
+        currentEntryName: virtualEntry.path,
+      });
+
+      zip.file(zipPath, virtualEntry.content, {
+        base64: virtualEntry.encoding === "base64",
+      });
+    }
+
+    const zipBase64 = await zip.generateAsync(
+      this.buildZipGenerationOptions(args.compressionLevel),
+    );
+    const archiveUri = this.fs.resolveUri(`${destinationPath}/${outputName}`);
+    const writeResult = this.fs.writeFile({
+      uri: archiveUri,
+      content: zipBase64,
+      encoding: "base64",
+    });
+
+    if (!writeResult.success) {
+      return this.fail({
+        code: "unknown",
+        message: writeResult.error ?? "No se pudo escribir el ZIP generado",
+      });
+    }
+
+    const fileInfo = this.fs.getFileInfo(archiveUri);
+    if (!fileInfo.success || !fileInfo.data) {
+      return this.fail({
+        code: "unknown",
+        message:
+          fileInfo.error ?? "No se pudo obtener metadata del ZIP generado",
+      });
+    }
+
+    const archiveFile = await this.fileService.createFile({
+      name: outputName,
+      originalName: outputName,
+      extension: args.format as CreateFileInput["extension"],
+      folderId: args.destinationFolderId,
+      visibility: args.visibility,
+      metadata: this.buildExtractedFileMetadata(
+        fileInfo.data.size,
+        args.format,
+      ),
+      storageUrl: archiveUri,
+    });
+
+    args.onProgress?.({
+      phase: "compress",
+      processedEntries: totalEntries,
+      totalEntries,
+      currentEntryName: outputName,
+    });
+
+    return {
+      success: true,
+      data: {
+        archiveFile: this.toRecord(archiveFile),
+        entryCount: totalEntries,
+        format: args.format,
+      },
+    };
   }
 
   /** Lee un archivo de origen y lo devuelve codificado en base64. */
@@ -807,43 +734,43 @@ export class ArchiveService {
     return { success: true, data: readResult.data };
   }
 
+  /** Resuelve la ruta final de una entrada dentro del ZIP, aplicando la carpeta raíz si existe. */
+  private resolveArchiveEntryPath(
+    path: string,
+    rootFolderName?: string,
+  ): string {
+    return rootFolderName
+      ? joinArchivePath(rootFolderName, path)
+      : normalizeArchivePath(path);
+  }
+
+  /** Rechaza rutas duplicadas dentro del ZIP para mantener un layout determinista. */
+  private ensureUniqueArchiveEntryPath(
+    usedZipPaths: Set<string>,
+    zipPath: string,
+  ): ArchiveOperationError | null {
+    if (usedZipPaths.has(zipPath)) {
+      return {
+        code: "invalid_archive",
+        message: `Hay rutas duplicadas dentro del ZIP: ${zipPath}`,
+      };
+    }
+
+    usedZipPaths.add(zipPath);
+    return null;
+  }
+
   /** Abre un archivo comprimido y lo carga como instancia de JSZip. */
   private async loadArchiveZip(
     archiveFile: ArchiveSourceFile,
   ): Promise<ArchiveOperationResult<JSZip>> {
     const archiveUri = this.resolveSourceFileUri(archiveFile);
-    const archiveBase64 = await this.fs.readAsBase64(archiveUri);
-    if (!archiveBase64.success || !archiveBase64.data) {
-      return this.fail({
-        code: "invalid_archive",
-        message: archiveBase64.error ?? "No se pudo leer el ZIP",
-      });
-    }
-
-    try {
-      const zip = await JSZip.loadAsync(archiveBase64.data, { base64: true });
-      return { success: true, data: zip };
-    } catch {
-      return this.fail({
-        code: "invalid_archive",
-        message: "El archivo ZIP no es valido o esta corrupto",
-      });
-    }
+    return loadZipFromUri(this.fs, archiveUri);
   }
 
   /** Indexa solo los archivos del ZIP por su ruta normalizada. */
   private indexZipFiles(zip: JSZip): Map<string, JSZip.JSZipObject> {
-    const indexedEntries = new Map<string, JSZip.JSZipObject>();
-
-    for (const entry of Object.values(zip.files)) {
-      if (entry.dir) {
-        continue;
-      }
-
-      indexedEntries.set(this.normalizeArchivePath(entry.name), entry);
-    }
-
-    return indexedEntries;
+    return indexZipFiles(zip);
   }
 
   /** Comprueba si ya existe el archivo ZIP de salida en la carpeta destino. */
@@ -885,41 +812,6 @@ export class ArchiveService {
         // Ignorado: el rollback es best-effort.
       }
     }
-  }
-
-  /** Rechaza opciones reservadas para futuras iteraciones que aún no están soportadas. */
-  private validateFutureOptions(
-    options?: ArchiveFutureOptions,
-  ): ArchiveOperationError | null {
-    if (!options) {
-      return null;
-    }
-
-    const unsupported: ArchiveUnsupportedFeature[] = [];
-
-    if (options.password) {
-      unsupported.push("password");
-    }
-    if (options.encryption) {
-      unsupported.push("encryption");
-    }
-    if (options.partialEntries && options.partialEntries.length > 0) {
-      unsupported.push("partial_extraction");
-    }
-    if (options.overwriteMode) {
-      unsupported.push("advanced_overwrite_mode");
-    }
-
-    if (unsupported.length === 0) {
-      return null;
-    }
-
-    return {
-      code: "unsupported_option",
-      message:
-        "Se han indicado opciones reservadas para futuras iteraciones y aun no estan soportadas",
-      unsupportedFeatures: unsupported,
-    };
   }
 
   /** Resuelve el formato pedido o usa ZIP por defecto. */
@@ -985,6 +877,14 @@ export class ArchiveService {
   private buildZipGenerationOptions(
     compressionLevel?: CreateArchiveFromFilesParams["compressionLevel"],
   ): JSZip.JSZipGeneratorOptions<"base64"> {
+    if (!compressionLevel) {
+      return {
+        type: "base64",
+        compression: "DEFLATE",
+        compressionOptions: { level: 3 },
+      };
+    }
+
     switch (compressionLevel) {
       case "none":
         return { type: "base64", compression: "STORE" };
@@ -1001,11 +901,16 @@ export class ArchiveService {
           compressionOptions: { level: 9 },
         };
       case "normal":
-      default:
         return {
           type: "base64",
           compression: "DEFLATE",
           compressionOptions: { level: 6 },
+        };
+      default:
+        return {
+          type: "base64",
+          compression: "DEFLATE",
+          compressionOptions: { level: 3 },
         };
     }
   }
@@ -1065,34 +970,8 @@ export class ArchiveService {
 
   /** Fuerza el formato de carpeta que espera JSZip para entradas de directorio. */
   private ensureDirectoryEntryPath(path: string): string {
-    const normalized = this.normalizeArchivePath(path);
+    const normalized = normalizeArchivePath(path);
     return normalized.endsWith("/") ? normalized : `${normalized}/`;
-  }
-
-  /** Normaliza rutas internas del ZIP usando separador POSIX y sin bordes sobrantes. */
-  private normalizeArchivePath(path: string): string {
-    return path
-      .replace(/\\/g, "/")
-      .replace(/^\/+|\/+$/g, "")
-      .trim();
-  }
-
-  /** Une segmentos de ruta para construir rutas internas coherentes del ZIP. */
-  private joinArchivePath(...segments: string[]): string {
-    return segments
-      .map((segment) => this.normalizeArchivePath(segment))
-      .filter(Boolean)
-      .join("/");
-  }
-
-  /** Obtiene la ruta padre de una entrada dentro del archivo comprimido. */
-  private getParentArchivePath(path: string): string | undefined {
-    const segments = this.normalizeArchivePath(path).split("/");
-    if (segments.length <= 1) {
-      return undefined;
-    }
-
-    return segments.slice(0, -1).join("/");
   }
 
   /** Extrae la extensión de un nombre de archivo en minúsculas. */
@@ -1151,6 +1030,7 @@ export class ArchiveService {
       extension: file.extension,
       path: file.path,
       metadata: file.metadata,
+      archivePath: file.name,
       ...(file.folderId ? { folderId: file.folderId } : {}),
       ...(file.visibility ? { visibility: file.visibility } : {}),
       ...(file.storageUrl ? { storageUrl: file.storageUrl } : {}),

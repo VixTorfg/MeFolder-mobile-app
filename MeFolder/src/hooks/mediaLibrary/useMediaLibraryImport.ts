@@ -11,12 +11,14 @@ import type {
 
 interface UseMediaLibraryImportParams {
   folderId?: string;
+  albumId?: string;
 }
 
 const ALBUM_PAGE_SIZE = 100;
 
 export function useMediaLibraryImport({
   folderId,
+  albumId,
 }: UseMediaLibraryImportParams) {
   const { services } = useServices();
   const addLibraryItem = useLibraryStore((state) => state.addItem);
@@ -52,6 +54,7 @@ export function useMediaLibraryImport({
         const result = await services.mediaImportService.importFiles({
           files: assets.map(mapAssetToImportFile),
           ...(folderId ? { folderId } : {}),
+          ...(albumId ? { tagIds: [albumId] } : {}),
           onProgress: setProgress,
         });
 
@@ -78,12 +81,24 @@ export function useMediaLibraryImport({
 
         setProgressTitle(`Importando álbum: ${album.title}`);
 
-        const result = await services.mediaImportService.importAlbum({
-          albumName: album.title,
-          files,
-          ...(folderId ? { folderId } : {}),
-          onProgress: setProgress,
-        });
+        const result: ImportMediaAlbumResult = albumId
+          ? {
+              album: null,
+              ...(await services.mediaImportService.importFiles({
+                files,
+                ...(folderId ? { folderId } : {}),
+                tagIds: [albumId],
+                onProgress: setProgress,
+              })),
+            }
+          : {
+              album: null,
+              ...(await services.mediaImportService.importFiles({
+                files,
+                ...(folderId ? { folderId } : {}),
+                onProgress: setProgress,
+              })),
+            };
 
         persistImportedFiles(result);
         if (result.album) {
@@ -97,6 +112,7 @@ export function useMediaLibraryImport({
     },
     [
       addAlbum,
+      albumId,
       folderId,
       persistImportedFiles,
       resetProgress,

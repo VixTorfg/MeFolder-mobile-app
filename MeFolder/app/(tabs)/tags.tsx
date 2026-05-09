@@ -14,6 +14,7 @@ import {
   PriorityTagCard,
   AlbumCard,
   AlbumEmptyState,
+  MediaImportProgressOverlay,
 } from "@/components";
 import { useTagsStyles } from "@/screenStyles/tagsStyle";
 import { useTagsActions } from "@/hooks/tags/useTagsActions";
@@ -25,7 +26,8 @@ import { useAlert } from "@/providers";
 export default function TagsScreen() {
   const [showTagCreator, setShowTagCreator] = useState(false);
   const { items, albums } = useTagsContent();
-  const { handleSaveTag } = useTagsActions();
+  const { handleImportZipAlbum, handleSaveTag, zipImportProgress } =
+    useTagsActions();
   const { showAlert } = useAlert();
   const styles = useTagsStyles();
 
@@ -208,12 +210,31 @@ export default function TagsScreen() {
         <TagCreator
           visible={showTagCreator}
           onClose={() => setShowTagCreator(false)}
-          onSave={(data) => {
-            handleSaveTag(data);
-            setShowTagCreator(false);
+          onImportZipAlbum={async () => {
+            const result = await handleImportZipAlbum();
+            if (result) {
+              setShowTagCreator(false);
+            }
+          }}
+          onSave={async (data) => {
+            const result = await handleSaveTag(data);
+            if (result) {
+              setShowTagCreator(false);
+            }
           }}
         />
       )}
+
+      <MediaImportProgressOverlay
+        visible={zipImportProgress !== null}
+        title="Importando ZIP"
+        progress={
+          zipImportProgress ?? {
+            completed: 0,
+            total: 1,
+          }
+        }
+      />
     </View>
   );
 }

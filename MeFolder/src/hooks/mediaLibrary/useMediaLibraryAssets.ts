@@ -6,11 +6,13 @@ export const MEDIA_LIBRARY_SELECTION_LIMIT = 100;
 
 export type MediaLibraryImportMode = "assets" | "albums";
 
-export function useMediaLibraryAssets() {
+export function useMediaLibraryAssets(
+  initialMode: MediaLibraryImportMode = "assets",
+) {
   const { showAlert } = useAlert();
   const [permission, setPermission] =
     useState<MediaLibrary.PermissionResponse | null>(null);
-  const [mode, setMode] = useState<MediaLibraryImportMode>("assets");
+  const [mode, setMode] = useState<MediaLibraryImportMode>(initialMode);
   const [assets, setAssets] = useState<MediaLibrary.Asset[]>([]);
   const [albums, setAlbums] = useState<MediaLibrary.Album[]>([]);
   const [selectedAssetIds, setSelectedAssetIds] = useState<Set<string>>(
@@ -67,7 +69,8 @@ export function useMediaLibraryAssets() {
       setAlbums([]);
       showAlert({
         title: "No se pudieron cargar los álbumes",
-        message: "La galería no devolvió una lista de álbumes válida en este dispositivo.",
+        message:
+          "La galería no devolvió una lista de álbumes válida en este dispositivo.",
       });
     } finally {
       setIsLoadingAlbums(false);

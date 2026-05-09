@@ -16,4 +16,5 @@ export { TagCard } from "./TagCard";
 export { PriorityTagCard } from "./PriorityTagCard";
 export { AlbumCard, AlbumEmptyState } from "./AlbumCard";
 export { ImageViewer, AudioPlayer, VideoPlayer, MediaHost } from "./media";
+export { MediaImportProgressOverlay } from "./MediaLibraryImport";
 export { SortDropDown } from "./SortDropDown";

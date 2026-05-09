@@ -53,6 +53,23 @@ export interface ImportMediaAlbumResult extends ImportMediaFilesResult {
   album: TagModel | null;
 }
 
+export interface RegisterExistingMediaFile {
+  id: string;
+  name: string;
+  originalName: string;
+  uri: string;
+  type: FileCategory;
+  mimeType?: string | undefined;
+  folderId?: UUID | undefined;
+  tagIds?: UUID[] | undefined;
+  visibility?: CreateFileInput["visibility"] | undefined;
+}
+
+export interface RegisterExistingFilesParams {
+  files: RegisterExistingMediaFile[];
+  onProgress?: (progress: MediaImportProgress) => void;
+}
+
 export class MediaImportService {
   private readonly fs = new FileSystemService();
   private readonly media = new MediaService();
@@ -90,81 +107,102 @@ export class MediaImportService {
     }
 
     for (const [index, file] of files.entries()) {
-      let copiedUri: string | null = null;
+      let preparedFile: RegisterExistingMediaFile | null = null;
 
       try {
-        const resolvedExt = this.resolveExtension(file.mimeType, file.name);
-        const fileNameWithExt = this.buildFileName(file.name, resolvedExt);
-        const destinationUri = this.fs.resolveUri(
-          `${targetPath}/${fileNameWithExt}`,
-        );
-
-        const copyResult = this.fs.copyFile({
-          from: file.uri,
-          to: destinationUri,
+        preparedFile = this.prepareImportedFile({
+          file,
+          targetPath,
+          tagIds,
+          ...(folderId ? { folderId } : {}),
         });
 
-        if (!copyResult.success || !copyResult.toUri) {
-          failed.push({
-            id: file.id,
-            name: file.name,
-            error: copyResult.error ?? "Error al copiar el archivo",
-          });
-          onProgress?.({
-            completed: index + 1,
-            total,
-            currentFileName: file.name,
-          });
-          continue;
+        const createdFile = await this.persistPreparedFile(preparedFile);
+        importedFiles.push(createdFile);
+      } catch (error) {
+        if (preparedFile?.uri) {
+          this.fs.deleteFile(preparedFile.uri);
         }
 
-        copiedUri = copyResult.toUri;
-        const metadata = this.fs.getFileInfo(copiedUri);
+        failed.push({
+          id: file.id,
+          name: file.name,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      }
 
-        if (!metadata.success || !metadata.data) {
-          throw new Error(
-            metadata.error ?? "No se pudo obtener información del archivo",
-          );
-        }
+      onProgress?.({
+        completed: index + 1,
+        total,
+        currentFileName: file.name,
+      });
+    }
 
-        const fileMetadata = await this.buildFileMetadata(
-          file.type,
-          copiedUri,
-          metadata.data,
-          file.mimeType,
-        );
+    return { importedFiles, failed };
+  }
 
-        let thumbnailUrl: string | undefined;
-        if (file.type === "image" || file.type === "video") {
-          const thumbId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-          thumbnailUrl =
-            (await this.media.generateThumbnail(
-              copiedUri,
-              thumbId,
-              file.type,
-            )) ?? undefined;
-        }
+  private prepareImportedFile(args: {
+    file: MediaImportFile;
+    targetPath: string;
+    tagIds: UUID[];
+    folderId?: UUID | undefined;
+  }): RegisterExistingMediaFile {
+    const resolvedExt = this.resolveExtension(
+      args.file.mimeType,
+      args.file.name,
+    );
+    const fileNameWithExt = this.buildFileName(args.file.name, resolvedExt);
+    const destinationUri = this.fs.resolveUri(
+      `${args.targetPath}/${fileNameWithExt}`,
+    );
 
-        const fileResult = await this.fileService.createFile({
+    const copyResult = this.fs.copyFile({
+      from: args.file.uri,
+      to: destinationUri,
+    });
+
+    if (!copyResult.success || !copyResult.toUri) {
+      throw new Error(copyResult.error ?? "Error al copiar el archivo");
+    }
+
+    return {
+      id: args.file.id,
+      name: args.file.name,
+      originalName: args.file.originalName,
+      uri: copyResult.toUri,
+      type: args.file.type,
+      visibility: "public",
+      tagIds: args.tagIds,
+      ...(args.file.mimeType ? { mimeType: args.file.mimeType } : {}),
+      ...(args.folderId ? { folderId: args.folderId } : {}),
+    };
+  }
+
+  async registerExistingFiles({
+    files,
+    onProgress,
+  }: RegisterExistingFilesParams): Promise<ImportMediaFilesResult> {
+    const importedFiles: FileModel[] = [];
+    const failed: MediaImportFailure[] = [];
+    const total = files.length;
+
+    onProgress?.({ completed: 0, total });
+
+    for (const [index, file] of files.entries()) {
+      try {
+        const createdFile = await this.persistPreparedFile({
           name: file.name,
           originalName: file.originalName,
-          extension: (resolvedExt ||
-            metadata.data.extension ||
-            "") as CreateFileInput["extension"],
-          visibility: "public",
-          metadata: fileMetadata,
-          tagIds: this.buildTagIds(file.type, tagIds),
-          storageUrl: copiedUri,
-          ...(folderId ? { folderId } : {}),
-          ...(thumbnailUrl ? { thumbnailUrl } : {}),
+          uri: file.uri,
+          type: file.type,
+          ...(file.mimeType ? { mimeType: file.mimeType } : {}),
+          ...(file.folderId ? { folderId: file.folderId } : {}),
+          ...(file.tagIds ? { tagIds: file.tagIds } : {}),
+          ...(file.visibility ? { visibility: file.visibility } : {}),
         });
 
-        importedFiles.push(fileResult);
+        importedFiles.push(createdFile);
       } catch (error) {
-        if (copiedUri) {
-          this.fs.deleteFile(copiedUri);
-        }
-
         failed.push({
           id: file.id,
           name: file.name,
@@ -336,5 +374,63 @@ export class MediaImportService {
     }
 
     return nameExt;
+  }
+
+  private async persistPreparedFile(args: {
+    name: string;
+    originalName: string;
+    uri: string;
+    type: FileCategory;
+    mimeType?: string | undefined;
+    folderId?: UUID | undefined;
+    tagIds?: UUID[] | undefined;
+    visibility?: CreateFileInput["visibility"] | undefined;
+  }): Promise<FileModel> {
+    const metadata = this.fs.getFileInfo(args.uri);
+
+    if (!metadata.success || !metadata.data) {
+      throw new Error(
+        metadata.error ?? "No se pudo obtener información del archivo",
+      );
+    }
+
+    const resolvedExt = this.resolveExtension(args.mimeType, args.name);
+    const fileMetadata = await this.buildFileMetadata(
+      args.type,
+      args.uri,
+      metadata.data,
+      args.mimeType,
+    );
+
+    let thumbnailUrl: string | undefined;
+
+    try {
+      if (args.type === "image" || args.type === "video") {
+        const thumbId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        thumbnailUrl =
+          (await this.media.generateThumbnail(args.uri, thumbId, args.type)) ??
+          undefined;
+      }
+
+      return await this.fileService.createFile({
+        name: args.name,
+        originalName: args.originalName,
+        extension: (resolvedExt ||
+          metadata.data.extension ||
+          "") as CreateFileInput["extension"],
+        visibility: args.visibility ?? "public",
+        metadata: fileMetadata,
+        tagIds: this.buildTagIds(args.type, args.tagIds ?? []),
+        storageUrl: args.uri,
+        ...(args.folderId ? { folderId: args.folderId } : {}),
+        ...(thumbnailUrl ? { thumbnailUrl } : {}),
+      });
+    } catch (error) {
+      if (thumbnailUrl) {
+        this.fs.deleteFile(thumbnailUrl);
+      }
+
+      throw error;
+    }
   }
 }

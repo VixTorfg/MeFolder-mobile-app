@@ -7,12 +7,26 @@ import {
   useAlert,
   useServices,
 } from "@/hooks";
-import { CustomPopup, MultiActionButton, MediaHost } from "@/components";
+import {
+  CustomPopup,
+  MediaImportProgressOverlay,
+  MultiActionButton,
+  MediaHost,
+  OptionDropDown,
+  PropertyMenu,
+} from "@/components";
 import { FileModel } from "@/models/file";
 import type { MediaHostItem } from "@/types/media/viewers";
+import {
+  OptionsIds,
+  type ArchiveProgress,
+  type ArchiveSourceFile,
+  type OptionsType,
+} from "@/types";
 import { useTagContentStore } from "@/stores/useTagContentStore";
 import { useLocalSearchParams, router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
+import * as Sharing from "expo-sharing";
 import {
   ActivityIndicator,
   Animated as RNAnimated,
@@ -40,11 +54,30 @@ const SPACING_HORIZONTAL_SM = 10;
 const DELETE_DIALOG_CLOSE_DELAY_MS = 180;
 const DELETE_LOADING_SHOW_DELAY_MS = 80;
 const DELETE_LOADING_MIN_VISIBLE_MS = 140;
+const SHARE_LOADING_SHOW_DELAY_MS = 80;
 
 const wait = (ms: number) =>
   new Promise<void>((resolve) => {
     setTimeout(resolve, ms);
   });
+
+const galleryOptions: OptionsType[] = [
+  {
+    id: OptionsIds.EXPORT_ALBUM,
+    name: "Exportar álbum",
+    icon: "share-outline",
+  },
+  {
+    id: OptionsIds.PROPERTIES,
+    name: "Propiedades",
+    icon: "build-outline",
+  },
+  {
+    id: OptionsIds.SETTINGS,
+    name: "Configuración",
+    icon: "settings-outline",
+  },
+];
 
 interface GalleryTileProps {
   item: FileModel;
@@ -147,8 +180,16 @@ export default function GalleryScreen() {
     tagId: tagId as string,
     pageSize: 100,
   });
-  const { itemsSelected, selectionMode, toggleSelection, clearSelection } =
-    useSelection(items, tagId as string, "tag");
+  const {
+    itemsSelected,
+    selectionMode,
+    toggleSelection,
+    clearSelection,
+    currentData,
+    showPropertyMenu,
+    closePropertyMenu,
+    handleOnSelectOption,
+  } = useSelection(items, tagId as string, "tag");
 
   const { columns, pinchGesture } = usePinchColumns({
     initialColumns: 4,
@@ -171,6 +212,14 @@ export default function GalleryScreen() {
     deleteFromSystem: false,
   });
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
+  const [isArchiveLoading, setIsArchiveLoading] = useState(false);
+  const [archiveProgress, setArchiveProgress] =
+    useState<ArchiveProgress | null>(null);
+  const [archiveLoadingTitle, setArchiveLoadingTitle] =
+    useState("Exportando álbum");
+  const [archiveLoadingText, setArchiveLoadingText] = useState(
+    "Preparando el ZIP del álbum...",
+  );
 
   const mediaItems = useMemo<MediaHostItem[]>(
     () =>
@@ -335,6 +384,213 @@ export default function GalleryScreen() {
     tagId,
   ]);
 
+  const handleArchiveProgress = useCallback((progress: ArchiveProgress) => {
+    setArchiveProgress(progress);
+  }, []);
+
+  const handleExportAlbum = useCallback(async () => {
+    if (!(await Sharing.isAvailableAsync())) {
+      showAlert({
+        title: "Compartir no disponible",
+        message:
+          "La función de compartir no está disponible en este dispositivo.",
+      });
+      return;
+    }
+
+    let temporaryArchiveId: string | null = null;
+
+    try {
+      setArchiveProgress(null);
+      setArchiveLoadingTitle("Exportando álbum");
+      setArchiveLoadingText("Preparando el ZIP del álbum...");
+      setIsArchiveLoading(true);
+
+      const exportResult = await services.albumArchiveService.exportAlbum({
+        albumId: tagId as string,
+        onProgress: handleArchiveProgress,
+      });
+
+      if (!exportResult.success || !exportResult.data) {
+        throw new Error(
+          exportResult.error?.message ?? "No se pudo exportar el álbum.",
+        );
+      }
+
+      temporaryArchiveId = exportResult.data.archiveFile.id;
+
+      await Sharing.shareAsync(exportResult.data.archiveUri, {
+        mimeType: "application/zip",
+        dialogTitle: `Exportar ${exportResult.data.albumName}`,
+      });
+    } catch (error) {
+      showAlert({
+        title: "Error al exportar",
+        message:
+          error instanceof Error
+            ? error.message
+            : "No se pudo exportar el álbum.",
+      });
+    } finally {
+      setIsArchiveLoading(false);
+      setArchiveProgress(null);
+
+      if (temporaryArchiveId) {
+        try {
+          await services.fileService.permanentDeleteFile(temporaryArchiveId);
+        } catch (cleanupError) {
+          console.warn(
+            "No se pudo limpiar el ZIP temporal del álbum:",
+            cleanupError,
+          );
+        }
+      }
+    }
+  }, [handleArchiveProgress, services, showAlert, tagId]);
+
+  const handleShareSelected = useCallback(async () => {
+    if (!(await Sharing.isAvailableAsync())) {
+      showAlert({
+        title: "Compartir no disponible",
+        message:
+          "La función de compartir no está disponible en este dispositivo.",
+      });
+      return;
+    }
+
+    const shareableItems = itemsSelected.filter((item) =>
+      Boolean(item.storageUrl),
+    );
+    if (shareableItems.length === 0) {
+      showAlert({
+        title: "Nada que compartir",
+        message:
+          "Los elementos seleccionados no tienen una ruta de archivo válida.",
+      });
+      return;
+    }
+
+    if (shareableItems.length === 1) {
+      const fileUri = shareableItems[0]?.storageUrl;
+      if (!fileUri) {
+        showAlert({
+          title: "Ruta no disponible",
+          message: "No se pudo resolver la ubicación del archivo seleccionado.",
+        });
+        return;
+      }
+
+      try {
+        await Sharing.shareAsync(fileUri, {
+          ...(shareableItems[0]?.metadata.mimeType
+            ? { mimeType: shareableItems[0].metadata.mimeType }
+            : {}),
+          dialogTitle: `Compartir ${shareableItems[0]?.name ?? "archivo"}`,
+        });
+      } catch (error) {
+        showAlert({
+          title: "Error al compartir",
+          message:
+            error instanceof Error
+              ? error.message
+              : "No se pudo compartir el archivo seleccionado.",
+        });
+      }
+      return;
+    }
+
+    let temporaryArchiveId: string | null = null;
+
+    try {
+      setArchiveProgress(null);
+      setArchiveLoadingTitle("Compartiendo selección");
+      setArchiveLoadingText("Preparando el ZIP de la selección...");
+      setIsArchiveLoading(true);
+      await wait(SHARE_LOADING_SHOW_DELAY_MS);
+
+      const archiveResult =
+        await services.archiveService.createArchiveFromFiles({
+          files: shareableItems.map<ArchiveSourceFile>((item) => ({
+            id: item.id,
+            name: item.name,
+            originalName: item.originalName,
+            extension: item.extension,
+            path: item.path,
+            metadata: item.metadata,
+            ...(item.storageUrl ? { storageUrl: item.storageUrl } : {}),
+            ...(item.folderId ? { folderId: item.folderId } : {}),
+            ...(item.visibility ? { visibility: item.visibility } : {}),
+          })),
+          outputName:
+            shareableItems.length > 1
+              ? `${(albumName as string) ?? "seleccion"}_seleccion`
+              : (shareableItems[0]?.name ?? "seleccion"),
+          rootFolderName: (albumName as string) ?? "seleccion",
+          onProgress: handleArchiveProgress,
+        });
+
+      if (!archiveResult.success || !archiveResult.data) {
+        throw new Error(
+          archiveResult.error?.message ??
+            "No se pudo preparar la selección para compartir.",
+        );
+      }
+
+      temporaryArchiveId = archiveResult.data.archiveFile.id;
+      const archiveFile =
+        await services.fileService.getFile(temporaryArchiveId);
+      const archiveUri = archiveFile.storageUrl ?? archiveFile.path;
+
+      await Sharing.shareAsync(archiveUri, {
+        mimeType: "application/zip",
+        dialogTitle: "Compartir selección",
+      });
+    } catch (error) {
+      showAlert({
+        title: "Error al compartir",
+        message:
+          error instanceof Error
+            ? error.message
+            : "No se pudo compartir la selección.",
+      });
+    } finally {
+      setIsArchiveLoading(false);
+      setArchiveProgress(null);
+      setArchiveLoadingTitle("Exportando álbum");
+      setArchiveLoadingText("Preparando el ZIP del álbum...");
+
+      if (temporaryArchiveId) {
+        try {
+          await services.fileService.permanentDeleteFile(temporaryArchiveId);
+        } catch (cleanupError) {
+          console.warn(
+            "No se pudo limpiar el ZIP temporal de la selección:",
+            cleanupError,
+          );
+        }
+      }
+    }
+  }, [
+    albumName,
+    handleArchiveProgress,
+    itemsSelected,
+    services.archiveService,
+    services.fileService,
+    showAlert,
+  ]);
+
+  const handleGalleryOptionSelect = useCallback(
+    (option: OptionsType) => {
+      if (option.id === OptionsIds.EXPORT_ALBUM) {
+        void handleExportAlbum();
+        return;
+      }
+
+      handleOnSelectOption(option);
+    },
+    [handleExportAlbum, handleOnSelectOption],
+  );
+
   const selectionActionBarOffset = insets.bottom + 12;
   const scrollBottomPadding = selectionMode
     ? selectionActionBarOffset + 92
@@ -352,25 +608,36 @@ export default function GalleryScreen() {
             onPress={handleBackPress}
           />
           <View style={styles.headerTitle}>
-            <Text style={styles.headerTitleText}>
+            <Text
+              style={styles.headerTitleText}
+              numberOfLines={1}
+              ellipsizeMode="tail"
+            >
               {(albumName as string) ?? "Galería"}
             </Text>
           </View>
-          <MultiActionButton
-            icon="add"
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() =>
-              router.push({
-                pathname: "/album-adder",
-                params: {
-                  albumId: tagId as string,
-                  albumName: (albumName as string) ?? "",
-                },
-              })
-            }
-          />
+          <View style={styles.headerActions}>
+            <MultiActionButton
+              icon="add"
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={42}
+              onPress={() =>
+                router.push({
+                  pathname: "/album-adder",
+                  params: {
+                    albumId: tagId as string,
+                    albumName: (albumName as string) ?? "",
+                  },
+                })
+              }
+            />
+            <OptionDropDown
+              size={42}
+              options={galleryOptions}
+              onSelect={handleGalleryOptionSelect}
+            />
+          </View>
         </View>
 
         {isLoading && items.length === 0 ? (
@@ -434,7 +701,9 @@ export default function GalleryScreen() {
             <TouchableOpacity
               style={styles.selectionActionButton}
               activeOpacity={0.85}
-              onPress={() => {}}
+              onPress={() => {
+                void handleShareSelected();
+              }}
             >
               <MaterialCommunityIcons
                 name="share-variant-outline"
@@ -550,11 +819,30 @@ export default function GalleryScreen() {
           </View>
         </CustomPopup>
 
+        <MediaImportProgressOverlay
+          visible={isArchiveLoading}
+          title={archiveLoadingTitle}
+          progress={{
+            completed: archiveProgress?.processedEntries ?? 0,
+            total: Math.max(archiveProgress?.totalEntries ?? 0, 1),
+            currentFileName:
+              archiveProgress?.currentEntryName ?? archiveLoadingText,
+          }}
+        />
+
         {selectedMediaId && (
           <MediaHost
             items={mediaItems}
             initialFileId={selectedMediaId}
             onClose={() => setSelectedMediaId(null)}
+          />
+        )}
+
+        {currentData && (
+          <PropertyMenu
+            item={currentData}
+            visible={showPropertyMenu}
+            onClose={closePropertyMenu}
           />
         )}
       </View>
@@ -578,6 +866,11 @@ const useGalleryStyles = () => {
     },
     headerTitle: {
       flex: 1,
+      alignItems: "center",
+      paddingHorizontal: theme.spacing.sm,
+    },
+    headerActions: {
+      flexDirection: "row",
       alignItems: "center",
     },
     headerTitleText: {
@@ -756,6 +1049,12 @@ const useGalleryStyles = () => {
       fontFamily: theme.typography.fontFamily.primary.semiBold,
       fontSize: 15,
       color: theme.colors.textPrimary,
+      textAlign: "center",
+    },
+    popupLoadingProgress: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      fontSize: 14,
+      color: theme.colors.primary,
       textAlign: "center",
     },
     popupLoadingHint: {
