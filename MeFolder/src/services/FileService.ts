@@ -169,16 +169,42 @@ export class FileService extends BaseService {
 
       await this.fileRepo.permanentDelete(fileId);
 
-      const fsResult = this.fs.deleteFile(file.path);
+      const fileUri = file.storageUrl ?? file.path;
+      const fsResult = this.fs.deleteFile(fileUri);
       if (!fsResult.success) {
         console.warn(
           `No se pudo eliminar archivo del disco: ${fsResult.error}`,
         );
       }
 
+      if (
+        (file.category === "image" || file.category === "video") &&
+        file.thumbnailUrl
+      ) {
+        const thumbnailResult = this.fs.deleteFile(file.thumbnailUrl);
+        if (!thumbnailResult.success) {
+          console.warn(
+            `No se pudo eliminar thumbnail del disco: ${thumbnailResult.error}`,
+          );
+        }
+      }
+
       return true;
     } catch (error) {
       return this.handleError(error, "eliminar archivo");
+    }
+  }
+
+  /** Elimina permanentemente múltiples archivos a partir de una lista de IDs. */
+  async permanentDeleteFiles(fileIds: UUID[]): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+
+      for (const fileId of fileIds) {
+        await this.permanentDeleteFile(fileId);
+      }
+    } catch (error) {
+      return this.handleError(error, "eliminar archivos");
     }
   }
 

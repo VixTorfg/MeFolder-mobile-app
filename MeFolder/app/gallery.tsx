@@ -4,10 +4,13 @@ import {
   usePinchColumns,
   useSelection,
   usePressScaleAnimation,
+  useAlert,
+  useServices,
 } from "@/hooks";
-import { MultiActionButton, MediaHost } from "@/components";
+import { CustomPopup, MultiActionButton, MediaHost } from "@/components";
 import { FileModel } from "@/models/file";
 import type { MediaHostItem } from "@/types/media/viewers";
+import { useTagContentStore } from "@/stores/useTagContentStore";
 import { useLocalSearchParams, router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
@@ -34,6 +37,14 @@ import {
 import Animated, { LinearTransition, FadeIn } from "react-native-reanimated";
 
 const SPACING_HORIZONTAL_SM = 10;
+const DELETE_DIALOG_CLOSE_DELAY_MS = 180;
+const DELETE_LOADING_SHOW_DELAY_MS = 80;
+const DELETE_LOADING_MIN_VISIBLE_MS = 140;
+
+const wait = (ms: number) =>
+  new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
 
 interface GalleryTileProps {
   item: FileModel;
@@ -43,6 +54,13 @@ interface GalleryTileProps {
   onOpenItem: (item: FileModel) => void;
   onToggleSelection: (item: FileModel) => void;
   styles: ReturnType<typeof useGalleryStyles>;
+}
+
+interface DeleteDialogState {
+  isVisible: boolean;
+  fileIds: FileModel["id"][];
+  deleteFromAlbum: boolean;
+  deleteFromSystem: boolean;
 }
 
 function GalleryTile({
@@ -122,6 +140,8 @@ export default function GalleryScreen() {
   const { tagId, albumName } = useLocalSearchParams();
   const styles = useGalleryStyles();
   const insets = useSafeAreaInsets();
+  const { services } = useServices();
+  const { showAlert } = useAlert();
 
   const { items, loadMore, isLoading } = useGalleryContent({
     tagId: tagId as string,
@@ -144,6 +164,13 @@ export default function GalleryScreen() {
   const [selectedMediaId, setSelectedMediaId] = useState<
     FileModel["id"] | null
   >(null);
+  const [deleteDialog, setDeleteDialog] = useState<DeleteDialogState>({
+    isVisible: false,
+    fileIds: [],
+    deleteFromAlbum: true,
+    deleteFromSystem: false,
+  });
+  const [isDeleteLoading, setIsDeleteLoading] = useState(false);
 
   const mediaItems = useMemo<MediaHostItem[]>(
     () =>
@@ -202,6 +229,111 @@ export default function GalleryScreen() {
     clearSelection();
     router.back();
   }, [clearSelection]);
+
+  const selectedFileIds = useMemo(
+    () => itemsSelected.map((item) => item.id),
+    [itemsSelected],
+  );
+
+  const closeDeleteDialog = useCallback(() => {
+    setDeleteDialog((prev) => ({
+      ...prev,
+      isVisible: false,
+      fileIds: [],
+      deleteFromAlbum: true,
+      deleteFromSystem: false,
+    }));
+  }, []);
+
+  const openDeleteDialog = useCallback((fileIds: FileModel["id"][]) => {
+    setDeleteDialog({
+      isVisible: true,
+      fileIds,
+      deleteFromAlbum: true,
+      deleteFromSystem: false,
+    });
+  }, []);
+
+  const toggleDeleteFromAlbum = useCallback(() => {
+    setDeleteDialog((prev) => {
+      if (prev.deleteFromSystem) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        deleteFromAlbum: !prev.deleteFromAlbum,
+      };
+    });
+  }, []);
+
+  const toggleDeleteFromSystem = useCallback(() => {
+    setDeleteDialog((prev) => {
+      const nextDeleteFromSystem = !prev.deleteFromSystem;
+
+      return {
+        ...prev,
+        deleteFromSystem: nextDeleteFromSystem,
+        deleteFromAlbum: nextDeleteFromSystem ? true : prev.deleteFromAlbum,
+      };
+    });
+  }, []);
+
+  const confirmDelete = useCallback(async () => {
+    const { fileIds, deleteFromAlbum, deleteFromSystem } = deleteDialog;
+
+    if (fileIds.length === 0) {
+      closeDeleteDialog();
+      return;
+    }
+
+    if (!deleteFromAlbum && !deleteFromSystem) {
+      showAlert({
+        title: "Selecciona una acción",
+        message:
+          "Debes indicar si deseas quitar el archivo del álbum o borrarlo del sistema.",
+      });
+      return;
+    }
+
+    try {
+      closeDeleteDialog();
+      await wait(DELETE_DIALOG_CLOSE_DELAY_MS);
+
+      setIsDeleteLoading(true);
+      await wait(DELETE_LOADING_SHOW_DELAY_MS);
+
+      if (deleteFromSystem) {
+        await services.fileService.permanentDeleteFiles(fileIds);
+      } else {
+        for (const fileId of fileIds) {
+          await services.tagService.removeTagFromFile(fileId, tagId as string);
+        }
+      }
+
+      useTagContentStore.getState().removeItems(fileIds);
+      clearSelection();
+      await wait(DELETE_LOADING_MIN_VISIBLE_MS);
+    } catch (error) {
+      showAlert({
+        title: "Error al borrar",
+        message:
+          error instanceof Error
+            ? error.message
+            : "No se pudo completar el borrado de los archivos seleccionados.",
+      });
+    } finally {
+      setIsDeleteLoading(false);
+    }
+  }, [
+    clearSelection,
+    closeDeleteDialog,
+    deleteDialog,
+    services.fileService,
+    services.tagService,
+    showAlert,
+    tagId,
+  ]);
 
   const selectionActionBarOffset = insets.bottom + 12;
   const scrollBottomPadding = selectionMode
@@ -317,7 +449,7 @@ export default function GalleryScreen() {
             <TouchableOpacity
               style={styles.selectionActionButton}
               activeOpacity={0.85}
-              onPress={() => {}}
+              onPress={() => openDeleteDialog(selectedFileIds)}
             >
               <MaterialCommunityIcons
                 name="trash-can-outline"
@@ -328,6 +460,95 @@ export default function GalleryScreen() {
             </TouchableOpacity>
           </View>
         ) : null}
+
+        <CustomPopup
+          title="Confirmar borrado"
+          isVisible={deleteDialog.isVisible}
+          onDismiss={closeDeleteDialog}
+        >
+          <Text style={styles.popupMessage}>
+            {deleteDialog.fileIds.length > 1
+              ? `Se va a proceder a borrar ${deleteDialog.fileIds.length} archivos.`
+              : "Se va a proceder a borrar el archivo seleccionado."}
+          </Text>
+
+          <Pressable
+            style={[
+              styles.popupCheckboxRow,
+              deleteDialog.deleteFromSystem && styles.popupCheckboxRowDisabled,
+            ]}
+            onPress={toggleDeleteFromAlbum}
+          >
+            <MaterialCommunityIcons
+              name={
+                deleteDialog.deleteFromAlbum
+                  ? "checkbox-marked-outline"
+                  : "checkbox-blank-outline"
+              }
+              size={22}
+              color={styles.primaryColor.color}
+            />
+            <Text style={styles.popupCheckboxLabel}>Quitar del álbum</Text>
+          </Pressable>
+
+          <Pressable
+            style={styles.popupCheckboxRow}
+            onPress={toggleDeleteFromSystem}
+          >
+            <MaterialCommunityIcons
+              name={
+                deleteDialog.deleteFromSystem
+                  ? "checkbox-marked-outline"
+                  : "checkbox-blank-outline"
+              }
+              size={22}
+              color={styles.primaryColor.color}
+            />
+            <Text style={styles.popupCheckboxLabel}>Borrar del sistema</Text>
+          </Pressable>
+
+          <View style={styles.popupFooterButtons}>
+            <TouchableOpacity
+              style={styles.popupCancelButton}
+              onPress={closeDeleteDialog}
+            >
+              <Text style={styles.popupCancelButtonText}>Cancelar</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.popupConfirmButton,
+                !deleteDialog.deleteFromAlbum &&
+                  !deleteDialog.deleteFromSystem &&
+                  styles.popupConfirmButtonDisabled,
+              ]}
+              onPress={() => {
+                void confirmDelete();
+              }}
+              disabled={
+                !deleteDialog.deleteFromAlbum && !deleteDialog.deleteFromSystem
+              }
+            >
+              <Text style={styles.popupConfirmButtonText}>Confirmar</Text>
+            </TouchableOpacity>
+          </View>
+        </CustomPopup>
+
+        <CustomPopup
+          title="Borrando"
+          isVisible={isDeleteLoading}
+          onDismiss={() => undefined}
+          dismissOnBackdropPress={false}
+        >
+          <View style={styles.popupLoadingContent}>
+            <ActivityIndicator size="large" color={styles.primaryColor.color} />
+            <Text style={styles.popupLoadingText}>
+              Eliminando los archivos seleccionados...
+            </Text>
+            <Text style={styles.popupLoadingHint}>
+              La operación puede tardar unos segundos.
+            </Text>
+          </View>
+        </CustomPopup>
 
         {selectedMediaId && (
           <MediaHost
@@ -477,6 +698,72 @@ const useGalleryStyles = () => {
     selectionActionDivider: {
       width: theme.effects.borderWidth.xs,
       backgroundColor: theme.colors.borderSoft,
+    },
+    popupMessage: {
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      fontSize: 14,
+      color: theme.colors.textSecondary,
+      lineHeight: 20,
+    },
+    popupCheckboxRow: {
+      flexDirection: "row",
+      alignItems: "center",
+      gap: theme.spacing.sm,
+      paddingVertical: theme.spacing.xs,
+    },
+    popupCheckboxRowDisabled: {
+      opacity: 0.6,
+    },
+    popupCheckboxLabel: {
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      fontSize: 14,
+      color: theme.colors.textPrimary,
+    },
+    popupFooterButtons: {
+      flexDirection: "row",
+      justifyContent: "flex-end",
+      gap: theme.spacing.sm,
+      marginTop: theme.spacing.sm,
+    },
+    popupCancelButton: {
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: theme.effects.radius.md,
+    },
+    popupCancelButtonText: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textSecondary,
+    },
+    popupConfirmButton: {
+      backgroundColor: theme.colors.error,
+      paddingVertical: theme.spacing.sm,
+      paddingHorizontal: theme.spacing.md,
+      borderRadius: theme.effects.radius.md,
+    },
+    popupConfirmButtonDisabled: {
+      opacity: 0.5,
+    },
+    popupConfirmButtonText: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textOnColor,
+    },
+    popupLoadingContent: {
+      alignItems: "center",
+      gap: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+    },
+    popupLoadingText: {
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      fontSize: 15,
+      color: theme.colors.textPrimary,
+      textAlign: "center",
+    },
+    popupLoadingHint: {
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      fontSize: 13,
+      lineHeight: 18,
+      color: theme.colors.textSecondary,
+      textAlign: "center",
     },
   }));
 };
