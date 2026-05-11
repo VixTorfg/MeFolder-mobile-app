@@ -10,6 +10,7 @@ import { FolderModel, FolderFactory } from "../models/folder";
 import { ROOT_FOLDER_ID } from "../database/seeds/systemFolders";
 import { FileSystemService } from "./filesystem/FileSystemService";
 import { ColorInfo } from "@/types/common/colors";
+import { FileService } from "./FileService";
 
 /**
  * FolderService MVP - Funcionalidades básicas para desarrollo inicial
@@ -26,6 +27,7 @@ import { ColorInfo } from "@/types/common/colors";
  */
 export class FolderService extends BaseService {
   private fs = new FileSystemService();
+  private fileService = new FileService();
 
   /**
    * Crear nueva carpeta (operación básica)
@@ -400,7 +402,7 @@ export class FolderService extends BaseService {
       await Promise.all(copySubfolderPromises);
 
       const copyFilePromises = subfiles.map(async (file) => {
-        const newFile = await this.fileRepo.create({
+        const newFile = await this.fileService.createFile({
           name: file.name,
           originalName: file.originalName,
           extension: file.extension,
@@ -409,8 +411,9 @@ export class FolderService extends BaseService {
           ...(file.visibility && { visibility: file.visibility }),
           ...(file.color && { color: file.color }),
           ...(file.tagIds && { tagIds: file.tagIds }),
-          ...(file.storageUrl && { storageUrl: file.storageUrl }),
-          ...(file.thumbnailUrl && { thumbnailUrl: file.thumbnailUrl }),
+          ...(file.storageUrl && {
+            storageUrl: `${newFolder.path}/${file.name}`,
+          }),
         });
         createdFiles.push(newFile.id);
         return newFile;
@@ -424,7 +427,7 @@ export class FolderService extends BaseService {
         this.fs.deleteDirectory(parentFolderUri);
 
       for (const fileId of createdFiles.reverse()) {
-        await this.fileRepo.permanentDelete(fileId);
+        await this.fileService.permanentDeleteFile(fileId);
       }
 
       for (const folderId of createdFolders.reverse()) {

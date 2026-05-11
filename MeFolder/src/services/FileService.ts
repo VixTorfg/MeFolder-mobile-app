@@ -9,6 +9,7 @@ import { dropFilesTable } from "@/database/migrations/files";
 import { dropFoldersTable } from "@/database/migrations/folders";
 import { dropTagsSystem } from "@/database/migrations/tags";
 import { dropUserColorsTable } from "@/database/migrations/userColors";
+import { MediaService } from "./media/MediaService";
 
 type StorageUsageGroup = "image" | "video" | "audio" | "documents" | "other";
 
@@ -32,6 +33,7 @@ export interface FileStorageUsageSummary {
  */
 export class FileService extends BaseService {
   private fs = new FileSystemService();
+  private media = new MediaService();
   private static readonly THUMBNAILS_DIR = ".thumbnails";
 
   /**
@@ -51,9 +53,43 @@ export class FileService extends BaseService {
         { ...input, folderId },
         folder.path,
       );
-      return FileFactory.fromJSON(file);
+
+      return await this.attachGeneratedThumbnail(FileFactory.fromJSON(file));
     } catch (error) {
       return this.handleError(error, "crear archivo");
+    }
+  }
+
+  private async attachGeneratedThumbnail(file: FileModel): Promise<FileModel> {
+    if (
+      (file.category !== "image" && file.category !== "video") ||
+      !file.storageUrl
+    ) {
+      return file;
+    }
+
+    try {
+      const thumbnailUrl = await this.media.generateThumbnail(
+        file.storageUrl,
+        file.id,
+        file.category,
+      );
+
+      if (!thumbnailUrl || thumbnailUrl === file.thumbnailUrl) {
+        return file;
+      }
+
+      const updatedFile = await this.fileRepo.updateThumbnailUrl(
+        file.id,
+        thumbnailUrl,
+      );
+
+      return FileFactory.fromJSON(updatedFile);
+    } catch (error) {
+      console.warn(
+        `No se pudo generar thumbnail para ${file.name}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      return file;
     }
   }
 
@@ -321,26 +357,32 @@ export class FileService extends BaseService {
       if (!targetFolder) throw new Error("Carpeta destino no encontrada");
 
       await this.validateUniqueFileName(file.name, targetFolderId);
-      this.fs.copyFile({ from: file.path, to: targetFolder.path });
+      const sourceUri = file.storageUrl ?? file.path;
+      const copyResult = this.fs.copyFile({
+        from: sourceUri,
+        to: targetFolder.path,
+      });
 
-      const newFile = await this.fileRepo.create(
-        {
+      if (!copyResult.success || !copyResult.toUri) {
+        throw new Error(copyResult.error ?? "No se pudo copiar el archivo");
+      }
+
+      try {
+        return await this.createFile({
           name: file.name,
           originalName: file.originalName,
           extension: file.extension,
           folderId: targetFolderId,
           visibility: file.visibility,
           metadata: file.metadata,
-          storageUrl: targetFolder.path + "/" + file.name,
-
+          storageUrl: copyResult.toUri,
           ...(file.color && { color: file.color }),
           ...(file.tagIds.length > 0 && { tagIds: file.tagIds }),
-          ...(file.thumbnailUrl && { thumbnailUrl: file.thumbnailUrl }), // hay resorver esto, ya que ahora coge el thumbnail del archivo antiguo.
-        },
-        targetFolder.path,
-      );
-
-      return FileFactory.fromJSON(newFile);
+        });
+      } catch (error) {
+        this.fs.deleteFile(copyResult.toUri);
+        throw error;
+      }
     } catch (error) {
       return this.handleError(error, "copiar archivo");
     }

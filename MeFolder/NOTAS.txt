@@ -1,10 +1,7 @@
 TODOS
 
 Orden de prioridades:
-    -Crear un servicio nuevo para creacion de .zip y descomprimir
-    -Acciones en el album
-        -Poder exportar generando un .zip
-        -poder borrar
+    -Corregir copiado y pegado de zips
 
 Mejoras en general
     Seccion de inicio:
@@ -23,8 +20,6 @@ Mejoras en general
 
  
 
-- Decidirme si mostrar el album padre o no
--Poder comprimir y descomprimir un archivo zip
 -AirDrop para compartir
 
 CORREGIR:

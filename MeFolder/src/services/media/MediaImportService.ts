@@ -402,35 +402,17 @@ export class MediaImportService {
       args.mimeType,
     );
 
-    let thumbnailUrl: string | undefined;
-
-    try {
-      if (args.type === "image" || args.type === "video") {
-        const thumbId = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        thumbnailUrl =
-          (await this.media.generateThumbnail(args.uri, thumbId, args.type)) ??
-          undefined;
-      }
-
-      return await this.fileService.createFile({
-        name: args.name,
-        originalName: args.originalName,
-        extension: (resolvedExt ||
-          metadata.data.extension ||
-          "") as CreateFileInput["extension"],
-        visibility: args.visibility ?? "public",
-        metadata: fileMetadata,
-        tagIds: this.buildTagIds(args.type, args.tagIds ?? []),
-        storageUrl: args.uri,
-        ...(args.folderId ? { folderId: args.folderId } : {}),
-        ...(thumbnailUrl ? { thumbnailUrl } : {}),
-      });
-    } catch (error) {
-      if (thumbnailUrl) {
-        this.fs.deleteFile(thumbnailUrl);
-      }
-
-      throw error;
-    }
+    return await this.fileService.createFile({
+      name: args.name,
+      originalName: args.originalName,
+      extension: (resolvedExt ||
+        metadata.data.extension ||
+        "") as CreateFileInput["extension"],
+      visibility: args.visibility ?? "public",
+      metadata: fileMetadata,
+      tagIds: this.buildTagIds(args.type, args.tagIds ?? []),
+      storageUrl: args.uri,
+      ...(args.folderId ? { folderId: args.folderId } : {}),
+    });
   }
 }

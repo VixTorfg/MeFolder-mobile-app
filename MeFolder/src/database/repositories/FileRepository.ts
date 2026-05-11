@@ -320,6 +320,31 @@ export class FileRepositoryImplementation implements FileRepository {
     }
   }
 
+  async updateThumbnailUrl(id: UUID, thumbnailUrl: string): Promise<File> {
+    try {
+      const existingFile = await this.findById(id);
+      if (!existingFile) {
+        throw new Error("Archivo no encontrado");
+      }
+
+      const updatedAt = new Date();
+
+      await this.db.execute(
+        "UPDATE files SET thumbnail_url = ?, updated_at = ? WHERE id = ?",
+        [thumbnailUrl, updatedAt.getTime(), id],
+      );
+
+      return {
+        ...existingFile,
+        thumbnailUrl,
+        updatedAt,
+      };
+    } catch (error) {
+      console.error("Error updating file thumbnail:", error);
+      throw new Error(`Error al actualizar thumbnail del archivo: ${error}`);
+    }
+  }
+
   /**
    * Actualizar estado del archivo
    */

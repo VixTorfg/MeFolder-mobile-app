@@ -20,12 +20,6 @@ interface UseMediaReturn {
   getAudioMetadata: (uri: string) => Promise<MediaAudioMetadata | null>;
   /** Extrae metadatos de una imagen (ancho, alto) */
   getImageMetadata: (uri: string) => Promise<MediaImageMetadata | null>;
-  /** Genera un thumbnail para imagen o video, devuelve su URI */
-  generateThumbnail: (
-    sourceUri: string,
-    fileId: string,
-    category: "image" | "video",
-  ) => Promise<string | null>;
 }
 
 /**
@@ -92,25 +86,6 @@ export function useMedia(): UseMediaReturn {
     [],
   );
 
-  const generateThumbnail = useCallback(
-    async (
-      sourceUri: string,
-      fileId: string,
-      category: "image" | "video",
-    ): Promise<string | null> => {
-      try {
-        return await serviceRef.current.generateThumbnail(
-          sourceUri,
-          fileId,
-          category,
-        );
-      } catch {
-        return null;
-      }
-    },
-    [],
-  );
-
   return {
     loading,
     error,
@@ -118,6 +93,5 @@ export function useMedia(): UseMediaReturn {
     getVideoMetadata,
     getAudioMetadata,
     getImageMetadata,
-    generateThumbnail,
   };
 }
