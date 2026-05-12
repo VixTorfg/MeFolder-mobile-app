@@ -360,6 +360,40 @@ export class FileRepositoryImplementation implements FileRepository {
     }
   }
 
+  async updateLocation(
+    fileId: UUID,
+    folderId: UUID,
+    newPath: string,
+    newStorageUrl: string,
+  ): Promise<File> {
+    try {
+      const existingFile = await this.findById(fileId);
+      if (!existingFile) {
+        throw new Error("Archivo no encontrado");
+      }
+
+      const updatedAt = new Date();
+
+      await this.db.execute(
+        `UPDATE files
+         SET folder_id = ?, path = ?, storage_url = ?, updated_at = ?
+         WHERE id = ?`,
+        [folderId, newPath, newStorageUrl, updatedAt.getTime(), fileId],
+      );
+
+      return {
+        ...existingFile,
+        folderId,
+        path: newPath,
+        storageUrl: newStorageUrl,
+        updatedAt,
+      };
+    } catch (error) {
+      console.error("Error updating file location:", error);
+      throw new Error(`Error al actualizar ubicación del archivo: ${error}`);
+    }
+  }
+
   /**
    * Actualizar nombre del archivo
    */

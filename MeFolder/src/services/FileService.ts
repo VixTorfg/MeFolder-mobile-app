@@ -111,6 +111,15 @@ export class FileService extends BaseService {
     }
   }
 
+  async fileExists(fileId: UUID): Promise<boolean> {
+    try {
+      this.ensureDbInitialized();
+      return await this.fileRepo.exists(fileId);
+    } catch (error) {
+      return this.handleError(error, "verificar existencia de archivo");
+    }
+  }
+
   /**
    * Obtener todos los archivos de una carpeta
    */
@@ -150,10 +159,39 @@ export class FileService extends BaseService {
 
       await this.validateUniqueFileName(file.name, targetFolderId, fileId);
 
-      const updated = await this.fileRepo.update(fileId, {
-        folderId: targetFolderId,
+      const sourceUri = file.storageUrl ?? file.path;
+      const expectedTargetPath = `${targetFolder.path}/${file.name}`;
+      const moveResult = this.fs.moveFile({
+        from: sourceUri,
+        to: expectedTargetPath,
       });
-      return FileFactory.fromJSON(updated);
+
+      if (!moveResult.success || !moveResult.toUri) {
+        throw new Error(moveResult.error ?? "No se pudo mover el archivo");
+      }
+
+      try {
+        const updated = await this.fileRepo.updateLocation(
+          fileId,
+          targetFolderId,
+          expectedTargetPath,
+          moveResult.toUri,
+        );
+        return FileFactory.fromJSON(updated);
+      } catch (error) {
+        const rollbackResult = this.fs.moveFile({
+          from: moveResult.toUri,
+          to: sourceUri,
+        });
+
+        if (!rollbackResult.success) {
+          console.warn(
+            `No se pudo revertir el movimiento del archivo ${fileId}: ${rollbackResult.error}`,
+          );
+        }
+
+        throw error;
+      }
     } catch (error) {
       return this.handleError(error, "mover archivo");
     }
@@ -356,11 +394,15 @@ export class FileService extends BaseService {
       if (!file) throw new Error("Archivo no encontrado");
       if (!targetFolder) throw new Error("Carpeta destino no encontrada");
 
-      await this.validateUniqueFileName(file.name, targetFolderId);
+      const copyName = await this.resolveCopyFileName(
+        file.name,
+        targetFolderId,
+      );
       const sourceUri = file.storageUrl ?? file.path;
+      const destinationUri = `${targetFolder.path}/${copyName}`;
       const copyResult = this.fs.copyFile({
         from: sourceUri,
-        to: targetFolder.path,
+        to: destinationUri,
       });
 
       if (!copyResult.success || !copyResult.toUri) {
@@ -369,7 +411,7 @@ export class FileService extends BaseService {
 
       try {
         return await this.createFile({
-          name: file.name,
+          name: copyName,
           originalName: file.originalName,
           extension: file.extension,
           folderId: targetFolderId,
@@ -625,5 +667,50 @@ export class FileService extends BaseService {
     const segments = normalizedPath.split("/");
     segments.pop();
     return segments.join("/");
+  }
+
+  private async resolveCopyFileName(
+    fileName: string,
+    folderId: UUID,
+  ): Promise<string> {
+    const filesInFolder = await this.fileRepo.findByFolderId(folderId);
+    const usedNames = new Set(filesInFolder.map((file) => file.name));
+
+    if (!usedNames.has(fileName)) {
+      return fileName;
+    }
+
+    const { baseName, extensionSuffix } = this.splitFileName(fileName);
+
+    let copyIndex = 1;
+    while (true) {
+      const suffix = copyIndex === 1 ? "_copia" : `_copia_${copyIndex}`;
+      const candidateName = `${baseName}${suffix}${extensionSuffix}`;
+
+      if (!usedNames.has(candidateName)) {
+        return candidateName;
+      }
+
+      copyIndex += 1;
+    }
+  }
+
+  private splitFileName(fileName: string): {
+    baseName: string;
+    extensionSuffix: string;
+  } {
+    const extensionIndex = fileName.lastIndexOf(".");
+
+    if (extensionIndex <= 0) {
+      return {
+        baseName: fileName,
+        extensionSuffix: "",
+      };
+    }
+
+    return {
+      baseName: fileName.slice(0, extensionIndex),
+      extensionSuffix: fileName.slice(extensionIndex),
+    };
   }
 }

@@ -17,12 +17,7 @@ import {
 } from "@/components";
 import { FileModel } from "@/models/file";
 import type { MediaHostItem } from "@/types/media/viewers";
-import {
-  OptionsIds,
-  type ArchiveProgress,
-  type ArchiveSourceFile,
-  type OptionsType,
-} from "@/types";
+import { OptionsIds, type ArchiveSourceFile, type OptionsType } from "@/types";
 import { useTagContentStore } from "@/stores/useTagContentStore";
 import { useLocalSearchParams, router } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -54,7 +49,6 @@ const SPACING_HORIZONTAL_SM = 10;
 const DELETE_DIALOG_CLOSE_DELAY_MS = 180;
 const DELETE_LOADING_SHOW_DELAY_MS = 80;
 const DELETE_LOADING_MIN_VISIBLE_MS = 140;
-const SHARE_LOADING_SHOW_DELAY_MS = 80;
 
 const wait = (ms: number) =>
   new Promise<void>((resolve) => {
@@ -218,8 +212,6 @@ export default function GalleryScreen() {
   });
   const [isDeleteLoading, setIsDeleteLoading] = useState(false);
   const [isArchiveLoading, setIsArchiveLoading] = useState(false);
-  const [archiveProgress, setArchiveProgress] =
-    useState<ArchiveProgress | null>(null);
   const [archiveLoadingTitle, setArchiveLoadingTitle] =
     useState("Exportando álbum");
   const [archiveLoadingText, setArchiveLoadingText] = useState(
@@ -389,10 +381,6 @@ export default function GalleryScreen() {
     tagId,
   ]);
 
-  const handleArchiveProgress = useCallback((progress: ArchiveProgress) => {
-    setArchiveProgress(progress);
-  }, []);
-
   const handleExportAlbum = useCallback(async () => {
     if (!(await Sharing.isAvailableAsync())) {
       showAlert({
@@ -406,14 +394,12 @@ export default function GalleryScreen() {
     let temporaryArchiveId: string | null = null;
 
     try {
-      setArchiveProgress(null);
       setArchiveLoadingTitle("Exportando álbum");
       setArchiveLoadingText("Preparando el ZIP del álbum...");
       setIsArchiveLoading(true);
 
       const exportResult = await services.albumArchiveService.exportAlbum({
         albumId: tagId as string,
-        onProgress: handleArchiveProgress,
       });
 
       if (!exportResult.success || !exportResult.data) {
@@ -438,7 +424,6 @@ export default function GalleryScreen() {
       });
     } finally {
       setIsArchiveLoading(false);
-      setArchiveProgress(null);
 
       if (temporaryArchiveId) {
         try {
@@ -451,7 +436,7 @@ export default function GalleryScreen() {
         }
       }
     }
-  }, [handleArchiveProgress, services, showAlert, tagId]);
+  }, [services, showAlert, tagId]);
 
   const handleDeleteAlbum = useCallback(() => {
     if (!tagId) {
@@ -550,11 +535,9 @@ export default function GalleryScreen() {
     let temporaryArchiveId: string | null = null;
 
     try {
-      setArchiveProgress(null);
       setArchiveLoadingTitle("Compartiendo selección");
       setArchiveLoadingText("Preparando el ZIP de la selección...");
       setIsArchiveLoading(true);
-      await wait(SHARE_LOADING_SHOW_DELAY_MS);
 
       const archiveResult =
         await services.archiveService.createArchiveFromFiles({
@@ -574,7 +557,6 @@ export default function GalleryScreen() {
               ? `${(albumName as string) ?? "seleccion"}_seleccion`
               : (shareableItems[0]?.name ?? "seleccion"),
           rootFolderName: (albumName as string) ?? "seleccion",
-          onProgress: handleArchiveProgress,
         });
 
       if (!archiveResult.success || !archiveResult.data) {
@@ -603,7 +585,6 @@ export default function GalleryScreen() {
       });
     } finally {
       setIsArchiveLoading(false);
-      setArchiveProgress(null);
       setArchiveLoadingTitle("Exportando álbum");
       setArchiveLoadingText("Preparando el ZIP del álbum...");
 
@@ -620,7 +601,6 @@ export default function GalleryScreen() {
     }
   }, [
     albumName,
-    handleArchiveProgress,
     itemsSelected,
     services.archiveService,
     services.fileService,
@@ -876,11 +856,11 @@ export default function GalleryScreen() {
           visible={isArchiveLoading}
           title={archiveLoadingTitle}
           progress={{
-            completed: archiveProgress?.processedEntries ?? 0,
-            total: Math.max(archiveProgress?.totalEntries ?? 0, 1),
-            currentFileName:
-              archiveProgress?.currentEntryName ?? archiveLoadingText,
+            completed: 0,
+            total: 1,
+            currentFileName: archiveLoadingText,
           }}
+          showProgress={false}
         />
 
         {selectedMediaId && (

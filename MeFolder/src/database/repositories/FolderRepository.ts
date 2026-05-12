@@ -11,7 +11,11 @@ import {
 } from "../../types/entities/folder";
 import { UUID } from "../../types/common/base";
 import { ColorInfo } from "../../types/common/colors";
-import { FolderRepository } from "../../types/repositories/folder";
+import {
+  FolderRepository,
+  FolderLocationUpdate,
+  FileLocationUpdate,
+} from "../../types/repositories/folder";
 import { ROOT_FOLDER_ID } from "../seeds/systemFolders";
 
 /**
@@ -387,6 +391,49 @@ export class FolderRepositoryImplementation implements FolderRepository {
     } catch (error) {
       console.error("Error updating folder:", error);
       throw new Error(`Error al actualizar carpeta: ${error}`);
+    }
+  }
+
+  async relocateSubtree(params: {
+    rootFolderId: UUID;
+    newParentId: UUID;
+    newRootPath: string;
+    newRootLevel: number;
+    folderUpdates: FolderLocationUpdate[];
+    fileUpdates: FileLocationUpdate[];
+  }): Promise<void> {
+    try {
+      const updatedAt = new Date().getTime();
+
+      await this.db.transaction([
+        {
+          sql: `UPDATE folders
+                SET parent_id = ?, path = ?, level = ?, updated_at = ?
+                WHERE id = ?`,
+          params: [
+            params.newParentId,
+            params.newRootPath,
+            params.newRootLevel,
+            updatedAt,
+            params.rootFolderId,
+          ],
+        },
+        ...params.folderUpdates.map((folder) => ({
+          sql: `UPDATE folders
+                SET path = ?, level = ?, updated_at = ?
+                WHERE id = ?`,
+          params: [folder.path, folder.level, updatedAt, folder.id],
+        })),
+        ...params.fileUpdates.map((file) => ({
+          sql: `UPDATE files
+                SET path = ?, storage_url = ?, updated_at = ?
+                WHERE id = ?`,
+          params: [file.path, file.storageUrl, updatedAt, file.id],
+        })),
+      ]);
+    } catch (error) {
+      console.error("Error relocating folder subtree:", error);
+      throw new Error(`Error al relocalizar subárbol de carpeta: ${error}`);
     }
   }
 

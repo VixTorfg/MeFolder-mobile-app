@@ -1,88 +1,139 @@
-import { create } from 'zustand';
-import { FileModel, FolderModel } from '@/models';
-import { UUID } from '@/types/common/base';
-import { FileService, FolderService } from '@/services';
+import { create } from "zustand";
+import { FileModel, FolderModel } from "@/models";
+import { UUID } from "@/types/common/base";
+import { FileService, FolderService } from "@/services";
 
-type ClipboardMode = 'copy' | 'cut' | null;
+type ClipboardMode = "copy" | "cut" | null;
 
 interface ClipboardState {
-    clipboardItems: (FileModel | FolderModel)[];
-    clipboardMode: ClipboardMode;
+  clipboardItems: (FileModel | FolderModel)[];
+  clipboardMode: ClipboardMode;
 }
 
 interface ClipboardActions {
-    copy: (items: (FileModel | FolderModel)[]) => void;
-    cut: (items: (FileModel | FolderModel)[]) => void;
-    paste: (destinationFolderId: UUID) => Promise<{createdFolders: FolderModel[], createdFiles: FileModel[]}>;
-    clear: () => void;
-    hasItems: () => boolean;
-    isCut: () => boolean;
-    isCopy: () => boolean;
+  copy: (items: (FileModel | FolderModel)[]) => void;
+  cut: (items: (FileModel | FolderModel)[]) => void;
+  paste: (
+    destinationFolderId: UUID,
+  ) => Promise<{ createdFolders: FolderModel[]; createdFiles: FileModel[] }>;
+  clear: () => void;
+  clearIfContainsIds: (itemIds: UUID[]) => void;
+  hasItems: () => boolean;
+  isCut: () => boolean;
+  isCopy: () => boolean;
 }
 
 type ClipboardStore = ClipboardState & ClipboardActions;
 
 const initialState: ClipboardState = {
-    clipboardItems: [],
-    clipboardMode: null,
+  clipboardItems: [],
+  clipboardMode: null,
 };
 
 export const useClipboardStore = create<ClipboardStore>((set, get) => ({
-    ...initialState,
+  ...initialState,
 
-    copy: (items) => set({
-        clipboardItems: items,
-        clipboardMode: 'copy',
+  copy: (items) =>
+    set({
+      clipboardItems: items,
+      clipboardMode: "copy",
     }),
 
-    cut: (items) => set({
-        clipboardItems: items,
-        clipboardMode: 'cut',
+  cut: (items) =>
+    set({
+      clipboardItems: items,
+      clipboardMode: "cut",
     }),
 
-    paste: async (destinationFolderId: UUID): Promise<{createdFolders: FolderModel[], createdFiles: FileModel[]}> => {
-        const { clipboardItems, clipboardMode } = get();
+  paste: async (
+    destinationFolderId: UUID,
+  ): Promise<{ createdFolders: FolderModel[]; createdFiles: FileModel[] }> => {
+    const { clipboardItems, clipboardMode } = get();
 
-        let createdFolders: FolderModel[] = [];
-        let createdFiles: FileModel[] = [];
-    
-        if (clipboardItems.length === 0 || !clipboardMode) return { createdFolders: [], createdFiles: [] };
+    let createdFolders: FolderModel[] = [];
+    let createdFiles: FileModel[] = [];
 
-        const fileService = new FileService();
-        const folderService = new FolderService();
+    if (clipboardItems.length === 0 || !clipboardMode)
+      return { createdFolders: [], createdFiles: [] };
 
-        const folderItems = clipboardItems.filter(item => item instanceof FolderModel) as FolderModel[];
-        const fileItems = clipboardItems.filter(item => item instanceof FileModel) as FileModel[];
+    const fileService = new FileService();
+    const folderService = new FolderService();
 
-        if(clipboardMode === 'copy') {
-            if(folderItems.length > 0)
-                createdFolders = await Promise.all(folderItems.map(folder => folderService.copyFolder(folder.id, destinationFolderId)));
+    const folderItems = clipboardItems.filter(
+      (item) => item instanceof FolderModel,
+    ) as FolderModel[];
+    const fileItems = clipboardItems.filter(
+      (item) => item instanceof FileModel,
+    ) as FileModel[];
 
-            if(fileItems.length > 0)
-                createdFiles = await Promise.all(fileItems.map(file => fileService.copyFile(file.id, destinationFolderId)));
+    const [existingFolders, existingFiles] = await Promise.all([
+      Promise.all(
+        folderItems.map((folder) => folderService.folderExists(folder.id)),
+      ),
+      Promise.all(fileItems.map((file) => fileService.fileExists(file.id))),
+    ]);
 
-            return { createdFolders, createdFiles };
-        } else {
-             if(folderItems.length > 0)
-                createdFolders = await Promise.all(folderItems.map(folder => folderService.copyFolder(folder.id, destinationFolderId)));
+    if (
+      existingFolders.some((exists) => !exists) ||
+      existingFiles.some((exists) => !exists)
+    ) {
+      set(initialState);
+      throw new Error(
+        "El portapapeles contiene elementos que ya no existen o fueron eliminados.",
+      );
+    }
 
-            if(fileItems.length > 0)
-                createdFiles = await Promise.all(fileItems.map(file => fileService.copyFile(file.id, destinationFolderId)));
+    if (clipboardMode === "copy") {
+      if (folderItems.length > 0)
+        createdFolders = await Promise.all(
+          folderItems.map((folder) =>
+            folderService.copyFolder(folder.id, destinationFolderId),
+          ),
+        );
 
-            await Promise.all(folderItems.map(folder => folderService.permanentDeleteFolder(folder.id)));
-            await Promise.all(fileItems.map(file => fileService.permanentDeleteFile(file.id)));
+      if (fileItems.length > 0)
+        createdFiles = await Promise.all(
+          fileItems.map((file) =>
+            fileService.copyFile(file.id, destinationFolderId),
+          ),
+        );
 
-            set(initialState);
+      return { createdFolders, createdFiles };
+    } else {
+      if (folderItems.length > 0)
+        createdFolders = await Promise.all(
+          folderItems.map((folder) =>
+            folderService.moveFolder(folder.id, destinationFolderId),
+          ),
+        );
 
-            return { createdFolders, createdFiles };
-        }
-    },
+      if (fileItems.length > 0)
+        createdFiles = await Promise.all(
+          fileItems.map((file) =>
+            fileService.moveFile(file.id, destinationFolderId),
+          ),
+        );
 
-    clear: () => set(initialState),
+      set(initialState);
 
-    hasItems: () => get().clipboardItems.length > 0,
+      return { createdFolders, createdFiles };
+    }
+  },
 
-    isCut: () => get().clipboardMode === 'cut',
+  clear: () => set(initialState),
 
-    isCopy: () => get().clipboardMode === 'copy',
+  clearIfContainsIds: (itemIds) => {
+    if (itemIds.length === 0) return;
+
+    const clipboardIds = new Set(get().clipboardItems.map((item) => item.id));
+    if (itemIds.some((id) => clipboardIds.has(id))) {
+      set(initialState);
+    }
+  },
+
+  hasItems: () => get().clipboardItems.length > 0,
+
+  isCut: () => get().clipboardMode === "cut",
+
+  isCopy: () => get().clipboardMode === "copy",
 }));

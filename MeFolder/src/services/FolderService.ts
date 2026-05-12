@@ -5,12 +5,17 @@ import {
   UpdateFolderInput,
   FolderStatus,
 } from "../types/entities/folder";
+import { File as FileEntity } from "../types/entities/file";
 import { UUID } from "../types/common/base";
 import { FolderModel, FolderFactory } from "../models/folder";
 import { ROOT_FOLDER_ID } from "../database/seeds/systemFolders";
 import { FileSystemService } from "./filesystem/FileSystemService";
 import { ColorInfo } from "@/types/common/colors";
 import { FileService } from "./FileService";
+import type {
+  FileLocationUpdate,
+  FolderLocationUpdate,
+} from "../types/repositories/folder";
 
 /**
  * FolderService MVP - Funcionalidades básicas para desarrollo inicial
@@ -117,6 +122,15 @@ export class FolderService extends BaseService {
     }
   }
 
+  async folderExists(folderId: UUID): Promise<boolean> {
+    try {
+      this.ensureDbInitialized();
+      return await this.folderRepo.exists(folderId);
+    } catch (error) {
+      return this.handleError(error, "verificar existencia de carpeta");
+    }
+  }
+
   /**
    * Obtener subcarpetas de una carpeta
    */
@@ -169,8 +183,16 @@ export class FolderService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      const folder = await this.folderRepo.findById(folderId);
+      const [folder, newParentFolder] = await Promise.all([
+        this.folderRepo.findById(folderId),
+        this.folderRepo.findById(newParentId),
+      ]);
+
       if (!folder) throw new Error("Carpeta no encontrada");
+      if (!newParentFolder) throw new Error("Carpeta padre no encontrada");
+      if (folder.parentId === newParentId) {
+        throw new Error("La carpeta ya está en esa ubicación");
+      }
 
       // Validar que no sea su propio descendiente (evitar bucles)
       if (newParentId !== ROOT_FOLDER_ID) {
@@ -181,11 +203,65 @@ export class FolderService extends BaseService {
       // Validar nombre único en nuevo nivel
       await this.validateUniqueFolderName(folder.name, newParentId, folderId);
 
-      // Actualizar carpeta padre
-      const updated = await this.folderRepo.update(folderId, {
-        parentId: newParentId,
+      const oldRootPath = folder.path;
+      const newRootPath = `${newParentFolder.path}/${folder.id}`;
+      const newRootLevel = newParentFolder.level + 1;
+      const levelDelta = newRootLevel - folder.level;
+      const subtree = await this.collectFolderMoveSubtree(folderId);
+      const moveResult = this.fs.moveDirectory({
+        from: oldRootPath,
+        to: newRootPath,
       });
-      return FolderFactory.fromJSON(updated);
+
+      if (!moveResult.success) {
+        throw new Error(moveResult.error ?? "No se pudo mover la carpeta");
+      }
+
+      try {
+        const folderUpdates: FolderLocationUpdate[] = subtree.folders.map(
+          (subfolder) => ({
+            id: subfolder.id,
+            path: this.replacePathPrefix(
+              subfolder.path,
+              oldRootPath,
+              newRootPath,
+            ),
+            level: subfolder.level + levelDelta,
+          }),
+        );
+        const fileUpdates: FileLocationUpdate[] = subtree.files.map((file) => ({
+          id: file.id,
+          path: this.replacePathPrefix(file.path, oldRootPath, newRootPath),
+          storageUrl: this.replacePathPrefix(
+            file.storageUrl ?? file.path,
+            oldRootPath,
+            newRootPath,
+          ),
+        }));
+
+        await this.folderRepo.relocateSubtree({
+          rootFolderId: folderId,
+          newParentId,
+          newRootPath,
+          newRootLevel,
+          folderUpdates,
+          fileUpdates,
+        });
+        return await this.getFolder(folderId);
+      } catch (error) {
+        const rollbackResult = this.fs.moveDirectory({
+          from: newRootPath,
+          to: oldRootPath,
+        });
+
+        if (!rollbackResult.success) {
+          console.warn(
+            `No se pudo revertir el movimiento de la carpeta ${folderId}: ${rollbackResult.error}`,
+          );
+        }
+
+        throw error;
+      }
     } catch (error) {
       return this.handleError(error, "mover carpeta");
     }
@@ -358,7 +434,6 @@ export class FolderService extends BaseService {
   ): Promise<FolderModel> {
     const createdFolders: UUID[] = [];
     const createdFiles: UUID[] = [];
-    let parentFolderUri = "";
 
     try {
       this.ensureDbInitialized();
@@ -368,69 +443,35 @@ export class FolderService extends BaseService {
 
       await this.validateParentFolder(destinationParentId);
 
-      if (isRootCall)
-        await this.validateUniqueFolderName(folder.name, destinationParentId);
+      const copiedFolderName = isRootCall
+        ? await this.resolveCopyFolderName(folder.name, destinationParentId)
+        : folder.name;
 
-      const subfolders = await this.folderRepo.findChildren(folderId);
-      const subfiles = await this.fileRepo.findChildren(folderId);
-
-      const newFolder = await this.folderRepo.create({
-        name: folder.name,
-        parentId: destinationParentId,
-        type: folder.type,
-        visibility: folder.visibility,
-        viewSettings: folder.viewSettings,
-        ...(folder.icon && { icon: folder.icon }),
-        ...(folder.color && { color: folder.color }),
-        ...(folder.description && { description: folder.description }),
-      });
+      const newFolder = await this.createCopiedFolder(
+        folder,
+        destinationParentId,
+        copiedFolderName,
+      );
       createdFolders.push(newFolder.id);
 
-      if (isRootCall) {
-        this.fs.copyDirectory({ from: folder.path, to: newFolder.path });
-        parentFolderUri = newFolder.path;
-      }
-
-      const copySubfolderPromises = subfolders.map(async (subfolder) => {
-        const newSubfolder = await this.copyFolder(
-          subfolder.id,
-          newFolder.id,
-          false,
-        );
-        return newSubfolder;
-      });
-      await Promise.all(copySubfolderPromises);
-
-      const copyFilePromises = subfiles.map(async (file) => {
-        const newFile = await this.fileService.createFile({
-          name: file.name,
-          originalName: file.originalName,
-          extension: file.extension,
-          folderId: newFolder.id,
-          metadata: file.metadata,
-          ...(file.visibility && { visibility: file.visibility }),
-          ...(file.color && { color: file.color }),
-          ...(file.tagIds && { tagIds: file.tagIds }),
-          ...(file.storageUrl && {
-            storageUrl: `${newFolder.path}/${file.name}`,
-          }),
-        });
-        createdFiles.push(newFile.id);
-        return newFile;
-      });
-
-      await Promise.all(copyFilePromises);
+      await this.copyFolderContents(
+        folderId,
+        newFolder.id,
+        createdFolders,
+        createdFiles,
+      );
 
       return FolderFactory.fromJSON(newFolder);
     } catch (error) {
-      if (isRootCall && createdFolders.length > 0)
-        this.fs.deleteDirectory(parentFolderUri);
-
       for (const fileId of createdFiles.reverse()) {
         await this.fileService.permanentDeleteFile(fileId);
       }
 
       for (const folderId of createdFolders.reverse()) {
+        const folder = await this.folderRepo.findById(folderId);
+        if (folder) {
+          this.fs.deleteDirectory(folder.path);
+        }
         await this.folderRepo.permanentDelete(folderId);
       }
 
@@ -691,5 +732,149 @@ export class FolderService extends BaseService {
         await this.restoreChildrenRecursive(f.id, restoredIds);
       }),
     );
+  }
+
+  private async createCopiedFolder(
+    sourceFolder: Folder,
+    parentId: UUID,
+    name: string,
+  ): Promise<Folder> {
+    const newFolder = await this.folderRepo.create({
+      name,
+      parentId,
+      type: sourceFolder.type,
+      visibility: sourceFolder.visibility,
+      viewSettings: sourceFolder.viewSettings,
+      ...(sourceFolder.icon && { icon: sourceFolder.icon }),
+      ...(sourceFolder.color && { color: sourceFolder.color }),
+      ...(sourceFolder.description && {
+        description: sourceFolder.description,
+      }),
+    });
+
+    const dirResult = this.fs.makeDirectory({
+      uri: newFolder.path,
+      intermediates: true,
+      idempotent: true,
+    });
+
+    if (!dirResult.success) {
+      await this.folderRepo.permanentDelete(newFolder.id);
+      throw new Error(dirResult.error ?? "No se pudo crear la carpeta copiada");
+    }
+
+    return newFolder;
+  }
+
+  private async copyFolderContents(
+    sourceFolderId: UUID,
+    targetFolderId: UUID,
+    createdFolderIds: UUID[],
+    createdFileIds: UUID[],
+  ): Promise<void> {
+    const [subfolders, subfiles] = await Promise.all([
+      this.folderRepo.findChildren(sourceFolderId),
+      this.fileRepo.findChildren(sourceFolderId),
+    ]);
+
+    for (const subfolder of subfolders) {
+      const copiedSubfolder = await this.createCopiedFolder(
+        subfolder,
+        targetFolderId,
+        subfolder.name,
+      );
+      createdFolderIds.push(copiedSubfolder.id);
+
+      await this.copyFolderContents(
+        subfolder.id,
+        copiedSubfolder.id,
+        createdFolderIds,
+        createdFileIds,
+      );
+    }
+
+    for (const file of subfiles) {
+      const copiedFile = await this.fileService.copyFile(
+        file.id,
+        targetFolderId,
+      );
+      createdFileIds.push(copiedFile.id);
+    }
+  }
+
+  private async collectFolderMoveSubtree(folderId: UUID): Promise<{
+    folders: Folder[];
+    files: FileEntity[];
+  }> {
+    const folders: Folder[] = [];
+    const files: FileEntity[] = [];
+
+    const visitFolder = async (currentFolderId: UUID): Promise<void> => {
+      const [currentFiles, subfolders] = await Promise.all([
+        this.fileRepo.findChildren(currentFolderId),
+        this.folderRepo.findChildren(currentFolderId),
+      ]);
+
+      files.push(...currentFiles);
+
+      for (const subfolder of subfolders) {
+        folders.push(subfolder);
+        await visitFolder(subfolder.id);
+      }
+    };
+
+    await visitFolder(folderId);
+
+    return { folders, files };
+  }
+
+  private replacePathPrefix(
+    inputPath: string,
+    currentPrefix: string,
+    nextPrefix: string,
+  ): string {
+    if (inputPath === currentPrefix) {
+      return nextPrefix;
+    }
+
+    const normalizedCurrentPrefix = currentPrefix.endsWith("/")
+      ? currentPrefix
+      : `${currentPrefix}/`;
+    const normalizedNextPrefix = nextPrefix.endsWith("/")
+      ? nextPrefix
+      : `${nextPrefix}/`;
+
+    if (!inputPath.startsWith(normalizedCurrentPrefix)) {
+      return inputPath;
+    }
+
+    return `${normalizedNextPrefix}${inputPath.slice(normalizedCurrentPrefix.length)}`;
+  }
+
+  private async resolveCopyFolderName(
+    folderName: string,
+    parentId: UUID,
+  ): Promise<string> {
+    const siblings =
+      parentId === ROOT_FOLDER_ID
+        ? await this.folderRepo.findRootFolders()
+        : await this.folderRepo.findByFolderId(parentId);
+    const usedNames = new Set(siblings.map((folder) => folder.name));
+
+    if (!usedNames.has(folderName)) {
+      return folderName;
+    }
+
+    let copyIndex = 1;
+    while (true) {
+      const suffix = copyIndex === 1 ? "_copia" : `_copia_${copyIndex}`;
+      const candidateName = `${folderName}${suffix}`;
+
+      if (!usedNames.has(candidateName)) {
+        return candidateName;
+      }
+
+      copyIndex += 1;
+    }
   }
 }

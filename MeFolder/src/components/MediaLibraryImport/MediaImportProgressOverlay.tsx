@@ -7,12 +7,14 @@ interface MediaImportProgressOverlayProps {
   visible: boolean;
   title: string;
   progress: MediaImportProgress;
+  showProgress?: boolean;
 }
 
 export function MediaImportProgressOverlay({
   visible,
   title,
   progress,
+  showProgress = true,
 }: MediaImportProgressOverlayProps) {
   const styles = useMediaImportProgressOverlayStyles();
 
@@ -28,19 +30,26 @@ export function MediaImportProgressOverlay({
         <View style={styles.card}>
           <ActivityIndicator size="large" color={styles.spinnerColor.color} />
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.subtitle}>
-            {progress.completed} / {progress.total || 0}
-          </Text>
+          {showProgress ? (
+            <Text style={styles.subtitle}>
+              {progress.completed} / {progress.total || 0}
+            </Text>
+          ) : null}
           {progress.currentFileName ? (
             <Text style={styles.currentFile} numberOfLines={1}>
               {progress.currentFileName}
             </Text>
           ) : null}
-          <View style={styles.track}>
-            <View
-              style={[styles.fill, { width: `${Math.min(ratio * 100, 100)}%` }]}
-            />
-          </View>
+          {showProgress ? (
+            <View style={styles.track}>
+              <View
+                style={[
+                  styles.fill,
+                  { width: `${Math.min(ratio * 100, 100)}%` },
+                ]}
+              />
+            </View>
+          ) : null}
         </View>
       </View>
     </Modal>

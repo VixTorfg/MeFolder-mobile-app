@@ -28,7 +28,8 @@ export const useLibraryActions = ({
   const items = useLibraryStore((state) => state.items);
   const { setItems, addItem, updateItem } = useLibraryStore();
   const { currentFolderId } = useNavigationStore();
-  const { copy, cut, paste, hasItems } = useClipboardStore();
+  const { copy, cut, paste, hasItems, clearIfContainsIds } =
+    useClipboardStore();
   const { services } = useServices();
   const { showAlert } = useAlert();
   const fs = useFileSystem();
@@ -117,6 +118,7 @@ export const useLibraryActions = ({
                 successFolders.every((s) => s) &&
                 successFiles.every((s) => s)
               ) {
+                clearIfContainsIds([...folderIdsToDelete, ...fileIdsToDelete]);
                 const newItems = items.filter(
                   (i) => !targetItems.some((s) => s.id === i.id),
                 );

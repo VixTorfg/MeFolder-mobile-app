@@ -707,6 +707,7 @@ export default function LibraryScreen() {
           currentFileName:
             archiveLoading.progress?.currentEntryName ?? archiveLoading.message,
         }}
+        showProgress={archiveLoading.showProgress}
       />
 
       <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />

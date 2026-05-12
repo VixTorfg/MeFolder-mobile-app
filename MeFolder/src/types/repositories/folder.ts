@@ -6,6 +6,18 @@ import {
 } from "../entities/folder";
 import { BaseRepository } from "./base";
 
+export interface FolderLocationUpdate {
+  id: UUID;
+  path: string;
+  level: number;
+}
+
+export interface FileLocationUpdate {
+  id: UUID;
+  path: string;
+  storageUrl: string;
+}
+
 export interface FolderRepository extends BaseRepository<
   Folder,
   CreateFolderInput,
@@ -32,6 +44,14 @@ export interface FolderRepository extends BaseRepository<
   exists(id: UUID): Promise<boolean>;
   update(id: UUID, input: UpdateFolderInput): Promise<Folder>;
   create(input: CreateFolderInput): Promise<Folder>;
+  relocateSubtree(params: {
+    rootFolderId: UUID;
+    newParentId: UUID;
+    newRootPath: string;
+    newRootLevel: number;
+    folderUpdates: FolderLocationUpdate[];
+    fileUpdates: FileLocationUpdate[];
+  }): Promise<void>;
 
   restore(folderId: UUID): Promise<void>;
 }

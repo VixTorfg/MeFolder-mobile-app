@@ -1,5 +1,6 @@
 import { FolderModel, FileModel } from "@/models";
 import { useAlert, useServices } from "@/providers";
+import { useClipboardStore } from "@/stores";
 import { useTrashStore } from "@/stores/useTrashStore";
 import * as Sharing from "expo-sharing";
 
@@ -10,6 +11,9 @@ export const useTrashActions = (
   setIsRenaming: (value: boolean) => void,
 ) => {
   const { items, setItems, updateItem } = useTrashStore();
+  const clearIfContainsIds = useClipboardStore(
+    (state) => state.clearIfContainsIds,
+  );
   const { services } = useServices();
   const { showAlert } = useAlert();
   const fileService = services?.fileService;
@@ -29,6 +33,8 @@ export const useTrashActions = (
           text: "Eliminar",
           style: "destructive",
           onPress: async () => {
+            const deletedIds = targetItems.map((item) => item.id);
+
             for (const item of targetItems) {
               if (item instanceof FolderModel) {
                 await folderService.permanentDeleteFolder(item.id);
@@ -37,6 +43,7 @@ export const useTrashActions = (
               }
             }
 
+            clearIfContainsIds(deletedIds);
             const newItems = items.filter((i) => !targetItems.includes(i));
             setItems(newItems);
             clearSelection();
@@ -59,6 +66,7 @@ export const useTrashActions = (
           onPress: async () => {
             const filesOnly = items.filter((i) => i instanceof FileModel);
             const foldersOnly = items.filter((i) => i instanceof FolderModel);
+            const deletedIds = items.map((item) => item.id);
 
             for (const file of filesOnly) {
               await fileService.permanentDeleteFile(file.id);
@@ -67,6 +75,7 @@ export const useTrashActions = (
               await folderService.permanentDeleteFolder(folder.id);
             }
 
+            clearIfContainsIds(deletedIds);
             setItems([]);
             clearSelection();
           },

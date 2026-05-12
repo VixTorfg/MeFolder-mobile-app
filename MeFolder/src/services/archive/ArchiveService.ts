@@ -638,6 +638,13 @@ export class ArchiveService {
       }
 
       zip.file(entry.zipPath, fileContent.data, { base64: true });
+
+      args.onProgress?.({
+        phase: "compress",
+        processedEntries: index + 1,
+        totalEntries,
+        currentEntryName: entry.sourceFile.name,
+      });
     }
 
     for (const [index, virtualEntry] of virtualEntries.entries()) {
@@ -660,11 +667,19 @@ export class ArchiveService {
       zip.file(zipPath, virtualEntry.content, {
         base64: virtualEntry.encoding === "base64",
       });
+
+      args.onProgress?.({
+        phase: "compress",
+        processedEntries: args.files.length + index + 1,
+        totalEntries,
+        currentEntryName: virtualEntry.path,
+      });
     }
 
     const zipBase64 = await zip.generateAsync(
       this.buildZipGenerationOptions(args.compressionLevel),
     );
+
     const archiveUri = this.fs.resolveUri(`${destinationPath}/${outputName}`);
     const writeResult = this.fs.writeFile({
       uri: archiveUri,

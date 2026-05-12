@@ -32,6 +32,7 @@ interface ArchiveLoadingState {
   title: string;
   message: string;
   progress: ArchiveProgress | null;
+  showProgress: boolean;
 }
 
 export const useLibraryArchiveActions = () => {
@@ -47,6 +48,7 @@ export const useLibraryArchiveActions = () => {
     title: "",
     message: "",
     progress: null,
+    showProgress: false,
   });
 
   const showArchiveError = useCallback(
@@ -87,24 +89,20 @@ export const useLibraryArchiveActions = () => {
       title: "",
       message: "",
       progress: null,
+      showProgress: false,
     });
   }, []);
 
   const updateLoading = useCallback(
     (title: string, progress: ArchiveProgress, fallbackMessage: string) => {
-      const processed = Math.min(
-        progress.totalEntries,
-        Math.max(progress.processedEntries, 0),
-      );
-      const detail = progress.currentEntryName
-        ? `Procesando ${processed} de ${progress.totalEntries}: ${progress.currentEntryName}`
-        : `Procesando ${processed} de ${progress.totalEntries}`;
+      const detail = progress.currentEntryName ?? fallbackMessage;
 
       setArchiveLoading({
         isVisible: true,
         title,
         message: progress.totalEntries > 0 ? detail : fallbackMessage,
         progress,
+        showProgress: true,
       });
     },
     [],
@@ -143,6 +141,7 @@ export const useLibraryArchiveActions = () => {
         title: "Comprimiendo",
         message: "Preparando los archivos para crear el ZIP...",
         progress: null,
+        showProgress: false,
       });
 
       try {
@@ -151,17 +150,11 @@ export const useLibraryArchiveActions = () => {
             ? await services.archiveService.createArchiveFromFolder({
                 sourceFolderId: item.id,
                 destinationFolderId: currentFolderId,
-                onProgress: (progress) => {
-                  updateLoading("Comprimiendo", progress, "Creando el ZIP...");
-                },
               })
             : await services.archiveService.createArchiveFromFiles({
                 files: [toArchiveSourceFile(item)],
                 outputName: removeExtension(item.name),
                 destinationFolderId: currentFolderId,
-                onProgress: (progress) => {
-                  updateLoading("Comprimiendo", progress, "Creando el ZIP...");
-                },
               });
 
         if (!result.success || !result.data) {
@@ -197,7 +190,6 @@ export const useLibraryArchiveActions = () => {
       showAlert,
       showArchiveError,
       toArchiveSourceFile,
-      updateLoading,
     ],
   );
 
@@ -217,6 +209,7 @@ export const useLibraryArchiveActions = () => {
         title: "Descomprimiendo",
         message: "Preparando el contenido del ZIP...",
         progress: null,
+        showProgress: true,
       });
 
       try {
