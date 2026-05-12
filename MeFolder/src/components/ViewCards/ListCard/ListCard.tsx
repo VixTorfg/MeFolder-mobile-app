@@ -146,7 +146,6 @@ export default function ListCard({
             numberOfLines={1}
             scrollEnabled
             textAlignVertical="center"
-            autoFocus
             onSubmitEditing={() => {
               if (renameValue.trim() && renameValue !== data.name) {
                 onRename && onRename(renameValue.trim());

@@ -146,7 +146,6 @@ export const SizeIconCard = ({
             numberOfLines={1}
             scrollEnabled
             textAlignVertical="center"
-            autoFocus
             onSubmitEditing={() => {
               if (renameValue.trim() && renameValue !== data.name) {
                 onRename && onRename(renameValue.trim());
