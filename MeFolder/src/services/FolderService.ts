@@ -698,7 +698,21 @@ export class FolderService extends BaseService {
       true,
     );
     await Promise.all(
-      files.map((file) => this.fileService.permanentDeleteFile(file.id)),
+      files.map(async (file) => {
+        await this.fileRepo.permanentDelete(file.id);
+
+        if (
+          (file.category === "image" || file.category === "video") &&
+          file.thumbnailUrl
+        ) {
+          const thumbnailResult = this.fs.deleteFile(file.thumbnailUrl);
+          if (!thumbnailResult.success) {
+            console.warn(
+              `No se pudo eliminar thumbnail del disco: ${thumbnailResult.error}`,
+            );
+          }
+        }
+      }),
     );
 
     const subfolders = await this.folderRepo.findAll(

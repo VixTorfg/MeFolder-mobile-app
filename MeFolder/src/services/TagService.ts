@@ -7,6 +7,11 @@ import { SYSTEM_ALBUM_TAG_ID } from "../database/seeds/systemTags";
 import { FileModel } from "@/models";
 import type { ViewSettings } from "../types/entities/folder";
 
+export interface AlbumCoverCandidate {
+  fileId: UUID;
+  coverUri: string;
+}
+
 /**
  * TagService MVP - Funcionalidades básicas para desarrollo inicial
  *
@@ -347,6 +352,45 @@ export class TagService extends BaseService {
     }
   }
 
+  async getRandomAlbumCover(tagId: UUID): Promise<AlbumCoverCandidate | null> {
+    try {
+      this.ensureDbInitialized();
+
+      const files = await this.getFilesInTag(tagId);
+      const eligibleFiles = files.filter(
+        (file) =>
+          (file.category === "image" || file.category === "video") &&
+          Boolean(file.thumbnailUrl ?? file.storageUrl),
+      );
+
+      if (eligibleFiles.length === 0) {
+        return null;
+      }
+
+      const selectedFile =
+        eligibleFiles[Math.floor(Math.random() * eligibleFiles.length)];
+      if (!selectedFile) {
+        return null;
+      }
+
+      const coverUri =
+        selectedFile.category === "image"
+          ? (selectedFile.storageUrl ?? selectedFile.thumbnailUrl)
+          : (selectedFile.thumbnailUrl ?? selectedFile.storageUrl);
+
+      if (!coverUri) {
+        return null;
+      }
+
+      return {
+        fileId: selectedFile.id,
+        coverUri,
+      };
+    } catch (error) {
+      return this.handleError(error, "obtener portada aleatoria del álbum");
+    }
+  }
+
   /**
    * Limpiar tags no utilizados (maintenance)
    */
@@ -408,7 +452,9 @@ export class TagService extends BaseService {
       //const albums = await this.tagRepo.findByParentId(SYSTEM_ALBUM_TAG_ID);
       const albums = await this.tagRepo.findByType("album");
 
-      return albums.map((t) => TagFactory.fromJSON(t));
+      return albums
+        .filter((album) => album.id !== SYSTEM_ALBUM_TAG_ID)
+        .map((t) => TagFactory.fromJSON(t));
     } catch (error) {
       return this.handleError(error, "obtener álbumes");
     }

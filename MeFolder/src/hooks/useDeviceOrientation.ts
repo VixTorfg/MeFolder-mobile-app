@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Dimensions } from "react-native";
+import { Dimensions, useWindowDimensions } from "react-native";
 import type { CameraOrientation } from "expo-camera";
 
 export type DeviceOrientation =
@@ -13,8 +13,14 @@ interface UseDeviceOrientationReturn {
   rotationDeg: number;
   isPortrait: boolean;
   isLandscape: boolean;
+  windowWidth: number;
+  windowHeight: number;
+  shortestSide: number;
+  isTablet: boolean;
   setFromCameraOrientation: (orientation: CameraOrientation) => void;
 }
+
+const TABLET_MIN_SIDE = 768;
 
 const mapCameraToDeviceOrientation = (
   orientation: CameraOrientation,
@@ -50,6 +56,7 @@ const getInitialOrientation = (): DeviceOrientation => {
 };
 
 export const useDeviceOrientation = (): UseDeviceOrientationReturn => {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [orientation, setOrientation] = useState<DeviceOrientation>(
     getInitialOrientation,
   );
@@ -62,12 +69,20 @@ export const useDeviceOrientation = (): UseDeviceOrientationReturn => {
   );
 
   const rotationDeg = useMemo(() => getRotationDeg(orientation), [orientation]);
+  const shortestSide = useMemo(
+    () => Math.min(windowWidth, windowHeight),
+    [windowHeight, windowWidth],
+  );
 
   return {
     orientation,
     rotationDeg,
     isPortrait: orientation.startsWith("portrait"),
     isLandscape: orientation.startsWith("landscape"),
+    windowWidth,
+    windowHeight,
+    shortestSide,
+    isTablet: shortestSide >= TABLET_MIN_SIDE,
     setFromCameraOrientation,
   };
 };

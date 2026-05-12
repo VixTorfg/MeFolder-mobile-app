@@ -1,640 +1,489 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  FlatList, 
-  TouchableOpacity, 
-  Alert,
-  TextInput,
-  Modal,
-  StatusBar
-} from 'react-native';
-import { useRouter } from 'expo-router';
-import * as DocumentPicker from 'expo-document-picker';
-import { FileService, FolderService } from '../../src/services';
-import { Database } from '../../src/database/sqlite/Database';
-import { createFilesTable } from '../../src/database/migrations/files';
-import { createFoldersTable } from '../../src/database/migrations/folders';
-import { createTagsTable, createTagTriggers } from '../../src/database/migrations/tags';
-import { seedSystemFolders } from '../../src/database/seeds/systemFolders';
-import { FileModel } from '../../src/models/file';
-import { FolderModel } from '../../src/models/folder';
-import { UUID } from '../../src/types/common/base';
-import { useStyles, useTheme } from '../../src/hooks';
-import { MultiActionButton } from '@/components';
-import { ROOT_FOLDER_ID } from '../../src/database/seeds/systemFolders';
+import React, { useCallback, useState, useMemo } from "react";
+import {
+  ActivityIndicator,
+  ScrollView,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import {
+  AlbumCard,
+  AlbumEmptyState,
+  FavoriteTagChip,
+  PriorityTagCard,
+} from "@/components";
+import { useAlbumDailyCovers, useTagsContent } from "@/hooks/tags";
+import { useHomeStyles } from "@/screenStyles";
+import type { TagModel } from "@/models/tag";
+import { useDeviceOrientation, useTheme } from "@/hooks";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useServices } from "@/providers";
+import type { FileStorageUsageSummary } from "@/services/FileService";
+import { formatFileSize } from "@/utils/format";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-// Iconos simples usando emojis
-const ICONS = {
-  folder: '📁',
-  file: '📄',
-  back: '⬅️',
-  add: '➕',
-  home: '🏠'
+type BentoSpan = 1 | 2;
+
+type BentoAlbumItem = {
+  album: TagModel;
+  colSpan: BentoSpan;
+  rowSpan: BentoSpan;
 };
 
-interface NavigationItem {
-  id: UUID | 'back';
-  name: string;
-  type: 'folder' | 'file' | 'back';
-  data?: FileModel | FolderModel;
-}
+type PositionedBentoAlbumItem = BentoAlbumItem & {
+  column: number;
+  row: number;
+};
 
-export default function HomeScreen() {
-  // Theme
-  const { theme, setTheme, currentTheme } = useTheme();
-  const { colors } = theme;
-  const { getDocumentAsync } = DocumentPicker;
-  const isDark = currentTheme === 'dark';
-  const router = useRouter();
-  
-  // setTheme('dark');  // Cambiar a tema oscuro
-  // setTheme('light'); // Cambiar a tema claro
-  
-  // Estados principales
-  const [currentFolderId, setCurrentFolderId] = useState<UUID>(ROOT_FOLDER_ID);
-  const [items, setItems] = useState<NavigationItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [breadcrumbs, setBreadcrumbs] = useState<string[]>(['Inicio']);
-  
-  // Modal para crear archivo
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newFileName, setNewFileName] = useState('');
-  
-  // Modal para crear carpeta
-  const [folderModalVisible, setFolderModalVisible] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
+type BentoLayout = {
+  items: PositionedBentoAlbumItem[];
+  rows: number;
+};
 
-  // Servicios
-  const fileService = new FileService();
-  const folderService = new FolderService();
+type BentoConfig = {
+  columns: number;
+  rows: number;
+  maxAlbums: number;
+  maxLargeTiles: number;
+  maxGridHeight: number;
+  preferredRowHeightRatio: number;
+};
 
-  
-const styles = useStyles(theme => ({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
+const EMPTY_STORAGE_USAGE: FileStorageUsageSummary = {
+  totalAppBytes: 0,
+  sizeByGroup: {
+    image: 0,
+    video: 0,
+    audio: 0,
+    documents: 0,
+    other: 0,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.borderSoft,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  folderButton: {
-    backgroundColor: '#ffc107',
-  },
-  fileButton: {
-    backgroundColor: '#28a745',
-  },
-  headerButtonText: {
-    fontSize: 18,
-  },
-  headerIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  headerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: theme.colors.textPrimary,
-  },
-  list: {
-    flex: 1,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: theme.colors.surface,
-    marginHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  icon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  itemContent: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: theme.colors.textPrimary,
-    marginBottom: 2,
-  },
-  itemType: {
-    fontSize: 14,
-    color: theme.colors.textSecondary,
-  },
-  backText: {
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: 12,
-    padding: 24,
-    width: '85%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: theme.colors.textPrimary,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: theme.colors.borderSoft,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#6c757d',
-  },
-  createButton: {
-    backgroundColor: '#007bff',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  createButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-}));
+};
 
-  // DEMO: Inicialización completa de la base de datos
-  const initializeEverything = async () => {
-    try {
-      console.log('🚀 DEMO: Inicializando todo...');
-      
-      // 1. Inicializar base de datos
-      const db = Database.getInstance();
-      await db.initialize();
-      
-      // 2. Ejecutar migraciones
-      console.log('📋 Ejecutando migraciones...');
-      await createFoldersTable();
-      await createFilesTable();
-      await createTagsTable();
-      await createTagTriggers();
+const LARGE_TILE = { colSpan: 2, rowSpan: 2 } as const;
+const SMALL_TILE = { colSpan: 1, rowSpan: 1 } as const;
 
-      // Seeds: carpetas del sistema
-      await seedSystemFolders();
-      
-      console.log('✅ Base de datos lista!');
-      
-      // 3. Cargar contenido inicial
-      await loadFolderContent(ROOT_FOLDER_ID);
-    } catch (error) {
-      console.error('❌ Error inicializando:', error);
-      Alert.alert('Error', 'No se pudo inicializar la base de datos');
-    }
+const getBentoConfig = (isTablet: boolean): BentoConfig => {
+  if (isTablet) {
+    return {
+      columns: 4,
+      rows: 4,
+      maxAlbums: 8,
+      maxLargeTiles: 3,
+      maxGridHeight: 468,
+      preferredRowHeightRatio: 0.72,
+    };
+  }
+
+  return {
+    columns: 4,
+    rows: 3,
+    maxAlbums: 6,
+    maxLargeTiles: 2,
+    maxGridHeight: 360,
+    preferredRowHeightRatio: 1.12,
   };
+};
 
-  // Cargar contenido de la carpeta actual
-  const loadFolderContent = async (folderId: UUID) => {
-    try {
-      setLoading(true);
-      
-      const [folders, files] = await Promise.all([
-        folderService.getSubfolders(folderId),
-        fileService.getFilesInFolder(folderId)
-      ]);
+const sortAlbumsByUsage = (albums: TagModel[]): TagModel[] => {
+  return [...albums].sort((left, right) => {
+    if (right.usageCount !== left.usageCount) {
+      return right.usageCount - left.usageCount;
+    }
 
-      const navigationItems: NavigationItem[] = [];
+    return left.name.localeCompare(right.name, "es", {
+      sensitivity: "base",
+    });
+  });
+};
 
-      // Añadir botón "Atrás" si no estamos en la raíz
-      if (folderId !== ROOT_FOLDER_ID) {
-        navigationItems.push({
-          id: 'back',
-          name: '.. Volver',
-          type: 'back'
-        });
+const buildTilePriority = (
+  albums: TagModel[],
+  config: BentoConfig,
+): BentoAlbumItem[] => {
+  const totalCells = config.columns * config.rows;
+  const extraCellsAvailable = Math.max(totalCells - albums.length, 0);
+  const allowedLargeTiles = Math.min(
+    config.maxLargeTiles,
+    Math.floor(extraCellsAvailable / 3),
+  );
+  let usedLargeTiles = 0;
+
+  return albums.slice(0, config.maxAlbums).map((album, index) => {
+    if (
+      album.usageCount >= 10 &&
+      usedLargeTiles < allowedLargeTiles &&
+      index < allowedLargeTiles + 2
+    ) {
+      usedLargeTiles += 1;
+      return {
+        album,
+        ...LARGE_TILE,
+      };
+    }
+
+    return {
+      album,
+      ...SMALL_TILE,
+    };
+  });
+};
+
+const canPlaceTile = (
+  occupiedCells: boolean[][],
+  row: number,
+  column: number,
+  colSpan: BentoSpan,
+  rowSpan: BentoSpan,
+  config: Pick<BentoConfig, "columns" | "rows">,
+): boolean => {
+  if (column + colSpan > config.columns || row + rowSpan > config.rows) {
+    return false;
+  }
+
+  for (let rowOffset = 0; rowOffset < rowSpan; rowOffset += 1) {
+    for (let columnOffset = 0; columnOffset < colSpan; columnOffset += 1) {
+      if (occupiedCells[row + rowOffset]?.[column + columnOffset]) {
+        return false;
       }
-
-      // Añadir carpetas
-      folders.forEach(folder => {
-        navigationItems.push({
-          id: folder.id,
-          name: folder.name,
-          type: 'folder',
-          data: folder
-        });
-      });
-
-      // Añadir archivos
-      files.forEach(file => {
-        navigationItems.push({
-          id: file.id,
-          name: file.name,
-          type: 'file',
-          data: file
-        });
-      });
-
-      setItems(navigationItems);
-    } catch (error) {
-      console.error('Error cargando contenido:', error);
-      Alert.alert('Error', 'No se pudo cargar el contenido de la carpeta');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Navegar a una carpeta
-  const navigateToFolder = async (folderId: UUID, folderName?: string) => {
-    setCurrentFolderId(folderId);
-    
-    if (folderId === ROOT_FOLDER_ID) {
-      setBreadcrumbs(['Inicio']);
-    } else if (folderName) {
-      setBreadcrumbs(prev => [...prev, folderName]);
-    }
-    
-    await loadFolderContent(folderId);
-  };
-
-  // Volver a la carpeta padre
-  const goBack = async () => {
-    if (currentFolderId === ROOT_FOLDER_ID) return;
-    
-    try {
-      // Obtener carpeta actual para saber su padre
-      const currentFolder = await folderService.getFolder(currentFolderId);
-      const parentId = currentFolder.parentId || ROOT_FOLDER_ID;
-      
-      setBreadcrumbs(prev => prev.slice(0, -1));
-      setCurrentFolderId(parentId);
-      await loadFolderContent(parentId);
-    } catch (error) {
-      console.error('Error al volver:', error);
-      // Si hay error, ir a la raíz
-      navigateToFolder(ROOT_FOLDER_ID);
-    }
-  };
-
-  const handleGetItems = async () => {
-    try {
-      const result = await getDocumentAsync({
-        multiple: true
-      });
-      console.log('Documentos seleccionados:', result);
-    }catch (error) {
-      console.error('Error al obtener documentos:', error);
-      Alert.alert('Error', 'No se pudieron obtener los documentos');
     }
   }
 
-  // Crear archivo demo
-  const createDemoFile = async () => {
-    if (!newFileName.trim()) {
-      Alert.alert('Error', 'Ingresa un nombre para el archivo');
-      return;
+  return true;
+};
+
+const markTileCells = (
+  occupiedCells: boolean[][],
+  row: number,
+  column: number,
+  colSpan: BentoSpan,
+  rowSpan: BentoSpan,
+  config: Pick<BentoConfig, "columns">,
+) => {
+  for (let rowOffset = 0; rowOffset < rowSpan; rowOffset += 1) {
+    const nextRow = row + rowOffset;
+    if (!occupiedCells[nextRow]) {
+      occupiedCells[nextRow] = Array(config.columns).fill(false);
     }
 
-    try {
-      const createFileInput: any = {
-        name: newFileName.trim(),
-        originalName: newFileName.trim(),
-        extension: 'txt',
-        category: 'document',
-        path: `/${newFileName.trim()}`,
-        metadata: {
-          size: 1024,
-          mimeType: 'text/plain'
+    for (let columnOffset = 0; columnOffset < colSpan; columnOffset += 1) {
+      occupiedCells[nextRow][column + columnOffset] = true;
+    }
+  }
+};
+
+const buildBentoLayout = (
+  albums: BentoAlbumItem[],
+  config: Pick<BentoConfig, "columns" | "rows" | "maxAlbums">,
+): BentoLayout => {
+  const occupiedCells: boolean[][] = [];
+  const items: PositionedBentoAlbumItem[] = [];
+
+  for (const item of albums) {
+    const candidates: Array<Omit<BentoAlbumItem, "album">> = [
+      {
+        colSpan: item.colSpan,
+        rowSpan: item.rowSpan,
+      },
+    ];
+
+    if (item.colSpan !== 1 || item.rowSpan !== 1) {
+      candidates.push(SMALL_TILE);
+    }
+
+    let wasPlaced = false;
+
+    for (let row = 0; row < config.rows; row += 1) {
+      for (let column = 0; column < config.columns; column += 1) {
+        const fittingCandidate = candidates.find((candidate) =>
+          canPlaceTile(
+            occupiedCells,
+            row,
+            column,
+            candidate.colSpan,
+            candidate.rowSpan,
+            config,
+          ),
+        );
+
+        if (!fittingCandidate) {
+          continue;
+        }
+
+        markTileCells(
+          occupiedCells,
+          row,
+          column,
+          fittingCandidate.colSpan,
+          fittingCandidate.rowSpan,
+          config,
+        );
+        items.push({
+          album: item.album,
+          column,
+          row,
+          colSpan: fittingCandidate.colSpan,
+          rowSpan: fittingCandidate.rowSpan,
+        });
+        wasPlaced = true;
+        break;
+      }
+
+      if (wasPlaced) {
+        break;
+      }
+    }
+  }
+
+  const rows = occupiedCells.length;
+
+  return {
+    items,
+    rows,
+  };
+};
+
+export default function HomeScreen() {
+  const styles = useHomeStyles();
+  const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { isTablet, windowHeight, windowWidth } = useDeviceOrientation();
+  const { services } = useServices();
+  const { items, albums, loading } = useTagsContent();
+  const { albumDailyCovers } = useAlbumDailyCovers(albums);
+  const bentoConfig = useMemo(() => getBentoConfig(isTablet), [isTablet]);
+  const [storageUsage, setStorageUsage] =
+    useState<FileStorageUsageSummary>(EMPTY_STORAGE_USAGE);
+  const [deletedItemsCount, setDeletedItemsCount] = useState(0);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+
+  const favoriteTags = useMemo(
+    () => items.filter((tag) => tag.isFavorite).slice(0, 8),
+    [items],
+  );
+  const highPriorityTags = useMemo(
+    () =>
+      items
+        .filter((tag) => tag.priority === "high" || tag.priority === "critical")
+        .sort((left, right) => right.usageCount - left.usageCount)
+        .slice(0, 3),
+    [items],
+  );
+
+  const homeAlbums = useMemo(
+    () => sortAlbumsByUsage(albums).slice(0, bentoConfig.maxAlbums),
+    [albums, bentoConfig.maxAlbums],
+  );
+  const prioritizedAlbums = useMemo(
+    () => buildTilePriority(homeAlbums, bentoConfig),
+    [bentoConfig, homeAlbums],
+  );
+  const bentoLayout = useMemo(
+    () => buildBentoLayout(prioritizedAlbums, bentoConfig),
+    [bentoConfig, prioritizedAlbums],
+  );
+  const gridGap = theme.spacing.sm;
+  const horizontalPadding = theme.spacing.md;
+  const usableGridWidth = Math.max(
+    windowWidth - insets.left - insets.right - horizontalPadding * 2,
+    1,
+  );
+  const columnWidth =
+    (usableGridWidth - gridGap * (bentoConfig.columns - 1)) /
+    bentoConfig.columns;
+  const maxBaseRowHeight =
+    (bentoConfig.maxGridHeight - gridGap * (bentoConfig.rows - 1)) /
+    bentoConfig.rows;
+  const baseRowHeight = Math.min(
+    Math.min(
+      Math.max(columnWidth * bentoConfig.preferredRowHeightRatio, 84),
+      maxBaseRowHeight,
+    ),
+    windowHeight * (isTablet ? 0.24 : 0.2),
+  );
+  const gridHeight =
+    bentoLayout.rows > 0
+      ? bentoLayout.rows * baseRowHeight + gridGap * (bentoLayout.rows - 1)
+      : 0;
+
+  useFocusEffect(
+    useCallback(() => {
+      let isCancelled = false;
+
+      const loadQuickSummary = async () => {
+        setIsSummaryLoading(true);
+
+        try {
+          const [storageSummary, deletedFiles, deletedFolders] =
+            await Promise.all([
+              services.fileService.getStorageUsageSummary(),
+              services.fileService.getDeletedFiles(),
+              services.folderService.getDeletedFolders(),
+            ]);
+
+          if (isCancelled) {
+            return;
+          }
+
+          setStorageUsage(storageSummary);
+          setDeletedItemsCount(deletedFiles.length + deletedFolders.length);
+        } catch {
+          if (isCancelled) {
+            return;
+          }
+
+          setStorageUsage(EMPTY_STORAGE_USAGE);
+          setDeletedItemsCount(0);
+        } finally {
+          if (!isCancelled) {
+            setIsSummaryLoading(false);
+          }
         }
       };
 
-      // Solo agregar folderId si no es root
-      if (currentFolderId !== ROOT_FOLDER_ID) {
-        createFileInput.folderId = currentFolderId;
-        // Actualizar path para incluir la ruta de la carpeta
-        const folderPath = breadcrumbs.length > 1 
-          ? `/${breadcrumbs.slice(1).join('/')}/` 
-          : '/';
-        createFileInput.path = `${folderPath}${newFileName.trim()}`;
-      }
+      void loadQuickSummary();
 
-      await fileService.createFile(createFileInput);
-
-      setModalVisible(false);
-      setNewFileName('');
-      Alert.alert('Éxito', 'Archivo creado correctamente');
-      
-      // Recargar contenido
-      await loadFolderContent(currentFolderId);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      console.error('Error creando archivo:', errorMessage);
-      
-      // Mostrar mensaje más específico al usuario
-      if (errorMessage.includes('ya existe')) {
-        Alert.alert('Error', 'Ya existe un archivo con ese nombre en esta carpeta');
-      } else if (errorMessage.includes('columnas')) {
-        Alert.alert('Error', 'Error de configuración de base de datos. Por favor reinicia la app.');
-      } else {
-        Alert.alert('Error', `No se pudo crear el archivo: ${errorMessage}`);
-      }
-    }
-  };
-
-  // Crear carpeta demo
-  const createDemoFolder = async () => {
-    if (!newFolderName.trim()) {
-      Alert.alert('Error', 'Ingresa un nombre para la carpeta');
-      return;
-    }
-
-    try {
-      let createFolderInput: any = {
-        name: newFolderName.trim(),
-        description: `Carpeta ${newFolderName.trim()}`,
-        parentId: currentFolderId,
+      return () => {
+        isCancelled = true;
       };
-
-      await folderService.createFolder(createFolderInput);
-
-      setFolderModalVisible(false);
-      setNewFolderName('');
-      Alert.alert('Éxito', 'Carpeta creada correctamente');
-      
-      // Recargar contenido
-      await loadFolderContent(currentFolderId);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      console.error('Error creando carpeta:', errorMessage);
-      
-      if (errorMessage.includes('ya existe')) {
-        Alert.alert('Error', 'Ya existe una carpeta con ese nombre');
-      } else {
-        Alert.alert('Error', `No se pudo crear la carpeta: ${errorMessage}`);
-      }
-    }
-  };
-
-  // Manejar clic en item
-  const handleItemPress = (item: NavigationItem) => {
-    if (item.type === 'back') {
-      goBack();
-    } else if (item.type === 'folder') {
-      navigateToFolder(item.id as UUID, item.name);
-    } else if (item.type === 'file') {
-      Alert.alert('Archivo', `Seleccionaste: ${item.name}`);
-    }
-  };
-
-  // Renderizar item de la lista
-  const renderItem = ({ item }: { item: NavigationItem }) => (
-    <TouchableOpacity 
-      style={[styles.item, { backgroundColor: colors.card }]} 
-      onPress={() => handleItemPress(item)}
-    >
-      <Text style={styles.icon}>
-        {item.type === 'back' ? ICONS.back : 
-         item.type === 'folder' ? ICONS.folder : ICONS.file}
-      </Text>
-      <View style={styles.itemContent}>
-        <Text style={[
-          styles.itemName, 
-          { color: colors.textPrimary },
-          item.type === 'back' && { color: colors.primary, fontWeight: '600' }
-        ]}>
-          {item.name}
-        </Text>
-        {item.type !== 'back' && (
-          <Text style={[styles.itemType, { color: colors.textSecondary }]}>
-            {item.type === 'folder' ? 'Carpeta' : 'Archivo'}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
+    }, [services.fileService, services.folderService]),
   );
 
-  // DEMO: Inicializar todo al arrancar
-  useEffect(() => {
-    initializeEverything();
-  }, []);
-
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar 
-        barStyle={isDark ? "light-content" : "dark-content"} 
-        backgroundColor={colors.background} 
-      />
-      
-      {/* Header con breadcrumbs y botones de acción */}
-      <View style={[styles.header, { 
-        backgroundColor: colors.surface, 
-        borderBottomColor: colors.divider 
-      }]}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerIcon}>{ICONS.home}</Text>
-          <Text style={[styles.headerText, { color: colors.textPrimary }]}>
-            {breadcrumbs.join(' / ')}
-          </Text>
-        </View>
-        
-        <View style={styles.headerButtons}>
-          <MultiActionButton 
-            onPress={() => setFolderModalVisible(true)}
-            icon='add'
-            size={38}
-          />
-          
-          <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: colors.primary }]}
-            onPress={() => setModalVisible(true)}
-          >
-            <Text style={styles.headerButtonText}>📄</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: colors.primary }]}
-            onPress={() => handleGetItems()}
-          >
-            <Text style={styles.headerButtonText}>T</Text>
-          </TouchableOpacity>
-
-          {/* DEMO: Botón para cambiar tema - eliminar después */}
-          <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: colors.secondary }]}
-            onPress={() => setTheme(currentTheme === 'light' ? 'dark' : 'light')}
-          >
-            <Text style={styles.headerButtonText}>{currentTheme === 'light' ? '🌙' : '☀️'}</Text>
-          </TouchableOpacity>
-
-          {/* DEMO: Botón para abrir MediaLibrary demo - eliminar después */}
-          <TouchableOpacity 
-            style={[styles.headerButton, { backgroundColor: '#17a2b8' }]}
-            onPress={() => router.push('/media-library-demo')}
-          >
-            <Text style={styles.headerButtonText}>📸</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Inicio</Text>
       </View>
 
-      {/* Lista de contenido */}
-      {loading ? (
-        <View style={styles.centered}>
-          <Text>Cargando...</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Álbumes</Text>
+          <TouchableOpacity onPress={() => router.push("/albums-list")}>
+            <Text style={styles.sectionAction}>Ver todos</Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={items}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          style={styles.list}
-          contentContainerStyle={{ paddingBottom: 120 }} // Espacio para el tab bar flotante
-        />
-      )}
 
-      {/* Modal para crear archivo */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Crear Nuevo Archivo</Text>
-            
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: colors.background,
-                borderColor: colors.borderSoft,
-                color: colors.textPrimary
-              }]}
-              placeholder="Nombre del archivo"
-              placeholderTextColor={colors.textMuted}
-              value={newFileName}
-              onChangeText={setNewFileName}
-              autoFocus={true}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.button, { backgroundColor: colors.secondary }]}
-                onPress={() => {
-                  setModalVisible(false);
-                  setNewFileName('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.button, { backgroundColor: colors.primary }]}
-                onPress={createDemoFile}
-              >
-                <Text style={styles.createButtonText}>Crear</Text>
-              </TouchableOpacity>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={styles.primaryColor.color} />
+            <Text style={styles.helperText}>Cargando álbumes...</Text>
+          </View>
+        ) : homeAlbums.length === 0 ? (
+          <AlbumEmptyState />
+        ) : (
+          <View style={styles.bentoGrid}>
+            <View style={[styles.bentoCanvas, { height: gridHeight }]}>
+              {bentoLayout.items.map((item) => (
+                <AlbumCard
+                  key={item.album.id}
+                  album={item.album}
+                  coverUri={albumDailyCovers[item.album.id]?.coverUri}
+                  style={[
+                    styles.bentoCard,
+                    {
+                      width:
+                        columnWidth * item.colSpan +
+                        gridGap * (item.colSpan - 1),
+                      height:
+                        baseRowHeight * item.rowSpan +
+                        gridGap * (item.rowSpan - 1),
+                      left: item.column * (columnWidth + gridGap),
+                      top: item.row * (baseRowHeight + gridGap),
+                    },
+                  ]}
+                />
+              ))}
             </View>
           </View>
-        </View>
-      </Modal>
+        )}
 
-      {/* Modal para crear carpeta */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={folderModalVisible}
-        onRequestClose={() => setFolderModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalContent, { backgroundColor: colors.surface }]}>
-            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>🗂️ Nueva Carpeta</Text>
-            
-            <TextInput
-              style={[styles.input, { 
-                backgroundColor: colors.background,
-                borderColor: colors.borderSoft,
-                color: colors.textPrimary
-              }]}
-              placeholder="Nombre de la carpeta"
-              placeholderTextColor={colors.textMuted}
-              value={newFolderName}
-              onChangeText={setNewFolderName}
-              autoFocus={true}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.button, { backgroundColor: colors.secondary }]}
-                onPress={() => {
-                  setFolderModalVisible(false);
-                  setNewFolderName('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.button, { backgroundColor: colors.primary }]}
-                onPress={createDemoFolder}
-              >
-                <Text style={styles.createButtonText}>Crear</Text>
+        {favoriteTags.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Favoritos</Text>
+              <TouchableOpacity onPress={() => router.push("/tags")}>
+                <Text style={styles.sectionAction}>Abrir tags</Text>
               </TouchableOpacity>
             </View>
-          </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.favoriteScrollContent}
+              style={styles.favoriteSection}
+            >
+              {favoriteTags.map((tag) => (
+                <FavoriteTagChip key={tag.id} tag={tag} />
+              ))}
+            </ScrollView>
+          </>
+        )}
+
+        {highPriorityTags.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Prioridad alta</Text>
+              <TouchableOpacity onPress={() => router.push("/tags")}>
+                <Text style={styles.sectionAction}>Ver etiquetas</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.prioritySection}>
+              {highPriorityTags.map((tag) => (
+                <PriorityTagCard key={tag.id} tag={tag} />
+              ))}
+            </View>
+          </>
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Resumen rápido</Text>
         </View>
-      </Modal>
+        <View style={styles.quickStatsGrid}>
+          <TouchableOpacity
+            style={styles.quickStatCard}
+            activeOpacity={0.8}
+            onPress={() => router.push("/settings")}
+          >
+            <View style={styles.quickStatHeader}>
+              <MaterialCommunityIcons
+                name="harddisk"
+                size={20}
+                color={styles.iconColor.primaryColor}
+              />
+              <Text style={styles.quickStatTitle}>Almacenamiento</Text>
+            </View>
+            {isSummaryLoading ? (
+              <Text style={styles.quickStatValue}>Cargando...</Text>
+            ) : (
+              <Text style={styles.quickStatValue}>
+                {formatFileSize(storageUsage.totalAppBytes)}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickStatCard}
+            activeOpacity={0.8}
+            onPress={() => router.push("/trash")}
+          >
+            <View style={styles.quickStatHeader}>
+              <MaterialCommunityIcons
+                name="trash-can-outline"
+                size={20}
+                color={styles.iconColor.primaryColor}
+              />
+              <Text style={styles.quickStatTitle}>Papelera</Text>
+            </View>
+            {isSummaryLoading ? (
+              <Text style={styles.quickStatValue}>Cargando...</Text>
+            ) : (
+              <Text style={styles.quickStatValue}>
+                {deletedItemsCount} elementos
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 }

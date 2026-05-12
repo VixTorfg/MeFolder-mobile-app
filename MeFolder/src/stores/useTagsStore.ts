@@ -1,6 +1,13 @@
 import { TagModel } from "@/models/tag";
 import { create } from "zustand";
 
+export interface AlbumDailyCover {
+  albumId: string;
+  coverUri: string | null;
+  fileId: string | null;
+  dateKey: string;
+}
+
 interface TagActions {
   setItems: (items: TagModel[]) => void;
   updateItem: (updatedItem: TagModel) => void;
@@ -11,11 +18,20 @@ interface TagActions {
   addAlbum: (album: TagModel) => void;
   updateAlbum: (updatedAlbum: TagModel) => void;
   removeAlbum: (albumId: string) => void;
+
+  setAlbumDailyCovers: (
+    covers: Record<string, AlbumDailyCover>,
+    dateKey: string,
+  ) => void;
+  setAlbumDailyCover: (cover: AlbumDailyCover) => void;
+  clearAlbumDailyCovers: () => void;
 }
 
 interface TagState {
   items: TagModel[];
   albums: TagModel[];
+  albumDailyCovers: Record<string, AlbumDailyCover>;
+  albumDailyCoversDateKey: string | null;
 }
 
 type TagStore = TagState & TagActions;
@@ -23,6 +39,8 @@ type TagStore = TagState & TagActions;
 const initialState: TagState = {
   items: [],
   albums: [],
+  albumDailyCovers: {},
+  albumDailyCoversDateKey: null,
 };
 
 export const useTagsStore = create<TagStore>((set) => ({
@@ -71,4 +89,22 @@ export const useTagsStore = create<TagStore>((set) => ({
       albums: state.albums.filter((a) => a.id !== albumId),
     }));
   },
+
+  setAlbumDailyCovers: (albumDailyCovers, albumDailyCoversDateKey) =>
+    set({ albumDailyCovers, albumDailyCoversDateKey }),
+
+  setAlbumDailyCover: (cover) =>
+    set((state) => ({
+      albumDailyCovers: {
+        ...state.albumDailyCovers,
+        [cover.albumId]: cover,
+      },
+      albumDailyCoversDateKey: cover.dateKey,
+    })),
+
+  clearAlbumDailyCovers: () =>
+    set({
+      albumDailyCovers: {},
+      albumDailyCoversDateKey: null,
+    }),
 }));

@@ -14,9 +14,11 @@ import {
   PriorityTagCard,
   AlbumCard,
   AlbumEmptyState,
+  FavoriteTagChip,
   MediaImportProgressOverlay,
 } from "@/components";
 import { useTagsStyles } from "@/screenStyles/tagsStyle";
+import { useAlbumDailyCovers } from "@/hooks/tags/useAlbumDailyCovers";
 import { useTagsActions } from "@/hooks/tags/useTagsActions";
 import { TagModel } from "@/models/tag";
 import { useTagsContent } from "@/hooks/tags/useTagsContent";
@@ -26,6 +28,7 @@ import { useAlert } from "@/providers";
 export default function TagsScreen() {
   const [showTagCreator, setShowTagCreator] = useState(false);
   const { items, albums } = useTagsContent();
+  const { albumDailyCovers } = useAlbumDailyCovers(albums);
   const { handleImportZipAlbum, handleSaveTag, zipImportProgress } =
     useTagsActions();
   const { showAlert } = useAlert();
@@ -58,27 +61,6 @@ export default function TagsScreen() {
         onPress={() => {}}
       />*/}
     </View>
-  );
-
-  const renderFavoriteChip = (tag: TagModel) => (
-    <TouchableOpacity
-      key={tag.id}
-      onPress={() =>
-        router.push(`/tags-content?tagId=${tag.id}&tagName=${tag.name}`)
-      }
-      style={[styles.favoriteChip, { backgroundColor: tag.color.hex + "18" }]}
-      activeOpacity={0.7}
-    >
-      <View
-        style={[styles.favoriteChipIcon, { backgroundColor: tag.color.hex }]}
-      />
-      <Text style={[styles.favoriteChipText, { color: tag.color.hex }]}>
-        {tag.name}
-      </Text>
-      <Text style={[styles.favoriteChipCount, { color: tag.color.hex }]}>
-        {tag.usageCount}
-      </Text>
-    </TouchableOpacity>
   );
 
   const renderSectionHeader = (
@@ -118,7 +100,11 @@ export default function TagsScreen() {
         {rows.map((row, idx) => (
           <View key={idx} style={styles.albumsRow}>
             {row.map((album) => (
-              <AlbumCard key={album.id} album={album} />
+              <AlbumCard
+                key={album.id}
+                album={album}
+                coverUri={albumDailyCovers[album.id]?.coverUri}
+              />
             ))}
             {row.length === 1 && <View style={styles.albumCardPlaceholder} />}
           </View>
@@ -160,7 +146,9 @@ export default function TagsScreen() {
                   contentContainerStyle={styles.favoriteScrollContent}
                   style={styles.favoriteSection}
                 >
-                  {favoriteTags.map(renderFavoriteChip)}
+                  {favoriteTags.map((tag) => (
+                    <FavoriteTagChip key={tag.id} tag={tag} />
+                  ))}
                 </ScrollView>
               </>
             )}

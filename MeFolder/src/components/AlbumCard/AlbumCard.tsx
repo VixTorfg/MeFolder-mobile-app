@@ -1,31 +1,72 @@
 import { TagModel } from "@/models/tag";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { TouchableOpacity, View, Text } from "react-native";
+import {
+  TouchableOpacity,
+  View,
+  Text,
+  type StyleProp,
+  type ViewStyle,
+} from "react-native";
 import { useAlbumCardStyles } from "./styles";
 import { router } from "expo-router";
+import { Image } from "expo-image";
 
-export const AlbumCard = ({ album }: { album: TagModel }) => {
+export const AlbumCard = ({
+  album,
+  coverUri,
+  style,
+}: {
+  album: TagModel;
+  coverUri?: string | null | undefined;
+  style?: StyleProp<ViewStyle>;
+}) => {
   const styles = useAlbumCardStyles();
 
   return (
     <TouchableOpacity
-      style={[styles.albumCard, { backgroundColor: album.color.hex }]}
+      style={[
+        styles.albumCard,
+        !coverUri && { backgroundColor: album.color.hex },
+        style,
+      ]}
       onPress={() =>
         router.push(`/gallery?tagId=${album.id}&albumName=${album.name}`)
       }
       activeOpacity={0.8}
     >
+      {coverUri && (
+        <>
+          <Image
+            source={{ uri: coverUri }}
+            style={styles.albumCoverImage}
+            contentFit="cover"
+            transition={150}
+          />
+          <View
+            style={[
+              styles.albumCoverTint,
+              { backgroundColor: `${album.color.hex}55` },
+            ]}
+          />
+          <View style={styles.albumCoverOverlay} />
+        </>
+      )}
       <MaterialCommunityIcons
         name="image-multiple"
         size={20}
         color="#FFFFFF"
-        opacity={0.5}
-        style={{ position: "absolute", top: 10, right: 10 }}
+        style={styles.albumCardIcon}
       />
       <Text style={styles.albumCardName} numberOfLines={1}>
         {album.name}
       </Text>
-      <Text style={styles.albumCardCount}>{album.usageCount} archivos</Text>
+      <Text
+        style={styles.albumCardCount}
+        numberOfLines={1}
+        ellipsizeMode="tail"
+      >
+        {album.usageCount} archivos
+      </Text>
     </TouchableOpacity>
   );
 };

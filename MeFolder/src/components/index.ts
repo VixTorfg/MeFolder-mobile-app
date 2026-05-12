@@ -13,6 +13,7 @@ export { ContextMenu } from "./ContextMenu";
 export { PropertyMenu } from "./PropertyMenu";
 export { TagCreator } from "./TagCreator";
 export { TagCard } from "./TagCard";
+export { FavoriteTagChip } from "./FavoriteTagChip";
 export { PriorityTagCard } from "./PriorityTagCard";
 export { AlbumCard, AlbumEmptyState } from "./AlbumCard";
 export { ImageViewer, AudioPlayer, VideoPlayer, MediaHost } from "./media";
