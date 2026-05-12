@@ -160,7 +160,7 @@ export default function TrashScreen() {
           handleOpenItem(clickedItem!);
         },
         disabled: false,
-        visible: true,
+        visible: clickedItem instanceof FileModel,
         icon: (
           <MaterialCommunityIcons
             name="open-in-app"

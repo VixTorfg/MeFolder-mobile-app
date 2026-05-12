@@ -1,9 +1,44 @@
 import { useServices } from "@/providers";
+import { FileModel, FolderModel } from "@/models";
 import { useTrashStore } from "@/stores/useTrashStore";
 import { useFocusEffect } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { useTrashViewSettings } from "./useTrashViewSetting";
 import { sortItems } from "@/utils/ui/sort";
+
+const isNestedWithinFolder = (
+  itemPath: string,
+  folderPath: string,
+): boolean => {
+  const normalizedFolderPath = folderPath.endsWith("/")
+    ? folderPath
+    : `${folderPath}/`;
+
+  return itemPath.startsWith(normalizedFolderPath);
+};
+
+const buildVisibleTrashItems = (
+  folders: FolderModel[],
+  files: FileModel[],
+): Array<FileModel | FolderModel> => {
+  const visibleFolders = folders.filter(
+    (candidateFolder) =>
+      !folders.some(
+        (folder) =>
+          folder.id !== candidateFolder.id &&
+          isNestedWithinFolder(candidateFolder.path, folder.path),
+      ),
+  );
+
+  const visibleFiles = files.filter(
+    (file) =>
+      !visibleFolders.some((folder) =>
+        isNestedWithinFolder(file.path, folder.path),
+      ),
+  );
+
+  return [...visibleFolders, ...visibleFiles];
+};
 
 export const useTrashContent = () => {
   const { services } = useServices();
@@ -39,7 +74,7 @@ export const useTrashContent = () => {
           const folders = await folderService.getDeletedFolders();
           const files = await fileService.getDeletedFiles();
 
-          setItems([...folders, ...files]);
+          setItems(buildVisibleTrashItems(folders, files));
         } catch (error) {
           console.error("Error loading trash content:", error);
         } finally {

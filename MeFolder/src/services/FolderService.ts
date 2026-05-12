@@ -383,6 +383,26 @@ export class FolderService extends BaseService {
     try {
       this.ensureDbInitialized();
 
+      const folder = await this.folderRepo.findById(folderId);
+      if (!folder) {
+        throw new Error("Carpeta no encontrada");
+      }
+
+      if (folder.status === "deleted") {
+        const [files, folders] = await Promise.all([
+          this.fileRepo.findAll({ folderId, status: "deleted" }, true),
+          this.folderRepo.findAll(
+            { parentId: folderId, status: "deleted" },
+            true,
+          ),
+        ]);
+
+        return {
+          files: files.length,
+          folders: folders.length,
+        };
+      }
+
       const [files, folders] = await Promise.all([
         this.fileRepo.count({ folderId }),
         this.folderRepo.count({ parentId: folderId }),
@@ -673,10 +693,18 @@ export class FolderService extends BaseService {
   private async permanentDeleteChildrenRecursive(
     folderId: UUID,
   ): Promise<void> {
-    const files = await this.fileRepo.findByFolderId(folderId);
-    await Promise.all(files.map((f) => this.fileRepo.permanentDelete(f.id)));
+    const files = await this.fileRepo.findAll(
+      { folderId, status: "deleted" },
+      true,
+    );
+    await Promise.all(
+      files.map((file) => this.fileService.permanentDeleteFile(file.id)),
+    );
 
-    const subfolders = await this.folderRepo.findByFolderId(folderId);
+    const subfolders = await this.folderRepo.findAll(
+      { parentId: folderId, status: "deleted" },
+      true,
+    );
     await Promise.all(
       subfolders.map(async (f) => {
         await this.permanentDeleteChildrenRecursive(f.id);
