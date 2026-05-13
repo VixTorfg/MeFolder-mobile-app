@@ -28,9 +28,7 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
   const isTag = item instanceof TagModel;
   const isFolder = item instanceof FolderModel;
   const showSectionSelector = !isFile;
-  const bottomInset = isFile
-    ? 2.5 * theme.spacing.xxl
-    : 4 * theme.spacing.xxl;
+  const bottomInset = isFile ? 2.5 * theme.spacing.xxl : 4 * theme.spacing.xxl;
 
   const handleResetOnClose = () => {
     setSelectedSection("details");
