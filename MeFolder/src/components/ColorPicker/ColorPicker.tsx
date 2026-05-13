@@ -164,6 +164,7 @@ export default function ColorPicker({
   const { showAlert } = useAlert();
   const styles = useColorPickerStyles();
   const { height: screenHeight } = useWindowDimensions();
+  const bottomInset = screenHeight * 0.08;
 
   const initRgb = initialData?.color?.rgb ?? { r: 242, g: 201, b: 76 };
   const initHsl = rgbToHsl(initRgb.r, initRgb.g, initRgb.b);
@@ -403,7 +404,7 @@ export default function ColorPicker({
     <BottomSheet visible={visible} onClose={onClose} title="Personalizar color">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: screenHeight * 0.08 }}
+        contentInset={{ bottom: bottomInset }}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.colorMapSection}>

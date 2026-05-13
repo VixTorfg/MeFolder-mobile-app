@@ -29,6 +29,7 @@ export default function ItemCreator({
   const { theme } = useTheme();
   const styles = useItemCreatorStyles();
   const [selectedType, setSelectedType] = useState<CreatorType>("file");
+  const bottomInset = 4 * theme.spacing.xxl;
 
   const handleResetOnClose = useCallback(() => {
     setSelectedType("file");
@@ -112,9 +113,7 @@ export default function ItemCreator({
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          paddingBottom: 4 * theme.spacing.xxl,
-        }}
+        contentInset={{ bottom: bottomInset }}
       >
         {selectedType === "file" ? (
           <FileCreator
