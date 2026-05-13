@@ -35,7 +35,7 @@ const EMPTY_STORAGE_USAGE: FileStorageUsageSummary = {
 };
 
 const sortAlbumsByUsage = (albums: TagModel[]): TagModel[] => {
-  return [...albums].sort((left, right) => {
+  return albums.toSorted((left, right) => {
     if (right.usageCount !== left.usageCount) {
       return right.usageCount - left.usageCount;
     }
@@ -56,7 +56,7 @@ const buildPatternItems = (
     rowSpan: 1 | 2;
   }[],
 ) => {
-  const sortedSlots = [...patternSlots].sort(
+  const sortedSlots = patternSlots.toSorted(
     (left, right) => left.index - right.index,
   );
 
