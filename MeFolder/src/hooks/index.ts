@@ -6,6 +6,7 @@ export * from "./useStyles";
 export * from "./useFileSystem";
 export * from "./useMedia";
 export * from "./useColors";
+export * from "./useDailyBentoPattern";
 export * from "./useDeviceOrientation";
 export * from "./useSelection";
 export * from "./usePressScaleAnimation";
