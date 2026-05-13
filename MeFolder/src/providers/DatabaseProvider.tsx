@@ -91,7 +91,6 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
 }) => {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
 
   const database = Database.getInstance();
 
@@ -119,13 +118,13 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   }, [database]);
 
   useEffect(() => {
-    initializeDatabase();
-  }, [initializeDatabase, retryCount]);
+    void initializeDatabase();
+  }, [initializeDatabase]);
 
   const retry = useCallback(() => {
     console.log("DatabaseProvider: Reintentando inicialización...");
-    setRetryCount((prev) => prev + 1);
-  }, []);
+    void initializeDatabase();
+  }, [initializeDatabase]);
 
   return (
     <DatabaseContext.Provider value={{ database, isReady, error, retry }}>

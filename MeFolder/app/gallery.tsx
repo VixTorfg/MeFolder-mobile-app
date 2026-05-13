@@ -735,7 +735,8 @@ export default function GalleryScreen() {
               renderItem={renderGalleryItem}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
+              contentInset={{ bottom: scrollBottomPadding }}
+              scrollIndicatorInsets={{ bottom: scrollBottomPadding }}
             />
           </GestureDetector>
         )}

@@ -36,8 +36,6 @@ interface AppBootstrapContextType {
   error: Error | null;
 }
 
-type AppBootstrapStatus = "idle" | "initializing" | "ready" | "error";
-
 interface AppBootstrapProps {
   children: ReactNode;
   /** Componente a mostrar durante la carga (splash screen) */
@@ -144,24 +142,24 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
 }) => {
   const { isReady: isDbReady, error: dbError, retry: retryDb } = useDatabase();
 
-  const [status, setStatus] = useState<AppBootstrapStatus>("idle");
   const [services, setServices] = useState<Services | null>(null);
   const [error, setError] = useState<Error | null>(null);
 
   useEffect(() => {
     if (dbError) {
-      setStatus("error");
+      setServices(null);
       setError(dbError);
       return;
     }
 
     if (!isDbReady) {
-      setStatus("initializing");
+      setServices(null);
+      setError(null);
       return;
     }
 
     try {
-      setStatus("initializing");
+      setError(null);
       console.log(
         "AppBootstrap: Base de datos lista, inicializando servicios...",
       );
@@ -170,7 +168,6 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
 
       const appServices = createServices();
       setServices(appServices);
-      setStatus("ready");
 
       console.log("AppBootstrap: Aplicación lista");
     } catch (err) {
@@ -183,12 +180,12 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
         "AppBootstrap: Error al inicializar servicios:",
         serviceError,
       );
+      setServices(null);
       setError(serviceError);
-      setStatus("error");
     }
   }, [isDbReady, dbError]);
 
-  if (status === "error" && error) {
+  if (error) {
     if (errorFallback) {
       return <>{errorFallback(error, retryDb)}</>;
     }
@@ -197,7 +194,7 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
     return null;
   }
 
-  if (status !== "ready" || !services) {
+  if (!isDbReady || !services) {
     if (loadingFallback) {
       return <>{loadingFallback}</>;
     }
