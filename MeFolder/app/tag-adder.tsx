@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAlert, useTheme } from "@/providers";
 import { useServices } from "@/providers";

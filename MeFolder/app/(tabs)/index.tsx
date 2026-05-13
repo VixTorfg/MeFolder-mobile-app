@@ -1,11 +1,6 @@
 import React, { useCallback, useState, useMemo } from "react";
-import {
-  ActivityIndicator,
-  ScrollView,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { router, useFocusEffect } from "expo-router";
 import {
   AlbumCard,

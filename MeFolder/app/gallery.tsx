@@ -28,11 +28,11 @@ import {
   View,
   Text,
   Pressable,
-  TouchableOpacity,
   useWindowDimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";

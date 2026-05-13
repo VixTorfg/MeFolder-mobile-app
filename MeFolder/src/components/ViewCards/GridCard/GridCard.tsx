@@ -1,4 +1,5 @@
-import { View, TouchableOpacity, Text, TextInput } from "react-native";
+import { View, Text, TextInput } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useGridCardStyles } from "./styles";
 import { EXTENSION_LABELS, CommunCardProps } from "@/types";

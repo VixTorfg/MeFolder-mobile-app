@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import {
-  TouchableOpacity,
   Text,
   View,
   Animated,
   LayoutChangeEvent,
   useWindowDimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useContextMenuStyles } from "./style";
 

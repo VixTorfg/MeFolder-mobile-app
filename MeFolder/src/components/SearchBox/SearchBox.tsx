@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   TextInput,
-  TouchableOpacity,
   TextInputSubmitEditingEvent,
   Animated,
   Easing,
   Keyboard,
   useWindowDimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useSearchBoxStyles } from "./styles";
 

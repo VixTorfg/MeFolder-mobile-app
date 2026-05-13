@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from "react";
-import { View, TouchableOpacity, useWindowDimensions } from "react-native";
+import { View, useWindowDimensions } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { usePathname, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {

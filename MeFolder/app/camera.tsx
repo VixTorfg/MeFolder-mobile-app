@@ -4,11 +4,11 @@ import {
   Animated,
   Easing,
   StyleSheet,
-  TouchableOpacity,
   View,
   Text,
   useWindowDimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { router } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";

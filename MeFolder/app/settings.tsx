@@ -13,9 +13,9 @@ import {
   BackHandler,
   ScrollView,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const THEME_OPTIONS = [

@@ -1,6 +1,7 @@
 import { TagModel } from "@/models/tag";
 import { PRIORITY_CONFIG } from "@/types/ui/components";
-import { TouchableOpacity, View, Text } from "react-native";
+import { View, Text } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { usePriorityTagCardStyles } from "./styles";
 import { router } from "expo-router";
 import { useSinglePress } from "@/hooks";

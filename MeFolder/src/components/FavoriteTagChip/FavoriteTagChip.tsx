@@ -1,6 +1,7 @@
 import { TagModel } from "@/models/tag";
 import { router } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Text, View } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useFavoriteTagChipStyles } from "./styles";
 import { useSinglePress } from "@/hooks";
 

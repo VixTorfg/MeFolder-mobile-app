@@ -1,7 +1,8 @@
 import { FileModel } from "@/models";
 import { CommunCardProps } from "@/types/ui/components";
 import { useSizeIconCardStyles } from "./styles";
-import { TouchableOpacity, View, Text, TextInput } from "react-native";
+import { View, Text, TextInput } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getIconByCategory, isIoniconsIcon } from "@/utils/ui/icons";
 import { useRef, useState } from "react";

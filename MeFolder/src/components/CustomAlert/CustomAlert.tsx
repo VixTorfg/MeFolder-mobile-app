@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useCustomAlertStyles } from "./styles";
 import { CustomAlertButton } from "@/types/ui/components";
 import { CustomPopup } from "./CustomPopup";

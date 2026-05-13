@@ -15,12 +15,12 @@ import {
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
-  TouchableOpacity,
   Text,
   ActivityIndicator,
   Keyboard,
   Pressable,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useNavigationStore } from "@/stores";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FileModel, FolderModel } from "@/models";

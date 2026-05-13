@@ -3,7 +3,8 @@ import type { MediaHostItem } from "@/types/media/viewers";
 import { useStyles, useSelection, useFileSystem, useAlert } from "@/hooks";
 import { router, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, TouchableOpacity, View, Text } from "react-native";
+import { ActivityIndicator, View, Text } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import {
   ContextMenu,
   MultiActionButton,

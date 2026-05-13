@@ -2,12 +2,12 @@ import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
   TextInput,
   Switch,
   useWindowDimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useAlert, useTheme } from "@/providers";
 import { useColorPickerStyles } from "./styles";

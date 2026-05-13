@@ -1,7 +1,8 @@
 import { TagModel } from "@/models/tag";
 import { PRIORITY_CONFIG } from "@/types/ui/components";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { TouchableOpacity, View, Text } from "react-native";
+import { View, Text } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useTagCardStyles } from "./styles";
 import { useSinglePress } from "@/hooks";
 

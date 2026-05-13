@@ -1,12 +1,7 @@
 import { TagModel } from "@/models/tag";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import {
-  TouchableOpacity,
-  View,
-  Text,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { View, Text, type StyleProp, type ViewStyle } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useAlbumCardStyles } from "./styles";
 import { router } from "expo-router";
 import { Image } from "expo-image";

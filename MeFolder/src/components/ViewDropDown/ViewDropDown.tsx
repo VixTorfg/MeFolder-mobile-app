@@ -1,12 +1,12 @@
 import {
   View,
-  TouchableOpacity,
   Text,
   Modal,
   Animated,
   Switch,
   useWindowDimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { getResponsiveSize } from "@/utils/ui/responsive";
 import { MultiActionButton } from "../MultiActionButton";

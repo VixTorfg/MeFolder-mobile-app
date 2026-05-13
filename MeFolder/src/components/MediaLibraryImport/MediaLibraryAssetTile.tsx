@@ -1,5 +1,6 @@
 import React from "react";
-import { Animated, View, TouchableOpacity } from "react-native";
+import { Animated, View } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import * as MediaLibrary from "expo-media-library";
 import { Image } from "expo-image";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";

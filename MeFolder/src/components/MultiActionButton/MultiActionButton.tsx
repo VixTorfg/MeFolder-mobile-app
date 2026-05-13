@@ -1,9 +1,5 @@
-import {
-  View,
-  TouchableOpacity,
-  Text,
-  useWindowDimensions,
-} from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   getResponsiveSize,

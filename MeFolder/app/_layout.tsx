@@ -7,13 +7,8 @@ import {
 } from "@/providers";
 import { useFonts } from "expo-font";
 import { fontAssets } from "@/constants/fonts";
-import {
-  ActivityIndicator,
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
+import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 

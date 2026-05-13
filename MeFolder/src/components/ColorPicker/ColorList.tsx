@@ -3,7 +3,8 @@ import { usePagination } from "@/hooks";
 import { ColorInfo } from "@/types/common/colors";
 import { Ionicons } from "@expo/vector-icons";
 import { useColorListStyles } from "./styles";
-import { Animated, Easing, Text, TouchableOpacity, View } from "react-native";
+import { Animated, Easing, Text, View } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import ColorPicker from "./ColorPicker";
 
 const PAGE_SIZE = 14;

@@ -1,11 +1,6 @@
 import React, { useState, useCallback, useEffect, useRef } from "react";
-import {
-  View,
-  Text,
-  Pressable,
-  TouchableOpacity,
-  ActivityIndicator,
-} from "react-native";
+import { View, Text, Pressable, ActivityIndicator } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
 import { useEvent } from "expo";
