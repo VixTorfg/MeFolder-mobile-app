@@ -11,7 +11,7 @@ import {
   removeExtension,
 } from "@/utils";
 import type { FileExtensionWithoutVideo } from "@/types/common/file-extensions";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Image } from "expo-image";
 
 export default function GridCard({
@@ -38,12 +38,6 @@ export default function GridCard({
 
   const showExtension = viewOptions?.showExtension;
   const showHiddenFiles = true; //viewOptions?.showHiddenFiles;
-
-  useEffect(() => {
-    if (isRenaming) {
-      setRenameValue(data.name);
-    }
-  }, [isRenaming, data.name]);
 
   /**
    * Maneja el evento de presión del botón

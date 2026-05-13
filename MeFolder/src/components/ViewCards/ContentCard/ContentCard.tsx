@@ -10,7 +10,7 @@ import {
   isIoniconsIcon,
   removeExtension,
 } from "@/utils";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { Image } from "expo-image";
 
 export default function ContentCard({
@@ -37,12 +37,6 @@ export default function ContentCard({
 
   const showExtension = viewOptions?.showExtension;
   const showHiddenFiles = true; //viewOptions?.showHiddenFiles;
-
-  useEffect(() => {
-    if (isRenaming) {
-      setRenameValue(data.name);
-    }
-  }, [isRenaming, data.name]);
 
   /**
    * Maneja el evento de presión del botón

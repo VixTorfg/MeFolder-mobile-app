@@ -36,7 +36,7 @@ import {
 import { useFileSystem, useSearch, useSelection } from "@/hooks";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-import { ArchiveFormat } from "@/types";
+import { ArchiveFormat, OptionsIds, type OptionsType } from "@/types";
 
 export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
@@ -126,14 +126,32 @@ export default function LibraryScreen() {
     }
   }, [isSearchExpanded]);
 
-  useEffect(() => {
-    if (!selectionMode) {
-      return;
-    }
-
+  const resetSearchUi = useCallback(() => {
     clearSearch();
     setIsSearchExpanded(false);
-  }, [selectionMode, clearSearch]);
+  }, [clearSearch]);
+
+  const handleEnterSelectionMode = useCallback(
+    (item: FileModel | FolderModel) => {
+      resetSearchUi();
+      toggleSelection(item);
+    },
+    [resetSearchUi, toggleSelection],
+  );
+
+  const handleSelectionOption = useCallback(
+    (option: OptionsType) => {
+      if (
+        option.id === OptionsIds.SELECT_ALL ||
+        option.id === OptionsIds.INVERT_SELECT
+      ) {
+        resetSearchUi();
+      }
+
+      handleOnSelectOption(option);
+    },
+    [handleOnSelectOption, resetSearchUi],
+  );
 
   useEffect(() => {
     clearSearch();
@@ -499,7 +517,7 @@ export default function LibraryScreen() {
                 viewOptions={viewOptions}
                 onViewOptionsChange={handleViewOptionsChange}
               />
-              <OptionDropDown size={42} onSelect={handleOnSelectOption} />
+              <OptionDropDown size={42} onSelect={handleSelectionOption} />
             </>
           )}
         </>
@@ -606,6 +624,7 @@ export default function LibraryScreen() {
           renderItem={({ item }) => (
             <View style={styles.cardWrapper}>
               <ViewCards
+                key={`${item.id}:${clickedItem?.id === item.id && isRenaming ? "renaming" : "idle"}:${item.name}`}
                 data={item}
                 viewConfig={selectedView}
                 viewOptions={viewOptions}
@@ -622,7 +641,7 @@ export default function LibraryScreen() {
                   setMenuPosition(position);
                   setShowMenu(true);
                 }}
-                onLongPress={() => toggleSelection(item)}
+                onLongPress={() => handleEnterSelectionMode(item)}
               />
             </View>
           )}
