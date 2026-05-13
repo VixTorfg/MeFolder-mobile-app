@@ -7,6 +7,7 @@ A personal mobile library to organize and manage files intuitively on mobile dev
 ## **Project Objectives**
 
 MeFolder aims to solve the need for a **personal file manager** on mobile devices that is:
+
 - **Intuitive**: Clean and easy-to-use interface
 - **Organizational**: Virtual folder system, tags, and colors
 - **Multimedia**: Integrated player for video, audio, and images
@@ -16,23 +17,27 @@ MeFolder aims to solve the need for a **personal file manager** on mobile device
 ## **Main Features**
 
 ### **Import System**
+
 - Import from gallery, camera, and documents
 - Support for multiple file types
 - Original metadata preservation
 
-### **Smart Organization** 
+### **Smart Organization**
+
 - Customizable virtual folders
 - Flexible tag system
 - Color codes for categorization
 - Advanced filters and search
 
 ### **Multimedia Player**
+
 - Integrated video player
 - Audio player with advanced controls
 - Image viewer with zoom and gallery
 - Document reader (PDF, text)
 
 ### **Export and Share**
+
 - QR generation for download
 - Export complete collections
 - Device synchronization
@@ -65,37 +70,43 @@ src/
 
 ## **Development Roadmap**
 
-### Phase 1: Foundations 
+### Phase 1.1: Foundations
+
 - [x] Initial project setup
 - [x] Folder structure
 - [x] TypeScript configuration
-- [ ] Base navigation system
+- [x] Base navigation system
 
-### Phase 2: Import and Storage 
-- [ ] File import system
-- [ ] SQLite database
-- [ ] FileSystem management
-- [ ] Main data models
+### Phase 1.2: Import and Storage
 
-### Phase 3: Organization 
-- [ ] Create virtual folders
-- [ ] Tag system
-- [ ] Filters and search
-- [ ] Organization interface
+- [x] File import system
+- [x] SQLite database
+- [x] FileSystem management
+- [x] Main data models
 
-### Phase 4: Multimedia Player 
-- [ ] Video player
-- [ ] Audio player
-- [ ] Image viewer
+### Phase 1.3: Organization
+
+- [x] Create virtual folders
+- [x] Tag system
+- [x] Filters and search
+- [x] Organization interface
+
+### Phase 1.4: Multimedia Player
+
+- [x] Video player
+- [x] Audio player
+- [x] Image viewer
 - [ ] Document reader
 
-### Phase 5: Export 
+### Phase 2: Export
+
 - [ ] QR generator
 - [ ] Export system
 - [ ] Import via QR
 - [ ] Backup and restore
 
 ## **System Requirements**
+
 **Still to be confirmed**
 
 - **iOS**: 13.0+

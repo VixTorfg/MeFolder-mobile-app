@@ -1,12 +1,9 @@
 TODOS
 
 Orden de prioridades:
-    -Corregir copiado y pegado de zips
+    Usar linking para abrir archivos
 
 Mejoras en general
-    Seccion de inicio:
-        Falta diseñar la pantalla
-
     Seccion de colores:
         -Hay un bug raro al guardar un color el cual la pantalla popea. No es reproducible
         Ocurre raras veces.
@@ -16,7 +13,6 @@ Mejoras en general
         -Asociar Tags a otros tags, estructura de arbol, UN solo padre
         -filtros combinados trabajo + urgente
         -reglas de auto etiquetado
-        -compartir archivos por tags
 
  
 
