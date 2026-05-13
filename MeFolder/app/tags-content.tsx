@@ -276,6 +276,10 @@ export default function TagsContent() {
     ],
   );
 
+  const handleListScrollBeginDrag = useCallback(() => {
+    setShowMenu(false);
+  }, []);
+
   const renderGroupButtons = () => {
     if (selectionMode) {
       return (
@@ -386,7 +390,7 @@ export default function TagsContent() {
           keyExtractor={(item) => item.id}
           key={`${selectedView}-${gridConfig.columns}`}
           numColumns={gridConfig.columns}
-          onScroll={() => setShowMenu(false)}
+          onScrollBeginDrag={handleListScrollBeginDrag}
           onEndReachedThreshold={0.7}
           onEndReached={loadMore}
           renderItem={renderTagContentItem}

@@ -191,6 +191,10 @@ export default function TrashScreen() {
     ],
   );
 
+  const handleListScrollBeginDrag = useCallback(() => {
+    setShowMenu(false);
+  }, []);
+
   const menuOptions = useMemo(
     () => [
       {
@@ -450,7 +454,7 @@ export default function TrashScreen() {
           keyExtractor={(item) => item.id}
           key={`${selectedView}-${gridConfig.columns}`}
           numColumns={gridConfig.columns}
-          onScroll={() => setShowMenu(false)}
+          onScrollBeginDrag={handleListScrollBeginDrag}
           renderItem={renderTrashItem}
           contentContainerStyle={styles.flatListContent}
         />

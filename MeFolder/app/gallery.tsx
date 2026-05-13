@@ -108,6 +108,10 @@ function GalleryTile({
 }: GalleryTileProps) {
   const { animatedStyle, handlePressIn, handlePressOut } =
     usePressScaleAnimation();
+  const previewUri =
+    item.category === "image"
+      ? (item.storageUrl ?? item.thumbnailUrl)
+      : (item.thumbnailUrl ?? item.storageUrl);
 
   return (
     <Animated.View
@@ -138,9 +142,9 @@ function GalleryTile({
             isSelected && styles.thumbPressableSelected,
           ]}
         >
-          {item.thumbnailUrl && (
+          {previewUri && (
             <Image
-              source={{ uri: item.thumbnailUrl }}
+              source={{ uri: previewUri }}
               recyclingKey={item.id}
               style={styles.thumb}
               contentFit="cover"

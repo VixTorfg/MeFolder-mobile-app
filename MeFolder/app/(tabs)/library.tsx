@@ -126,6 +126,11 @@ export default function LibraryScreen() {
     }
   }, [isSearchExpanded]);
 
+  const handleListScrollBeginDrag = useCallback(() => {
+    dismissSearchFocus();
+    setShowMenu(false);
+  }, [dismissSearchFocus]);
+
   const resetSearchUi = useCallback(() => {
     clearSearch();
     setIsSearchExpanded(false);
@@ -661,8 +666,7 @@ export default function LibraryScreen() {
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           onTouchStart={dismissSearchFocus}
-          onScrollBeginDrag={dismissSearchFocus}
-          onScroll={() => setShowMenu(false)}
+          onScrollBeginDrag={handleListScrollBeginDrag}
           renderItem={renderLibraryItem}
           contentContainerStyle={styles.flatListContent}
         />
