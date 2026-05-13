@@ -78,8 +78,6 @@ export default function MediaHost({
     ],
   );
 
-  if (!currentItem) return null;
-
   const transitionItemKey = getMediaHostItemKey(transitionItem);
 
   const handleCurrentItemSettled = useCallback(
@@ -90,6 +88,8 @@ export default function MediaHost({
     },
     [clearTransition, transitionItemKey],
   );
+
+  if (!currentItem) return null;
 
   const { modalAnimation, statusBarBackgroundColor } = getMediaHostPresentation(
     currentItem.category,
