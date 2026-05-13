@@ -223,11 +223,14 @@ export default function ColorPicker({
   );
 
   const hueBarColors = useMemo(() => {
-    const colors: string[] = [];
+    const colors: Array<{ id: string; hex: string }> = [];
     for (let i = 0; i <= HUE_STEPS; i++) {
       const h = (i / HUE_STEPS) * 360;
       const rgb = hslToRgb(h, 1, 0.5);
-      colors.push(rgbToHex(rgb.r, rgb.g, rgb.b));
+      colors.push({
+        id: `hue-${Math.round(h)}`,
+        hex: rgbToHex(rgb.r, rgb.g, rgb.b),
+      });
     }
     return colors;
   }, []);
@@ -466,8 +469,8 @@ export default function ColorPicker({
             <View style={styles.hueSliderGradient}>
               {hueBarColors.map((color, idx) => (
                 <TouchableOpacity
-                  key={idx}
-                  style={{ flex: 1, backgroundColor: color }}
+                  key={color.id}
+                  style={{ flex: 1, backgroundColor: color.hex }}
                   onPress={() => handleHueCellPress(idx)}
                   activeOpacity={0.9}
                 />

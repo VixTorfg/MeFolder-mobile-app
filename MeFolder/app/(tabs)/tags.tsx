@@ -97,8 +97,11 @@ export default function TagsScreen() {
     }
     return (
       <View style={styles.albumsGrid}>
-        {rows.map((row, idx) => (
-          <View key={idx} style={styles.albumsRow}>
+        {rows.map((row) => (
+          <View
+            key={row.map((album) => album.id).join("-")}
+            style={styles.albumsRow}
+          >
             {row.map((album) => (
               <AlbumCard
                 key={album.id}

@@ -43,13 +43,43 @@ export const ColorList = ({
     COLORS_PER_PAGE,
   );
 
+  const normalizeColorValue = (value?: string) =>
+    value?.trim().toLowerCase() ?? "";
+
+  const getColorIdentity = (color: ColorInfo | null) => {
+    if (!color) {
+      return null;
+    }
+
+    return {
+      id: color.id ?? null,
+      hex: normalizeColorValue(color.hex),
+      name: normalizeColorValue(color.name),
+    };
+  };
+
   const isSameColor = (
     left: ColorInfo | null,
     right: ColorInfo | null,
   ): boolean => {
-    if (!left || !right) return false;
-    if (left.id && right.id) return left.id === right.id;
-    return left.hex.trim().toLowerCase() === right.hex.trim().toLowerCase();
+    const leftIdentity = getColorIdentity(left);
+    const rightIdentity = getColorIdentity(right);
+
+    if (!leftIdentity || !rightIdentity) {
+      return false;
+    }
+
+    return (
+      leftIdentity.id === rightIdentity.id &&
+      leftIdentity.hex === rightIdentity.hex &&
+      leftIdentity.name === rightIdentity.name
+    );
+  };
+
+  const getColorKey = (color: ColorInfo): string => {
+    const identity = getColorIdentity(color);
+
+    return `${identity?.id ?? "system"}:${identity?.hex ?? ""}:${identity?.name ?? ""}`;
   };
 
   useEffect(() => {
@@ -122,7 +152,7 @@ export const ColorList = ({
         >
           {data.map((color) => (
             <TouchableOpacity
-              key={color.id ?? color.hex + color.name}
+              key={getColorKey(color)}
               style={[
                 styles.colorOption,
                 isSameColor(selectedColor, color) && styles.colorOptionSelected,

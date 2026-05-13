@@ -329,8 +329,11 @@ export const FilePropertyMenu = ({
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Multimedia</Text>
           <View style={styles.infoGrid}>
-            {mediaStats.map((row, i) => (
-              <InfoRow key={i} {...row} />
+            {mediaStats.map((row) => (
+              <InfoRow
+                key={`${row.label}-${row.value}-${row.icon ?? "none"}`}
+                {...row}
+              />
             ))}
           </View>
         </View>

@@ -21,6 +21,9 @@ export const CustomAlert = ({
 }: CustomAlertProps) => {
   const styles = useCustomAlertStyles();
 
+  const getButtonKey = (text: string, style?: string) =>
+    `${style ?? "default"}:${text}`;
+
   const handlePress = (onPress?: () => void) => {
     onDismiss();
     onPress?.();
@@ -43,9 +46,9 @@ export const CustomAlert = ({
       {message ? <Text style={styles.message}>{message}</Text> : null}
       <View style={styles.footer}>
         <View style={styles.buttonContainer}>
-          {buttons.map((btn, index) => (
+          {buttons.map((btn) => (
             <TouchableOpacity
-              key={index}
+              key={getButtonKey(btn.text, btn.style)}
               style={getButtonStyle(btn.style)}
               onPress={() => handlePress(btn.onPress)}
             >

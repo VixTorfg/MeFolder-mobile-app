@@ -22,7 +22,7 @@ export default function AlbumsListScreen() {
 
     try {
       const allAlbums = await services.tagService.getAllAlbums();
-      const sortedAlbums = allAlbums.toSorted((left, right) =>
+      const sortedAlbums = [...allAlbums].sort((left, right) =>
         left.name.localeCompare(right.name, "es", { sensitivity: "base" }),
       );
       setAlbums(sortedAlbums);
