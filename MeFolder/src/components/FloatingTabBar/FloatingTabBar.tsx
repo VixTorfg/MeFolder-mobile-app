@@ -175,7 +175,7 @@ function FloatingTabBarItem({
           styles.glowEffect,
           glowStyle,
           {
-            shadowColor: activeColor,
+            boxShadow: `0px 2px 8px ${activeColor}`,
             backgroundColor: `${activeColor}15`,
           },
         ]}
