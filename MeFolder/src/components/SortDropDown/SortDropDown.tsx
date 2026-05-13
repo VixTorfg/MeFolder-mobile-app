@@ -1,10 +1,10 @@
 import {
   View,
   TouchableOpacity,
-  Dimensions,
   Text,
   Modal,
   Animated,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getResponsiveSize } from "@/utils/ui/responsive";
@@ -22,9 +22,6 @@ export interface SortDropDownProps {
   defaultOrderByValue?: FolderSortBy;
 }
 
-const { width: screenWidth } = Dimensions.get("window");
-const responsive = getResponsiveSize(screenWidth);
-
 export default function SortDropDown({
   disabled = false,
   size = 38,
@@ -33,6 +30,8 @@ export default function SortDropDown({
   defaultSortValue = "asc",
   defaultOrderByValue = "name",
 }: SortDropDownProps) {
+  const { width: screenWidth } = useWindowDimensions();
+  const responsive = getResponsiveSize(screenWidth);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const selectedSortValue = defaultSortValue;

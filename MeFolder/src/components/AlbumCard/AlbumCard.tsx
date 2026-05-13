@@ -10,6 +10,7 @@ import {
 import { useAlbumCardStyles } from "./styles";
 import { router } from "expo-router";
 import { Image } from "expo-image";
+import { useSinglePress } from "@/hooks";
 
 export const AlbumCard = ({
   album,
@@ -21,6 +22,7 @@ export const AlbumCard = ({
   style?: StyleProp<ViewStyle>;
 }) => {
   const styles = useAlbumCardStyles();
+  const { isLocked, run } = useSinglePress();
 
   return (
     <TouchableOpacity
@@ -30,9 +32,12 @@ export const AlbumCard = ({
         style,
       ]}
       onPress={() =>
-        router.push(`/gallery?tagId=${album.id}&albumName=${album.name}`)
+        void run(() =>
+          router.push(`/gallery?tagId=${album.id}&albumName=${album.name}`),
+        )
       }
       activeOpacity={0.8}
+      disabled={isLocked}
     >
       {coverUri && (
         <>

@@ -5,16 +5,14 @@ import {
   TouchableOpacity,
   ScrollView,
   TextInput,
-  Dimensions,
   Switch,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useAlert, useTheme } from "@/providers";
 import { useColorPickerStyles } from "./styles";
 import { BottomSheet } from "@/animations";
 import { ColorInfo } from "@/types/common/colors";
-
-const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 const GRAYSCALE_STEPS = [
   "#FFFFFF",
@@ -165,6 +163,7 @@ export default function ColorPicker({
   const { theme } = useTheme();
   const { showAlert } = useAlert();
   const styles = useColorPickerStyles();
+  const { height: screenHeight } = useWindowDimensions();
 
   const initRgb = initialData?.color?.rgb ?? { r: 242, g: 201, b: 76 };
   const initHsl = rgbToHsl(initRgb.r, initRgb.g, initRgb.b);
@@ -404,7 +403,7 @@ export default function ColorPicker({
     <BottomSheet visible={visible} onClose={onClose} title="Personalizar color">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.08 }}
+        contentContainerStyle={{ paddingBottom: screenHeight * 0.08 }}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.colorMapSection}>

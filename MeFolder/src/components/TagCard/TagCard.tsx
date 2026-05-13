@@ -3,6 +3,7 @@ import { PRIORITY_CONFIG } from "@/types/ui/components";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { TouchableOpacity, View, Text } from "react-native";
 import { useTagCardStyles } from "./styles";
+import { useSinglePress } from "@/hooks";
 
 export const TagCard = ({
   tag,
@@ -13,11 +14,20 @@ export const TagCard = ({
 }) => {
   const styles = useTagCardStyles();
   const priorityCfg = PRIORITY_CONFIG[tag.priority];
+  const { isLocked, run } = useSinglePress();
+
   return (
     <TouchableOpacity
       style={styles.tagCard}
       activeOpacity={0.7}
-      onPress={onPress}
+      onPress={() => {
+        if (!onPress) {
+          return;
+        }
+
+        void run(onPress);
+      }}
+      disabled={isLocked}
     >
       <View
         style={[

@@ -16,7 +16,12 @@ import {
 import { useAlbumDailyCovers, useTagsContent } from "@/hooks/tags";
 import { useHomeStyles } from "@/screenStyles";
 import type { TagModel } from "@/models/tag";
-import { useDailyBentoPattern, useDeviceOrientation, useTheme } from "@/hooks";
+import {
+  useDailyBentoPattern,
+  useDeviceOrientation,
+  useSinglePress,
+  useTheme,
+} from "@/hooks";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useServices } from "@/providers";
 import type { FileStorageUsageSummary } from "@/services/FileService";
@@ -88,6 +93,8 @@ export default function HomeScreen() {
     useState<FileStorageUsageSummary>(EMPTY_STORAGE_USAGE);
   const [deletedItemsCount, setDeletedItemsCount] = useState(0);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+  const { isLocked: isNavigationLocked, run: runSingleNavigation } =
+    useSinglePress();
 
   const favoriteTags = useMemo(
     () => items.filter((tag) => tag.isFavorite).slice(0, 8),
@@ -189,7 +196,12 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Álbumes</Text>
-          <TouchableOpacity onPress={() => router.push("/albums-list")}>
+          <TouchableOpacity
+            onPress={() =>
+              void runSingleNavigation(() => router.push("/albums-list"))
+            }
+            disabled={isNavigationLocked}
+          >
             <Text style={styles.sectionAction}>Ver todos</Text>
           </TouchableOpacity>
         </View>
@@ -232,7 +244,12 @@ export default function HomeScreen() {
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Favoritos</Text>
-              <TouchableOpacity onPress={() => router.push("/tags")}>
+              <TouchableOpacity
+                onPress={() =>
+                  void runSingleNavigation(() => router.push("/tags"))
+                }
+                disabled={isNavigationLocked}
+              >
                 <Text style={styles.sectionAction}>Abrir tags</Text>
               </TouchableOpacity>
             </View>
@@ -253,7 +270,12 @@ export default function HomeScreen() {
           <>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Prioridad alta</Text>
-              <TouchableOpacity onPress={() => router.push("/tags")}>
+              <TouchableOpacity
+                onPress={() =>
+                  void runSingleNavigation(() => router.push("/tags"))
+                }
+                disabled={isNavigationLocked}
+              >
                 <Text style={styles.sectionAction}>Ver etiquetas</Text>
               </TouchableOpacity>
             </View>
@@ -272,7 +294,10 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.quickStatCard}
             activeOpacity={0.8}
-            onPress={() => router.push("/settings")}
+            onPress={() =>
+              void runSingleNavigation(() => router.push("/settings"))
+            }
+            disabled={isNavigationLocked}
           >
             <View style={styles.quickStatHeader}>
               <MaterialCommunityIcons
@@ -294,7 +319,10 @@ export default function HomeScreen() {
           <TouchableOpacity
             style={styles.quickStatCard}
             activeOpacity={0.8}
-            onPress={() => router.push("/trash")}
+            onPress={() =>
+              void runSingleNavigation(() => router.push("/trash"))
+            }
+            disabled={isNavigationLocked}
           >
             <View style={styles.quickStatHeader}>
               <MaterialCommunityIcons

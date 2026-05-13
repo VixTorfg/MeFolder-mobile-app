@@ -2,17 +2,22 @@ import { TagModel } from "@/models/tag";
 import { router } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 import { useFavoriteTagChipStyles } from "./styles";
+import { useSinglePress } from "@/hooks";
 
 export const FavoriteTagChip = ({ tag }: { tag: TagModel }) => {
   const styles = useFavoriteTagChipStyles();
+  const { isLocked, run } = useSinglePress();
 
   return (
     <TouchableOpacity
       onPress={() =>
-        router.push(`/tags-content?tagId=${tag.id}&tagName=${tag.name}`)
+        void run(() =>
+          router.push(`/tags-content?tagId=${tag.id}&tagName=${tag.name}`),
+        )
       }
       style={[styles.favoriteChip, { backgroundColor: `${tag.color.hex}18` }]}
       activeOpacity={0.7}
+      disabled={isLocked}
     >
       <View
         style={[styles.favoriteChipIcon, { backgroundColor: tag.color.hex }]}

@@ -1,11 +1,11 @@
 import {
   View,
   TouchableOpacity,
-  Dimensions,
   Text,
   Modal,
   Animated,
   Switch,
+  useWindowDimensions,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { getResponsiveSize } from "@/utils/ui/responsive";
@@ -27,9 +27,6 @@ interface ViewDropDownProps {
   onViewOptionsChange?: (options: ViewOptions) => void;
 }
 
-const { width: screenWidth } = Dimensions.get("window");
-const responsive = getResponsiveSize(screenWidth);
-
 export default function ViewDropDown({
   disabled = false,
   size = 38,
@@ -38,6 +35,8 @@ export default function ViewDropDown({
   viewOptions = { showExtension: true, showHiddenFiles: false },
   onViewOptionsChange,
 }: ViewDropDownProps = {}) {
+  const { width: screenWidth } = useWindowDimensions();
+  const responsive = getResponsiveSize(screenWidth);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [showOptionsPanel, setShowOptionsPanel] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;

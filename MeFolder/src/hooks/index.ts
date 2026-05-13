@@ -8,6 +8,7 @@ export * from "./useMedia";
 export * from "./useColors";
 export * from "./useDailyBentoPattern";
 export * from "./useDeviceOrientation";
+export * from "./useSinglePress";
 export * from "./useSelection";
 export * from "./usePressScaleAnimation";
 export * from "./useViewSettings";

@@ -2,12 +2,12 @@ import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import { useRef, useState, useCallback } from "react";
 import {
   Animated,
-  Dimensions,
   Easing,
   StyleSheet,
   TouchableOpacity,
   View,
   Text,
+  useWindowDimensions,
 } from "react-native";
 import { router } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -29,6 +29,7 @@ const TORCH_MODES = [
 ] as const;
 
 export default function CameraScreen() {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [flashIndex, setFlashIndex] = useState(0);
   const [torchIndex, setTorchIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -234,8 +235,8 @@ export default function CameraScreen() {
             style={[
               styles.blurOverlayImage,
               isOverlayLandscape && {
-                width: Dimensions.get("window").height,
-                height: Dimensions.get("window").width,
+                width: windowHeight,
+                height: windowWidth,
                 transform: [{ rotate: "90deg" }],
               },
             ]}
