@@ -255,7 +255,7 @@ export const FolderPropertyMenu = ({
           <Text style={styles.sectionTitle}>Icono</Text>
 
           <View style={folderStyles.iconGridWrapper}>
-            <View style={[folderStyles.iconGrid]}>
+            <View style={folderStyles.iconGrid}>
               {FOLDER_ICONS.map((icon) => (
                 <TouchableOpacity
                   key={icon}
