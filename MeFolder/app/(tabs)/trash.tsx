@@ -280,11 +280,18 @@ export default function TrashScreen() {
               iconColor={styles.iconColor.color}
               size={44}
               onPress={() => {
-                const fileIds = itemsSelected
-                  .filter((i) => i instanceof FileModel)
-                  .map((f) => f.id)
-                  .join(",");
-                router.push({ pathname: "/tag-adder", params: { fileIds } });
+                const fileIds: string[] = [];
+
+                for (const item of itemsSelected) {
+                  if (item instanceof FileModel) {
+                    fileIds.push(item.id);
+                  }
+                }
+
+                router.push({
+                  pathname: "/tag-adder",
+                  params: { fileIds: fileIds.join(",") },
+                });
               }}
             />
           )}
