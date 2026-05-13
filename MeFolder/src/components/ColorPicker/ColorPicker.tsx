@@ -2,19 +2,17 @@ import React, { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
-  TouchableOpacity,
   ScrollView,
   TextInput,
-  Dimensions,
   Switch,
+  useWindowDimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useAlert, useTheme } from "@/providers";
 import { useColorPickerStyles } from "./styles";
 import { BottomSheet } from "@/animations";
 import { ColorInfo } from "@/types/common/colors";
-
-const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 const GRAYSCALE_STEPS = [
   "#FFFFFF",
@@ -165,6 +163,8 @@ export default function ColorPicker({
   const { theme } = useTheme();
   const { showAlert } = useAlert();
   const styles = useColorPickerStyles();
+  const { height: screenHeight } = useWindowDimensions();
+  const bottomInset = screenHeight * 0.08;
 
   const initRgb = initialData?.color?.rgb ?? { r: 242, g: 201, b: 76 };
   const initHsl = rgbToHsl(initRgb.r, initRgb.g, initRgb.b);
@@ -223,11 +223,14 @@ export default function ColorPicker({
   );
 
   const hueBarColors = useMemo(() => {
-    const colors: string[] = [];
+    const colors: Array<{ id: string; hex: string }> = [];
     for (let i = 0; i <= HUE_STEPS; i++) {
       const h = (i / HUE_STEPS) * 360;
       const rgb = hslToRgb(h, 1, 0.5);
-      colors.push(rgbToHex(rgb.r, rgb.g, rgb.b));
+      colors.push({
+        id: `hue-${Math.round(h)}`,
+        hex: rgbToHex(rgb.r, rgb.g, rgb.b),
+      });
     }
     return colors;
   }, []);
@@ -401,7 +404,7 @@ export default function ColorPicker({
     <BottomSheet visible={visible} onClose={onClose} title="Personalizar color">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.08 }}
+        contentInset={{ bottom: bottomInset }}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.colorMapSection}>
@@ -466,8 +469,8 @@ export default function ColorPicker({
             <View style={styles.hueSliderGradient}>
               {hueBarColors.map((color, idx) => (
                 <TouchableOpacity
-                  key={idx}
-                  style={{ flex: 1, backgroundColor: color }}
+                  key={color.id}
+                  style={{ flex: 1, backgroundColor: color.hex }}
                   onPress={() => handleHueCellPress(idx)}
                   activeOpacity={0.9}
                 />

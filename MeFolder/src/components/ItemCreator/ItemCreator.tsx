@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, ScrollView } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/providers";
 import { useItemCreatorStyles } from "./styles";
@@ -28,6 +29,7 @@ export default function ItemCreator({
   const { theme } = useTheme();
   const styles = useItemCreatorStyles();
   const [selectedType, setSelectedType] = useState<CreatorType>("file");
+  const bottomInset = 4 * theme.spacing.xxl;
 
   const handleResetOnClose = useCallback(() => {
     setSelectedType("file");
@@ -111,9 +113,7 @@ export default function ItemCreator({
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          paddingBottom: 4 * theme.spacing.xxl,
-        }}
+        contentInset={{ bottom: bottomInset }}
       >
         {selectedType === "file" ? (
           <FileCreator

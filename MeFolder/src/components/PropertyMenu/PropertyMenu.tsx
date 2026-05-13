@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, TouchableOpacity, ScrollView } from "react-native";
+import { View, Text, ScrollView } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/providers";
 import { usePropertyMenuStyles } from "./styles";
@@ -27,6 +28,7 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
   const isTag = item instanceof TagModel;
   const isFolder = item instanceof FolderModel;
   const showSectionSelector = !isFile;
+  const bottomInset = isFile ? 2.5 * theme.spacing.xxl : 4 * theme.spacing.xxl;
 
   const handleResetOnClose = () => {
     setSelectedSection("details");
@@ -100,18 +102,25 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{
-          paddingBottom: isFile
-            ? 2.5 * theme.spacing.xxl
-            : 4 * theme.spacing.xxl,
-        }}
+        contentInset={{ bottom: bottomInset }}
       >
-        {isFile && <FilePropertyMenu item={item} section={selectedSection} />}
+        {isFile && (
+          <FilePropertyMenu
+            key={item.id}
+            item={item}
+            section={selectedSection}
+          />
+        )}
         {isFolder && (
-          <FolderPropertyMenu item={item} section={selectedSection} />
+          <FolderPropertyMenu
+            key={item.id}
+            item={item}
+            section={selectedSection}
+          />
         )}
         {isTag && (
           <TagPropertyMenu
+            key={item.id}
             item={item}
             section={selectedSection}
             onClose={onClose}

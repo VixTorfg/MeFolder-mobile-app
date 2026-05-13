@@ -1,10 +1,8 @@
 import React, { useCallback } from "react";
-import { ScrollView, Dimensions } from "react-native";
+import { ScrollView, useWindowDimensions } from "react-native";
 import { BottomSheet } from "@/animations";
 import TagCreatorForm from "./TagCreatorForm";
 import type { NewTag } from "./TagCreatorForm";
-
-const SCREEN_HEIGHT = Dimensions.get("window").height;
 
 interface TagCreatorProps {
   visible: boolean;
@@ -19,6 +17,9 @@ export default function TagCreator({
   onSave,
   onImportZipAlbum,
 }: TagCreatorProps) {
+  const { height: screenHeight } = useWindowDimensions();
+  const bottomInset = screenHeight * 0.15;
+
   const handleSave = useCallback(
     async (data: NewTag): Promise<void> => {
       await onSave(data);
@@ -30,7 +31,7 @@ export default function TagCreator({
     <BottomSheet visible={visible} onClose={onClose} title="Nueva etiqueta">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: SCREEN_HEIGHT * 0.15 }}
+        contentInset={{ bottom: bottomInset }}
         keyboardShouldPersistTaps="handled"
       >
         <TagCreatorForm

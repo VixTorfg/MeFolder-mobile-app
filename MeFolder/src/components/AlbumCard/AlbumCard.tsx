@@ -1,15 +1,11 @@
 import { TagModel } from "@/models/tag";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import {
-  TouchableOpacity,
-  View,
-  Text,
-  type StyleProp,
-  type ViewStyle,
-} from "react-native";
+import { View, Text, type StyleProp, type ViewStyle } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useAlbumCardStyles } from "./styles";
 import { router } from "expo-router";
 import { Image } from "expo-image";
+import { useSinglePress } from "@/hooks";
 
 export const AlbumCard = ({
   album,
@@ -21,6 +17,7 @@ export const AlbumCard = ({
   style?: StyleProp<ViewStyle>;
 }) => {
   const styles = useAlbumCardStyles();
+  const { isLocked, run } = useSinglePress();
 
   return (
     <TouchableOpacity
@@ -30,9 +27,12 @@ export const AlbumCard = ({
         style,
       ]}
       onPress={() =>
-        router.push(`/gallery?tagId=${album.id}&albumName=${album.name}`)
+        void run(() =>
+          router.push(`/gallery?tagId=${album.id}&albumName=${album.name}`),
+        )
       }
       activeOpacity={0.8}
+      disabled={isLocked}
     >
       {coverUri && (
         <>

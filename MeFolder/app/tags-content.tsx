@@ -2,8 +2,9 @@ import { MediaHost } from "@/components/media";
 import type { MediaHostItem } from "@/types/media/viewers";
 import { useStyles, useSelection, useFileSystem, useAlert } from "@/hooks";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
-import { ActivityIndicator, TouchableOpacity, View, Text } from "react-native";
+import { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, View, Text } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import {
   ContextMenu,
   MultiActionButton,
@@ -235,6 +236,50 @@ export default function TagsContent() {
     setActiveMedia([mediaItem]);
   };
 
+  const renderTagContentItem = useCallback(
+    ({ item }: { item: FileModel }) => (
+      <View style={styles.cardWrapper}>
+        <ViewCards
+          data={item}
+          viewConfig={selectedView}
+          viewOptions={viewOptions}
+          selected={itemsSelected.some(
+            (selectedItem) => selectedItem.id === item.id,
+          )}
+          selectionMode={selectionMode}
+          isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+          onRename={handleRename}
+          onRenameCancel={() => setIsRenaming(false)}
+          onPress={() => {
+            selectionMode ? toggleSelection(item) : handleOpenItem(item);
+          }}
+          onDoublePress={(position) => {
+            setClickedItem(item);
+            setMenuPosition(position);
+            setShowMenu(true);
+          }}
+          onLongPress={() => toggleSelection(item)}
+        />
+      </View>
+    ),
+    [
+      clickedItem?.id,
+      handleOpenItem,
+      handleRename,
+      isRenaming,
+      itemsSelected,
+      selectedView,
+      selectionMode,
+      styles.cardWrapper,
+      toggleSelection,
+      viewOptions,
+    ],
+  );
+
+  const handleListScrollBeginDrag = useCallback(() => {
+    setShowMenu(false);
+  }, []);
+
   const renderGroupButtons = () => {
     if (selectionMode) {
       return (
@@ -345,32 +390,10 @@ export default function TagsContent() {
           keyExtractor={(item) => item.id}
           key={`${selectedView}-${gridConfig.columns}`}
           numColumns={gridConfig.columns}
-          onScroll={() => setShowMenu(false)}
+          onScrollBeginDrag={handleListScrollBeginDrag}
           onEndReachedThreshold={0.7}
           onEndReached={loadMore}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
-              <ViewCards
-                data={item}
-                viewConfig={selectedView}
-                viewOptions={viewOptions}
-                selected={itemsSelected.some((i) => i.id === item.id)}
-                selectionMode={selectionMode}
-                isRenaming={clickedItem?.id === item.id ? isRenaming : false}
-                onRename={handleRename}
-                onRenameCancel={() => setIsRenaming(false)}
-                onPress={() => {
-                  selectionMode ? toggleSelection(item) : handleOpenItem(item);
-                }}
-                onDoublePress={(position) => {
-                  setClickedItem(item);
-                  setMenuPosition(position);
-                  setShowMenu(true);
-                }}
-                onLongPress={() => toggleSelection(item)}
-              />
-            </View>
-          )}
+          renderItem={renderTagContentItem}
           contentContainerStyle={styles.flatListContent}
         />
       )}

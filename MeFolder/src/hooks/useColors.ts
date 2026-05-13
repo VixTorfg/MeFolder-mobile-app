@@ -11,6 +11,25 @@ function sortColors(colors: ColorInfo[]): ColorInfo[] {
   });
 }
 
+function normalizeColorValue(value?: string): string {
+  return value?.trim().toLowerCase() ?? "";
+}
+
+function areSameColor(
+  left: ColorInfo | null,
+  right: ColorInfo | null,
+): boolean {
+  if (!left || !right) {
+    return false;
+  }
+
+  return (
+    (left.id ?? null) === (right.id ?? null) &&
+    normalizeColorValue(left.hex) === normalizeColorValue(right.hex) &&
+    normalizeColorValue(left.name) === normalizeColorValue(right.name)
+  );
+}
+
 interface UseColorsReturn {
   colors: ColorInfo[];
   selectedColor: ColorInfo;
@@ -136,11 +155,7 @@ export function useColors(
           ),
         );
 
-        const isDeletedSelectedColor =
-          selectedColor.id === colorId ||
-          (selectedColor.id === undefined &&
-            selectedColor.hex === color.hex &&
-            selectedColor.name === color.name);
+        const isDeletedSelectedColor = areSameColor(selectedColor, color);
 
         if (isDeletedSelectedColor) {
           setSelectedColor(SYSTEM_COLORS["yellow"]);

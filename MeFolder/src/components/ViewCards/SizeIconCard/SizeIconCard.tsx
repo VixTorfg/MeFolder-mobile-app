@@ -1,10 +1,11 @@
 import { FileModel } from "@/models";
 import { CommunCardProps } from "@/types/ui/components";
 import { useSizeIconCardStyles } from "./styles";
-import { TouchableOpacity, View, Text, TextInput } from "react-native";
+import { View, Text, TextInput } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { getIconByCategory, isIoniconsIcon } from "@/utils/ui/icons";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { removeExtension } from "@/utils/format/name";
 import { Image } from "expo-image";
 
@@ -37,12 +38,6 @@ export const SizeIconCard = ({
 
   const showExtension = viewOptions?.showExtension;
   const showHiddenFiles = true; //viewOptions?.showHiddenFiles;
-
-  useEffect(() => {
-    if (isRenaming) {
-      setRenameValue(data.name);
-    }
-  }, [isRenaming, data.name]);
 
   const handlePress = async (): Promise<void> => {
     if (disabled) return;

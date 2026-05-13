@@ -1,5 +1,6 @@
 import React from "react";
-import { Animated, View, Text, TouchableOpacity } from "react-native";
+import { Animated, View, Text } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import * as MediaLibrary from "expo-media-library";
 import { Ionicons } from "@expo/vector-icons";
 import { usePressScaleAnimation, useStyles } from "@/hooks";

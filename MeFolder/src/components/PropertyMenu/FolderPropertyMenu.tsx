@@ -1,11 +1,6 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-} from "react-native";
+import { View, Text, TextInput, ScrollView } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useAlert, useServices, useTheme } from "@/providers";
 import {
@@ -108,13 +103,6 @@ export const FolderPropertyMenu = ({
     files: number;
     folders: number;
   } | null>(null);
-
-  useEffect(() => {
-    setFolder(item);
-    setFolderName(item.name);
-    setFolderDescription(item.description ?? "");
-    setSelectedColor(item.color ?? null);
-  }, [item]);
 
   const isSystemFolder = folder.isSystemFolder;
   const isRenaming = folderName !== folder.name;
@@ -267,7 +255,7 @@ export const FolderPropertyMenu = ({
           <Text style={styles.sectionTitle}>Icono</Text>
 
           <View style={folderStyles.iconGridWrapper}>
-            <View style={[folderStyles.iconGrid]}>
+            <View style={folderStyles.iconGrid}>
               {FOLDER_ICONS.map((icon) => (
                 <TouchableOpacity
                   key={icon}
@@ -425,7 +413,7 @@ export const FolderPropertyMenu = ({
       </View>
 
       {/* Contenido */}
-      {contentCount && (
+      {contentCount !== null && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Contenido</Text>
           <View style={styles.infoGrid}>

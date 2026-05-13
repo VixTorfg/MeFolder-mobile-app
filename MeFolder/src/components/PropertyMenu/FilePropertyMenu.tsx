@@ -1,11 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  TextInput,
-  ScrollView,
-} from "react-native";
+import { View, Text, TextInput, ScrollView } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Image } from "expo-image";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useAlert, useServices, useTheme } from "@/providers";
@@ -103,11 +98,6 @@ export const FilePropertyMenu = ({
     setFile(updatedFile);
     updateItem(updatedFile);
   }, [file.id, services.fileService, updateItem]);
-
-  useEffect(() => {
-    setFile(item);
-    setFileName(item.name);
-  }, [item]);
 
   useEffect(() => {
     const loadTags = async () => {
@@ -329,8 +319,11 @@ export const FilePropertyMenu = ({
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Multimedia</Text>
           <View style={styles.infoGrid}>
-            {mediaStats.map((row, i) => (
-              <InfoRow key={i} {...row} />
+            {mediaStats.map((row) => (
+              <InfoRow
+                key={`${row.label}-${row.value}-${row.icon ?? "none"}`}
+                {...row}
+              />
             ))}
           </View>
         </View>

@@ -1,11 +1,5 @@
-import {
-  View,
-  TouchableOpacity,
-  Dimensions,
-  Text,
-  Modal,
-  Animated,
-} from "react-native";
+import { View, Text, Modal, Animated, useWindowDimensions } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { getResponsiveSize } from "@/utils/ui/responsive";
 import { MultiActionButton } from "../MultiActionButton";
@@ -22,9 +16,6 @@ export interface OptionDropDownProps {
   onSelect?: (options: OptionsType) => void;
 }
 
-const { width: screenWidth } = Dimensions.get("window");
-const responsive = getResponsiveSize(screenWidth);
-
 export default function OptionDropDown({
   disabled = false,
   size = 38,
@@ -32,6 +23,8 @@ export default function OptionDropDown({
   options: customOptions,
   onSelect,
 }: OptionDropDownProps = {}) {
+  const { width: screenWidth } = useWindowDimensions();
+  const responsive = getResponsiveSize(screenWidth);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 

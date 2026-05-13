@@ -1,7 +1,8 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import { useNavigationStore } from '@/stores';
-import { useBreadcrumbStyles } from './styles';
+import React from "react";
+import { View, Text } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
+import { useNavigationStore } from "@/stores";
+import { useBreadcrumbStyles } from "./styles";
 
 const MAX_VISIBLE_SEGMENTS = 3;
 
@@ -30,7 +31,7 @@ export const Breadcrumb = () => {
         const isLast = realIndex === segments.length - 1;
 
         return (
-          <View key={segment.id ?? 'sys_root'} style={styles.segment}>
+          <View key={segment.id ?? "sys_root"} style={styles.segment}>
             <TouchableOpacity
               onPress={() => navigateToIndex(realIndex)}
               disabled={isLast}

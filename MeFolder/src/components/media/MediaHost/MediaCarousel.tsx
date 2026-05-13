@@ -7,6 +7,7 @@ import Animated, {
 } from "react-native-reanimated";
 import type { MediaHostItem } from "@/types/media/viewers";
 import { MediaViewer, type MediaViewerSharedProps } from "./MediaViewer";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface MediaCarouselSlides {
   previousItem: MediaHostItem | null;
@@ -42,6 +43,7 @@ export default function MediaCarousel({
   sharedViewerProps,
   onCurrentItemSettled,
 }: MediaCarouselProps) {
+  const { theme } = useTheme();
   const { previousItem, currentItem, nextItem } = slides;
   const { screenWidth, slideGap, gesture, translateX } = motion;
   const { transitionItem, transitionDirection, transitionOverlayOpacity } =
@@ -58,14 +60,26 @@ export default function MediaCarousel({
 
   return (
     <GestureDetector gesture={gesture}>
-      <View style={{ flex: 1, overflow: "hidden", backgroundColor: "#000" }}>
+      <View
+        style={{
+          flex: 1,
+          overflow: "hidden",
+          backgroundColor: theme.colors.mediaBackdrop,
+        }}
+      >
         <Animated.View
           style={[
             { flex: 1, flexDirection: "row", width: slideWidth * 3 },
             animatedStyle,
           ]}
         >
-          <View style={{ width: slideWidth, flex: 1, backgroundColor: "#000" }}>
+          <View
+            style={{
+              width: slideWidth,
+              flex: 1,
+              backgroundColor: theme.colors.mediaBackdrop,
+            }}
+          >
             {previousItem && (
               <View style={{ flex: 1, width: screenWidth }}>
                 <MediaViewer
@@ -76,7 +90,13 @@ export default function MediaCarousel({
               </View>
             )}
           </View>
-          <View style={{ width: slideWidth, flex: 1, backgroundColor: "#000" }}>
+          <View
+            style={{
+              width: slideWidth,
+              flex: 1,
+              backgroundColor: theme.colors.mediaBackdrop,
+            }}
+          >
             <View style={{ flex: 1, width: screenWidth }}>
               <MediaViewer
                 item={currentItem}
@@ -88,7 +108,13 @@ export default function MediaCarousel({
               />
             </View>
           </View>
-          <View style={{ width: slideWidth, flex: 1, backgroundColor: "#000" }}>
+          <View
+            style={{
+              width: slideWidth,
+              flex: 1,
+              backgroundColor: theme.colors.mediaBackdrop,
+            }}
+          >
             {nextItem && (
               <View style={{ flex: 1, width: screenWidth }}>
                 <MediaViewer

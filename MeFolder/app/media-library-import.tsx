@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, ActivityIndicator } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { router, useLocalSearchParams } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FlashList } from "@shopify/flash-list";
@@ -102,6 +103,28 @@ export default function MediaLibraryImportScreen() {
     closeWithSummary("Álbum importado con incidencias", result.failed);
   }, [closeWithSummary, importAlbum, isImporting, selectedAlbum]);
 
+  const renderAssetItem = useCallback(
+    ({ item }: { item: (typeof assets)[number] }) => (
+      <MediaLibraryAssetTile
+        asset={item}
+        isSelected={selectedAssetIds.has(item.id)}
+        onPress={() => toggleAssetSelection(item)}
+      />
+    ),
+    [selectedAssetIds, toggleAssetSelection],
+  );
+
+  const renderAlbumItem = useCallback(
+    ({ item }: { item: (typeof albums)[number] }) => (
+      <MediaLibraryAlbumRow
+        album={item}
+        isSelected={selectedAlbum?.id === item.id}
+        onPress={() => selectAlbum(item)}
+      />
+    ),
+    [selectedAlbum?.id, selectAlbum],
+  );
+
   const renderPermissionState = () => {
     const canAskAgain = permission?.canAskAgain ?? true;
 
@@ -139,7 +162,7 @@ export default function MediaLibraryImportScreen() {
       return (
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={styles.primaryColor.color} />
-          <Text style={styles.centerMessage}>Cargando archivos...</Text>
+          <Text style={styles.centerMessage}>Cargando archivos&hellip;</Text>
         </View>
       );
     }
@@ -162,13 +185,7 @@ export default function MediaLibraryImportScreen() {
     return (
       <FlashList
         data={assets}
-        renderItem={({ item }) => (
-          <MediaLibraryAssetTile
-            asset={item}
-            isSelected={selectedAssetIds.has(item.id)}
-            onPress={() => toggleAssetSelection(item)}
-          />
-        )}
+        renderItem={renderAssetItem}
         keyExtractor={(item) => item.id}
         numColumns={3}
         contentContainerStyle={styles.assetsGrid}
@@ -185,7 +202,7 @@ export default function MediaLibraryImportScreen() {
       return (
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={styles.primaryColor.color} />
-          <Text style={styles.centerMessage}>Cargando álbumes...</Text>
+          <Text style={styles.centerMessage}>Cargando álbumes&hellip;</Text>
         </View>
       );
     }
@@ -208,13 +225,7 @@ export default function MediaLibraryImportScreen() {
     return (
       <FlashList
         data={albums}
-        renderItem={({ item }) => (
-          <MediaLibraryAlbumRow
-            album={item}
-            isSelected={selectedAlbum?.id === item.id}
-            onPress={() => selectAlbum(item)}
-          />
-        )}
+        renderItem={renderAlbumItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.albumList}
         refreshing={isRefreshing}

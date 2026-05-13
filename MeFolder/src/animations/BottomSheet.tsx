@@ -1,11 +1,21 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import Animated from 'react-native-reanimated';
-import { GestureDetector, GestureHandlerRootView } from 'react-native-gesture-handler';
-import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '@/providers';
-import { useBottomSheet } from './useBottomSheet';
-import { useBottomSheetStyles } from './styles';
+import React from "react";
+import {
+  View,
+  Text,
+  Modal,
+  KeyboardAvoidingView,
+  Platform,
+} from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
+import Animated from "react-native-reanimated";
+import {
+  GestureDetector,
+  GestureHandlerRootView,
+} from "react-native-gesture-handler";
+import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "@/providers";
+import { useBottomSheet } from "./useBottomSheet";
+import { useBottomSheetStyles } from "./styles";
 
 interface BottomSheetProps {
   visible: boolean;
@@ -25,7 +35,10 @@ export default function BottomSheet({
   const { theme } = useTheme();
   const styles = useBottomSheetStyles();
   const { onModalShow, handleClose, panGesture, overlayStyle, containerStyle } =
-    useBottomSheet({ onClose, ...(onBeforeClose !== undefined && { onBeforeClose }) });
+    useBottomSheet({
+      onClose,
+      ...(onBeforeClose !== undefined && { onBeforeClose }),
+    });
 
   return (
     <Modal
@@ -38,12 +51,16 @@ export default function BottomSheet({
     >
       <GestureHandlerRootView style={{ flex: 1 }}>
         <Animated.View style={[styles.overlay, overlayStyle]}>
-          <TouchableOpacity style={{ flex: 1 }} activeOpacity={1} onPress={handleClose} />
+          <TouchableOpacity
+            style={{ flex: 1 }}
+            activeOpacity={1}
+            onPress={handleClose}
+          />
         </Animated.View>
 
         <KeyboardAvoidingView
           style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
         >
           <Animated.View style={[styles.containerWrapper, containerStyle]}>
             <View style={styles.container}>
@@ -55,7 +72,11 @@ export default function BottomSheet({
 
               {title && (
                 <View style={styles.header}>
-                  <Text style={styles.headerTitle} numberOfLines={1} ellipsizeMode="tail">
+                  <Text
+                    style={styles.headerTitle}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
+                  >
                     {title}
                   </Text>
                   <TouchableOpacity
@@ -63,7 +84,11 @@ export default function BottomSheet({
                     onPress={handleClose}
                     activeOpacity={0.7}
                   >
-                    <Ionicons name="close" size={20} color={theme.colors.textSecondary} />
+                    <Ionicons
+                      name="close"
+                      size={20}
+                      color={theme.colors.textSecondary}
+                    />
                   </TouchableOpacity>
                 </View>
               )}

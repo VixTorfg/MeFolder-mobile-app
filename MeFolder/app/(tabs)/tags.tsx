@@ -1,11 +1,6 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  TouchableOpacity,
-  FlatList,
-} from "react-native";
+import React, { useCallback, useState } from "react";
+import { View, Text, FlatList } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import {
   MultiActionButton,
@@ -24,6 +19,7 @@ import { TagModel } from "@/models/tag";
 import { useTagsContent } from "@/hooks/tags/useTagsContent";
 import { router } from "expo-router";
 import { useAlert } from "@/providers";
+import { useSinglePress } from "@/hooks";
 
 export default function TagsScreen() {
   const [showTagCreator, setShowTagCreator] = useState(false);
@@ -33,6 +29,8 @@ export default function TagsScreen() {
     useTagsActions();
   const { showAlert } = useAlert();
   const styles = useTagsStyles();
+  const { isLocked: isNavigationLocked, run: runSingleNavigation } =
+    useSinglePress();
 
   const favoriteTags = items.filter((t) => t.isFavorite);
   const highPriorityTags = items.filter(
@@ -67,12 +65,13 @@ export default function TagsScreen() {
     title: string,
     action?: string | React.ReactNode,
     onActionPress?: () => void,
+    actionDisabled?: boolean,
   ) => (
     <View style={styles.sectionHeader}>
       <Text style={styles.sectionTitle}>{title}</Text>
       {action &&
         (typeof action === "string" ? (
-          <TouchableOpacity onPress={onActionPress}>
+          <TouchableOpacity onPress={onActionPress} disabled={actionDisabled}>
             <Text style={styles.sectionAction}>{action}</Text>
           </TouchableOpacity>
         ) : (
@@ -97,8 +96,11 @@ export default function TagsScreen() {
     }
     return (
       <View style={styles.albumsGrid}>
-        {rows.map((row, idx) => (
-          <View key={idx} style={styles.albumsRow}>
+        {rows.map((row) => (
+          <View
+            key={row.map((album) => album.id).join("-")}
+            style={styles.albumsRow}
+          >
             {row.map((album) => (
               <AlbumCard
                 key={album.id}
@@ -113,6 +115,20 @@ export default function TagsScreen() {
     );
   };
 
+  const renderTagItem = useCallback(
+    ({ item }: { item: TagModel }) => (
+      <TagCard
+        tag={item}
+        onPress={() =>
+          runSingleNavigation(() =>
+            router.push(`/tags-content?tagId=${item.id}&tagName=${item.name}`),
+          )
+        }
+      />
+    ),
+    [runSingleNavigation],
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -126,37 +142,33 @@ export default function TagsScreen() {
       <FlatList
         data={allTags}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TagCard
-            tag={item}
-            onPress={() =>
-              router.push(`/tags-content?tagId=${item.id}&tagName=${item.name}`)
-            }
-          />
-        )}
+        renderItem={renderTagItem}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <>
             {favoriteTags.length > 0 && (
               <>
                 {renderSectionHeader("Favoritos")}
-                <ScrollView
+                <FlatList
                   horizontal
+                  data={favoriteTags}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => <FavoriteTagChip tag={item} />}
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.favoriteScrollContent}
                   style={styles.favoriteSection}
-                >
-                  {favoriteTags.map((tag) => (
-                    <FavoriteTagChip key={tag.id} tag={tag} />
-                  ))}
-                </ScrollView>
+                />
               </>
             )}
 
             {renderSectionHeader(
               "Álbumes",
               albums.length > 0 ? "Ver todos" : undefined,
-              albums.length > 0 ? () => router.push("/albums-list") : undefined,
+              albums.length > 0
+                ? () =>
+                    void runSingleNavigation(() => router.push("/albums-list"))
+                : undefined,
+              isNavigationLocked,
             )}
             {renderAlbumsGrid()}
 

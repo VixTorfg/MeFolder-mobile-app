@@ -25,14 +25,16 @@ import * as Sharing from "expo-sharing";
 import {
   ActivityIndicator,
   Animated as RNAnimated,
+  FlatList,
+  type ListRenderItem,
   View,
   Text,
   Pressable,
-  TouchableOpacity,
   useWindowDimensions,
   NativeScrollEvent,
   NativeSyntheticEvent,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
@@ -106,6 +108,10 @@ function GalleryTile({
 }: GalleryTileProps) {
   const { animatedStyle, handlePressIn, handlePressOut } =
     usePressScaleAnimation();
+  const previewUri =
+    item.category === "image"
+      ? (item.storageUrl ?? item.thumbnailUrl)
+      : (item.thumbnailUrl ?? item.storageUrl);
 
   return (
     <Animated.View
@@ -136,9 +142,9 @@ function GalleryTile({
             isSelected && styles.thumbPressableSelected,
           ]}
         >
-          {item.thumbnailUrl && (
+          {previewUri && (
             <Image
-              source={{ uri: item.thumbnailUrl }}
+              source={{ uri: previewUri }}
               recyclingKey={item.id}
               style={styles.thumb}
               contentFit="cover"
@@ -279,6 +285,32 @@ export default function GalleryScreen() {
   const selectedFileIds = useMemo(
     () => itemsSelected.map((item) => item.id),
     [itemsSelected],
+  );
+  const selectedItemIds = useMemo(
+    () => new Set(itemsSelected.map((item) => item.id)),
+    [itemsSelected],
+  );
+  const keyExtractor = useCallback((item: FileModel) => item.id, []);
+  const renderGalleryItem = useCallback<ListRenderItem<FileModel>>(
+    ({ item }) => (
+      <GalleryTile
+        item={item}
+        itemSize={itemSize}
+        isSelected={selectedItemIds.has(item.id)}
+        selectionMode={selectionMode}
+        onOpenItem={handleOpenItem}
+        onToggleSelection={toggleSelection}
+        styles={styles}
+      />
+    ),
+    [
+      handleOpenItem,
+      itemSize,
+      selectedItemIds,
+      selectionMode,
+      styles,
+      toggleSelection,
+    ],
   );
 
   const closeDeleteDialog = useCallback(() => {
@@ -698,29 +730,18 @@ export default function GalleryScreen() {
           </View>
         ) : (
           <GestureDetector gesture={pinchGesture}>
-            <Animated.ScrollView
+            <FlatList
+              key={`gallery-grid-${columns}`}
+              data={items}
+              keyExtractor={keyExtractor}
+              numColumns={columns}
+              extraData={selectedItemIds}
+              renderItem={renderGalleryItem}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              contentContainerStyle={[
-                styles.gridContainer,
-                { paddingBottom: scrollBottomPadding },
-              ]}
-            >
-              {items.map((item) => (
-                <GalleryTile
-                  key={item.id}
-                  item={item}
-                  itemSize={itemSize}
-                  isSelected={itemsSelected.some(
-                    (selectedItem) => selectedItem.id === item.id,
-                  )}
-                  selectionMode={selectionMode}
-                  onOpenItem={handleOpenItem}
-                  onToggleSelection={toggleSelection}
-                  styles={styles}
-                />
-              ))}
-            </Animated.ScrollView>
+              contentInset={{ bottom: scrollBottomPadding }}
+              scrollIndicatorInsets={{ bottom: scrollBottomPadding }}
+            />
           </GestureDetector>
         )}
 
@@ -844,7 +865,7 @@ export default function GalleryScreen() {
           <View style={styles.popupLoadingContent}>
             <ActivityIndicator size="large" color={styles.primaryColor.color} />
             <Text style={styles.popupLoadingText}>
-              Eliminando los archivos seleccionados...
+              Eliminando los archivos seleccionados&hellip;
             </Text>
             <Text style={styles.popupLoadingHint}>
               La operación puede tardar unos segundos.

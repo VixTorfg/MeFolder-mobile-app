@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect } from "react";
-import { View, TouchableOpacity, Dimensions } from "react-native";
+import { View, useWindowDimensions } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { usePathname, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import Animated, {
@@ -14,9 +15,6 @@ import { lightTheme } from "@/themes/themes";
 import type { RouteName } from "@/types";
 import { getResponsiveSize } from "@/utils/ui/responsive";
 import { useFloatingTabBarStyles } from "./styles";
-
-const { width: screenWidth } = Dimensions.get("window");
-const responsive = getResponsiveSize(screenWidth);
 
 interface FloatingTabBarProps {
   backgroundColor?: string;
@@ -81,6 +79,7 @@ interface FloatingTabBarItemProps {
   tab: (typeof tabs)[number];
   isActive: boolean;
   styles: FloatingTabBarStyles;
+  iconSize: number;
   activeColor: string;
   inactiveColor: string;
   onNavigate: (route: RouteName) => void;
@@ -90,6 +89,7 @@ function FloatingTabBarItem({
   tab,
   isActive,
   styles,
+  iconSize,
   activeColor,
   inactiveColor,
   onNavigate,
@@ -184,7 +184,7 @@ function FloatingTabBarItem({
       <Animated.View style={iconStyle}>
         <Ionicons
           name={tab.icon}
-          size={responsive.iconSize}
+          size={iconSize}
           color={isActive ? activeColor : inactiveColor}
           aria-label={`Icono de ${tab.label}`}
         />
@@ -200,8 +200,10 @@ export default function FloatingTabBar({
   borderColor = lightTheme.colors.borderSoft,
   borderRadius = 25,
 }: FloatingTabBarProps = {}) {
+  const { width: screenWidth } = useWindowDimensions();
+  const responsive = getResponsiveSize(screenWidth);
   const pathname = usePathname();
-  const router = useRouter();
+  const { push } = useRouter();
   const styles = useFloatingTabBarStyles(responsive);
 
   /**
@@ -210,9 +212,9 @@ export default function FloatingTabBar({
    */
   const handleTabPress = useCallback(
     (route: RouteName) => {
-      router.push(route);
+      push(route);
     },
-    [router],
+    [push],
   );
 
   /**
@@ -246,6 +248,7 @@ export default function FloatingTabBar({
               tab={tab}
               isActive={isActive}
               styles={styles}
+              iconSize={responsive.iconSize}
               activeColor={activeColor}
               inactiveColor={inactiveColor}
               onNavigate={handleTabPress}

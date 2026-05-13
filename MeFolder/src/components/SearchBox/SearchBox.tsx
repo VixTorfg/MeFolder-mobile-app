@@ -1,13 +1,13 @@
 import React, { useState, useCallback, useRef, useEffect } from "react";
 import {
   TextInput,
-  TouchableOpacity,
   TextInputSubmitEditingEvent,
   Animated,
   Easing,
   Keyboard,
   useWindowDimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useSearchBoxStyles } from "./styles";
 
@@ -58,6 +58,7 @@ export default function SearchBox({
   const activeIconSize = Math.max(20, Math.round(iconSize * 0.82));
   const clearIconSize = Math.max(20, Math.round(iconSize * 0.72));
 
+  const isFocusedRef = useRef(isFocused);
   const inputRef = useRef<TextInput>(null);
   const widthAnim = useRef(
     new Animated.Value(collapsible ? collapsedWidth : expandedWidth),
@@ -65,8 +66,12 @@ export default function SearchBox({
   const inputOpacity = useRef(new Animated.Value(collapsible ? 0 : 1)).current;
 
   useEffect(() => {
+    isFocusedRef.current = isFocused;
+  }, [isFocused]);
+
+  useEffect(() => {
     const hideListener = Keyboard.addListener("keyboardDidHide", () => {
-      if (isFocused) {
+      if (isFocusedRef.current) {
         inputRef.current?.blur();
       }
     });
@@ -74,7 +79,7 @@ export default function SearchBox({
     return () => {
       hideListener.remove();
     };
-  }, [isFocused]);
+  }, []);
 
   const expandSearch = useCallback(() => {
     if (!collapsible || isExpanded || disabled || isSearching) {

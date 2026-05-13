@@ -1,37 +1,38 @@
 export interface Colors {
- background: string,
-  backgroundSoft: string,
-  surface: string,
+  background: string;
+  backgroundSoft: string;
+  mediaBackdrop: string;
+  surface: string;
 
-  card: string,
-  subCard: string,
-  borderSoft: string,
+  card: string;
+  subCard: string;
+  borderSoft: string;
 
-  textPrimary: string,
-  textSecondary: string,
-  textMuted: string,
-  textOnColor: string,
+  textPrimary: string;
+  textSecondary: string;
+  textMuted: string;
+  textOnColor: string;
 
-  primary: string,
-  primaryHover: string,
-  primarySoft: string,
+  primary: string;
+  primaryHover: string;
+  primarySoft: string;
 
-  secondary: string,
-  secondarySoft: string,
+  secondary: string;
+  secondarySoft: string;
 
-  success: string,
-  successSoft: string,
+  success: string;
+  successSoft: string;
 
-  warning: string,
-  warningSoft: string,
+  warning: string;
+  warningSoft: string;
 
-  error: string,
-  errorSoft: string,
+  error: string;
+  errorSoft: string;
 
-  divider: string,
-  focusRing: string,
+  divider: string;
+  focusRing: string;
 
-  folderColor: string
+  folderColor: string;
 }
 
 export interface Spacing {
@@ -85,32 +86,32 @@ export interface Effects {
     slightUp: { width: number; height: number };
     slightLeft: { width: number; height: number };
     slightRight: { width: number; height: number };
-  },
+  };
   shadowsOpacity: {
     xs: number;
     sm: number;
     md: number;
     lg: number;
-  },
+  };
   elevation: {
     xs: number;
     sm: number;
     md: number;
     lg: number;
-  },
+  };
   radius: {
     exs: number;
     xxs: number;
     xs: number;
     md: number;
     lg: number;
-  },
+  };
   borderWidth: {
     xs: number;
     md: number;
     lg: number;
-  }
+  };
   shadowColor: {
     default: string;
-  }
+  };
 }

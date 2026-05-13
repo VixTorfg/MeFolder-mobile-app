@@ -15,12 +15,12 @@ import {
 import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   View,
-  TouchableOpacity,
   Text,
   ActivityIndicator,
   Keyboard,
   Pressable,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useNavigationStore } from "@/stores";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FileModel, FolderModel } from "@/models";
@@ -36,7 +36,7 @@ import {
 import { useFileSystem, useSearch, useSelection } from "@/hooks";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
-import { ArchiveFormat } from "@/types";
+import { ArchiveFormat, OptionsIds, type OptionsType } from "@/types";
 
 export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
@@ -118,6 +118,7 @@ export default function LibraryScreen() {
   const fs = useFileSystem();
   const { handleSearch, clearSearch, isSearching, isSearchActive } =
     useSearch("");
+  const searchBoxKey = `${currentFolderId ?? "root"}:${selectionMode ? "selection" : "browse"}`;
 
   const dismissSearchFocus = useCallback(() => {
     if (isSearchExpanded) {
@@ -125,17 +126,37 @@ export default function LibraryScreen() {
     }
   }, [isSearchExpanded]);
 
-  useEffect(() => {
-    if (selectionMode) {
-      if (isSearchExpanded) {
-        setIsSearchExpanded(false);
+  const handleListScrollBeginDrag = useCallback(() => {
+    dismissSearchFocus();
+    setShowMenu(false);
+  }, [dismissSearchFocus]);
+
+  const resetSearchUi = useCallback(() => {
+    clearSearch();
+    setIsSearchExpanded(false);
+  }, [clearSearch]);
+
+  const handleEnterSelectionMode = useCallback(
+    (item: FileModel | FolderModel) => {
+      resetSearchUi();
+      toggleSelection(item);
+    },
+    [resetSearchUi, toggleSelection],
+  );
+
+  const handleSelectionOption = useCallback(
+    (option: OptionsType) => {
+      if (
+        option.id === OptionsIds.SELECT_ALL ||
+        option.id === OptionsIds.INVERT_SELECT
+      ) {
+        resetSearchUi();
       }
 
-      if (isSearchActive) {
-        clearSearch();
-      }
-    }
-  }, [selectionMode, isSearchExpanded, isSearchActive, clearSearch]);
+      handleOnSelectOption(option);
+    },
+    [handleOnSelectOption, resetSearchUi],
+  );
 
   useEffect(() => {
     clearSearch();
@@ -236,6 +257,48 @@ export default function LibraryScreen() {
     handleExtractWrapper,
     validarComprimir,
   ]);
+
+  const renderLibraryItem = useCallback(
+    ({ item }: { item: FileModel | FolderModel }) => (
+      <View style={styles.cardWrapper}>
+        <ViewCards
+          key={`${item.id}:${clickedItem?.id === item.id && isRenaming ? "renaming" : "idle"}:${item.name}`}
+          data={item}
+          viewConfig={selectedView}
+          viewOptions={viewOptions}
+          selected={itemsSelected.some(
+            (selectedItem) => selectedItem.id === item.id,
+          )}
+          selectionMode={selectionMode}
+          isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+          onRename={handleRename}
+          onRenameCancel={() => setIsRenaming(false)}
+          onPress={() => {
+            selectionMode ? toggleSelection(item) : handleOpenItem(item);
+          }}
+          onDoublePress={(position) => {
+            setClickedItem(item);
+            setMenuPosition(position);
+            setShowMenu(true);
+          }}
+          onLongPress={() => handleEnterSelectionMode(item)}
+        />
+      </View>
+    ),
+    [
+      clickedItem?.id,
+      handleEnterSelectionMode,
+      handleOpenItem,
+      handleRename,
+      isRenaming,
+      itemsSelected,
+      selectedView,
+      selectionMode,
+      styles.cardWrapper,
+      toggleSelection,
+      viewOptions,
+    ],
+  );
 
   const menuOptions = useMemo(
     () => [
@@ -417,11 +480,18 @@ export default function LibraryScreen() {
               iconColor={styles.iconColor.color}
               size={44}
               onPress={() => {
-                const fileIds = itemsSelected
-                  .filter((i) => i instanceof FileModel)
-                  .map((f) => f.id)
-                  .join(",");
-                router.push({ pathname: "/tag-adder", params: { fileIds } });
+                const fileIds: string[] = [];
+
+                for (const item of itemsSelected) {
+                  if (item instanceof FileModel) {
+                    fileIds.push(item.id);
+                  }
+                }
+
+                router.push({
+                  pathname: "/tag-adder",
+                  params: { fileIds: fileIds.join(",") },
+                });
               }}
             />
           )}
@@ -439,6 +509,7 @@ export default function LibraryScreen() {
       return (
         <>
           <SearchBox
+            key={searchBoxKey}
             placeholder="Buscar en biblioteca..."
             iconSize={22}
             collapsible
@@ -493,7 +564,7 @@ export default function LibraryScreen() {
                 viewOptions={viewOptions}
                 onViewOptionsChange={handleViewOptionsChange}
               />
-              <OptionDropDown size={42} onSelect={handleOnSelectOption} />
+              <OptionDropDown size={42} onSelect={handleSelectionOption} />
             </>
           )}
         </>
@@ -595,31 +666,8 @@ export default function LibraryScreen() {
           keyboardDismissMode="on-drag"
           keyboardShouldPersistTaps="handled"
           onTouchStart={dismissSearchFocus}
-          onScrollBeginDrag={dismissSearchFocus}
-          onScroll={() => setShowMenu(false)}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
-              <ViewCards
-                data={item}
-                viewConfig={selectedView}
-                viewOptions={viewOptions}
-                selected={itemsSelected.some((i) => i.id === item.id)}
-                selectionMode={selectionMode}
-                isRenaming={clickedItem?.id === item.id ? isRenaming : false}
-                onRename={handleRename}
-                onRenameCancel={() => setIsRenaming(false)}
-                onPress={() => {
-                  selectionMode ? toggleSelection(item) : handleOpenItem(item);
-                }}
-                onDoublePress={(position) => {
-                  setClickedItem(item);
-                  setMenuPosition(position);
-                  setShowMenu(true);
-                }}
-                onLongPress={() => toggleSelection(item)}
-              />
-            </View>
-          )}
+          onScrollBeginDrag={handleListScrollBeginDrag}
+          renderItem={renderLibraryItem}
           contentContainerStyle={styles.flatListContent}
         />
       )}

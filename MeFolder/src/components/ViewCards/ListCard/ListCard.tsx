@@ -1,10 +1,11 @@
-import { View, TouchableOpacity, Text, TextInput } from "react-native";
+import { View, Text, TextInput } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useListCardStyles } from "./styles";
 import { CommunCardProps } from "@/types";
 import { FileModel } from "@/models/file";
 import { getIconByCategory, isIoniconsIcon, removeExtension } from "@/utils";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import { Image } from "expo-image";
 
 export default function ListCard({
@@ -30,12 +31,6 @@ export default function ListCard({
 
   const showExtension = viewOptions?.showExtension;
   const showHiddenFiles = true; //viewOptions?.showHiddenFiles;
-
-  useEffect(() => {
-    if (isRenaming) {
-      setRenameValue(data.name);
-    }
-  }, [isRenaming, data.name]);
 
   /**
    * Maneja el evento de presión del botón

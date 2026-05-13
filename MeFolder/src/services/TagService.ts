@@ -452,9 +452,7 @@ export class TagService extends BaseService {
       //const albums = await this.tagRepo.findByParentId(SYSTEM_ALBUM_TAG_ID);
       const albums = await this.tagRepo.findByType("album");
 
-      return albums
-        .filter((album) => album.id !== SYSTEM_ALBUM_TAG_ID)
-        .map((t) => TagFactory.fromJSON(t));
+      return albums.map((t) => TagFactory.fromJSON(t));
     } catch (error) {
       return this.handleError(error, "obtener álbumes");
     }

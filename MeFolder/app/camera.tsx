@@ -2,13 +2,13 @@ import { CameraView, CameraType, useCameraPermissions } from "expo-camera";
 import { useRef, useState, useCallback } from "react";
 import {
   Animated,
-  Dimensions,
   Easing,
   StyleSheet,
-  TouchableOpacity,
   View,
   Text,
+  useWindowDimensions,
 } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { router } from "expo-router";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { Image } from "expo-image";
@@ -28,7 +28,11 @@ const TORCH_MODES = [
   { enable: true, icon: "flashlight", color: "#F2C94C" },
 ] as const;
 
+const BOX_SHADOW_ELEVATION_10 = "0px 6px 18px rgba(0, 0, 0, 0.28)";
+const BOX_SHADOW_ELEVATION_20 = "0px 12px 28px rgba(0, 0, 0, 0.34)";
+
 export default function CameraScreen() {
+  const { width: windowWidth, height: windowHeight } = useWindowDimensions();
   const [flashIndex, setFlashIndex] = useState(0);
   const [torchIndex, setTorchIndex] = useState(0);
   const [isRecording, setIsRecording] = useState(false);
@@ -234,8 +238,8 @@ export default function CameraScreen() {
             style={[
               styles.blurOverlayImage,
               isOverlayLandscape && {
-                width: Dimensions.get("window").height,
-                height: Dimensions.get("window").width,
+                width: windowHeight,
+                height: windowWidth,
                 transform: [{ rotate: "90deg" }],
               },
             ]}
@@ -323,7 +327,7 @@ const styles = StyleSheet.create({
   blurOverlayContainer: {
     ...StyleSheet.absoluteFillObject,
     zIndex: 10,
-    elevation: 10,
+    boxShadow: BOX_SHADOW_ELEVATION_10,
     overflow: "hidden",
     alignItems: "center",
     justifyContent: "center",
@@ -338,7 +342,7 @@ const styles = StyleSheet.create({
     left: 20,
     padding: 8,
     zIndex: 20,
-    elevation: 20,
+    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   filaContainer: {
     position: "absolute",
@@ -362,7 +366,7 @@ const styles = StyleSheet.create({
     fontFamily: lightTheme.typography.fontFamily.primary.semiBold,
     fontSize: 16,
     zIndex: 20,
-    elevation: 20,
+    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   flashButton: {
     position: "absolute",
@@ -370,7 +374,7 @@ const styles = StyleSheet.create({
     right: 20,
     padding: 8,
     zIndex: 20,
-    elevation: 20,
+    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   torchButton: {
     position: "absolute",
@@ -378,7 +382,7 @@ const styles = StyleSheet.create({
     right: 100,
     padding: 8,
     zIndex: 20,
-    elevation: 20,
+    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   buttonContainer: {
     position: "absolute",
@@ -389,7 +393,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     zIndex: 20,
-    elevation: 20,
+    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   flipButton: {
     width: 44,

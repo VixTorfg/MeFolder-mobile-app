@@ -1,4 +1,5 @@
-import { View, TouchableOpacity, Dimensions, Text } from "react-native";
+import { View, Text, useWindowDimensions } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   getResponsiveSize,
@@ -8,9 +9,6 @@ import { useMultiActionButtonStyles } from "../MultiActionButton/styles";
 import { defaultColor } from "@/themes/colors";
 import { isIoniconsIcon } from "@/utils/ui/icons";
 import { ColorInfo } from "@/types/common/colors";
-
-const { width: screenWidth } = Dimensions.get("window");
-const responsive = getResponsiveSize(screenWidth);
 
 interface MultiActionButtonProps {
   onPress: () => Promise<void> | void;
@@ -35,6 +33,8 @@ export default function MultiActionButton({
   size = 38,
   onPress,
 }: MultiActionButtonProps) {
+  const { width: screenWidth } = useWindowDimensions();
+  const responsive = getResponsiveSize(screenWidth);
   const dimensions = getMultiActionButtonDimensions(size, responsive);
   const styles = useMultiActionButtonStyles(dimensions);
   const isIonicons = isIoniconsIcon(icon);

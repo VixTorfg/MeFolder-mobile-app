@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, TouchableOpacity } from "react-native";
+import { View, Text } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useCustomAlertStyles } from "./styles";
 import { CustomAlertButton } from "@/types/ui/components";
 import { CustomPopup } from "./CustomPopup";
@@ -20,6 +21,9 @@ export const CustomAlert = ({
   onDismiss,
 }: CustomAlertProps) => {
   const styles = useCustomAlertStyles();
+
+  const getButtonKey = (text: string, style?: string) =>
+    `${style ?? "default"}:${text}`;
 
   const handlePress = (onPress?: () => void) => {
     onDismiss();
@@ -43,9 +47,9 @@ export const CustomAlert = ({
       {message ? <Text style={styles.message}>{message}</Text> : null}
       <View style={styles.footer}>
         <View style={styles.buttonContainer}>
-          {buttons.map((btn, index) => (
+          {buttons.map((btn) => (
             <TouchableOpacity
-              key={index}
+              key={getButtonKey(btn.text, btn.style)}
               style={getButtonStyle(btn.style)}
               onPress={() => handlePress(btn.onPress)}
             >

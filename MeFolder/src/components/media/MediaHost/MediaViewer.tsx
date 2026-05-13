@@ -7,6 +7,7 @@ import { VideoPlayer } from "../VideoPlayer";
 import { AudioPlayer } from "../AudioPlayer";
 import type { MediaHostItem } from "@/types/media/viewers";
 import type { SharedValue } from "react-native-reanimated";
+import { useTheme } from "@/providers/ThemeProvider";
 
 interface MediaPreviewProps {
   item: MediaHostItem;
@@ -18,9 +19,11 @@ interface MediaPreviewProps {
  * Evita montar instancias nativas adicionales mientras el viewer real termina de asentarse.
  */
 function MediaPreview({ item, showVideoOverlay = true }: MediaPreviewProps) {
+  const { theme } = useTheme();
+
   if (item.category === "image") {
     return (
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.mediaBackdrop }}>
         <Image
           source={{ uri: item.uri }}
           style={{ width: "100%", height: "100%" }}
@@ -33,7 +36,7 @@ function MediaPreview({ item, showVideoOverlay = true }: MediaPreviewProps) {
 
   if (item.category === "video" && item.thumbnailUrl) {
     return (
-      <View style={{ flex: 1, backgroundColor: "#000" }}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.mediaBackdrop }}>
         <Image
           source={{ uri: item.thumbnailUrl }}
           style={{ width: "100%", height: "100%" }}
@@ -75,7 +78,7 @@ function MediaPreview({ item, showVideoOverlay = true }: MediaPreviewProps) {
     <View
       style={{
         flex: 1,
-        backgroundColor: "#000",
+        backgroundColor: theme.colors.mediaBackdrop,
         alignItems: "center",
         justifyContent: "center",
         gap: 12,
@@ -141,6 +144,7 @@ export const MediaViewer = React.memo(function MediaViewer({
   isDragging,
   onItemSettled,
 }: MediaViewerProps) {
+  const { theme } = useTheme();
   const itemKey = item.fileId ?? `${item.category}:${item.uri}`;
   const isPreviewable = item.category === "image" || item.category === "video";
   const [settledItemKey, setSettledItemKey] = useState<string | null>(null);
@@ -181,7 +185,7 @@ export const MediaViewer = React.memo(function MediaViewer({
   switch (item.category) {
     case "image":
       return (
-        <View style={{ flex: 1, backgroundColor: "#000" }}>
+        <View style={{ flex: 1, backgroundColor: theme.colors.mediaBackdrop }}>
           <ImageViewer
             key={itemKey}
             source={item}
@@ -201,7 +205,7 @@ export const MediaViewer = React.memo(function MediaViewer({
       );
     case "video":
       return (
-        <View style={{ flex: 1, backgroundColor: "#000" }}>
+        <View style={{ flex: 1, backgroundColor: theme.colors.mediaBackdrop }}>
           <VideoPlayer
             key={itemKey}
             source={item}
