@@ -37,6 +37,17 @@ export default function AlbumsListScreen() {
     }, [loadAlbums]),
   );
 
+  const renderAlbumItem = useCallback(
+    ({ item }: { item: TagModel }) => (
+      <AlbumCard
+        album={item}
+        coverUri={albumDailyCovers[item.id]?.coverUri}
+        style={styles.albumCard}
+      />
+    ),
+    [albumDailyCovers, styles.albumCard],
+  );
+
   const renderContent = () => {
     if (isLoading) {
       return (
@@ -60,13 +71,7 @@ export default function AlbumsListScreen() {
         data={albums}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <AlbumCard
-            album={item}
-            coverUri={albumDailyCovers[item.id]?.coverUri}
-            style={styles.albumCard}
-          />
-        )}
+        renderItem={renderAlbumItem}
       />
     );
   };

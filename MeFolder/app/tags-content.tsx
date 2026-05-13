@@ -2,7 +2,7 @@ import { MediaHost } from "@/components/media";
 import type { MediaHostItem } from "@/types/media/viewers";
 import { useStyles, useSelection, useFileSystem, useAlert } from "@/hooks";
 import { router, useLocalSearchParams } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, TouchableOpacity, View, Text } from "react-native";
 import {
   ContextMenu,
@@ -235,6 +235,46 @@ export default function TagsContent() {
     setActiveMedia([mediaItem]);
   };
 
+  const renderTagContentItem = useCallback(
+    ({ item }: { item: FileModel }) => (
+      <View style={styles.cardWrapper}>
+        <ViewCards
+          data={item}
+          viewConfig={selectedView}
+          viewOptions={viewOptions}
+          selected={itemsSelected.some(
+            (selectedItem) => selectedItem.id === item.id,
+          )}
+          selectionMode={selectionMode}
+          isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+          onRename={handleRename}
+          onRenameCancel={() => setIsRenaming(false)}
+          onPress={() => {
+            selectionMode ? toggleSelection(item) : handleOpenItem(item);
+          }}
+          onDoublePress={(position) => {
+            setClickedItem(item);
+            setMenuPosition(position);
+            setShowMenu(true);
+          }}
+          onLongPress={() => toggleSelection(item)}
+        />
+      </View>
+    ),
+    [
+      clickedItem?.id,
+      handleOpenItem,
+      handleRename,
+      isRenaming,
+      itemsSelected,
+      selectedView,
+      selectionMode,
+      styles.cardWrapper,
+      toggleSelection,
+      viewOptions,
+    ],
+  );
+
   const renderGroupButtons = () => {
     if (selectionMode) {
       return (
@@ -348,29 +388,7 @@ export default function TagsContent() {
           onScroll={() => setShowMenu(false)}
           onEndReachedThreshold={0.7}
           onEndReached={loadMore}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
-              <ViewCards
-                data={item}
-                viewConfig={selectedView}
-                viewOptions={viewOptions}
-                selected={itemsSelected.some((i) => i.id === item.id)}
-                selectionMode={selectionMode}
-                isRenaming={clickedItem?.id === item.id ? isRenaming : false}
-                onRename={handleRename}
-                onRenameCancel={() => setIsRenaming(false)}
-                onPress={() => {
-                  selectionMode ? toggleSelection(item) : handleOpenItem(item);
-                }}
-                onDoublePress={(position) => {
-                  setClickedItem(item);
-                  setMenuPosition(position);
-                  setShowMenu(true);
-                }}
-                onLongPress={() => toggleSelection(item)}
-              />
-            </View>
-          )}
+          renderItem={renderTagContentItem}
           contentContainerStyle={styles.flatListContent}
         />
       )}

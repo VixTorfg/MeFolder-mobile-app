@@ -16,7 +16,7 @@ import {
   useTrashActions,
 } from "@/hooks";
 import type { MediaHostItem } from "@/types/media/viewers";
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { View, Text, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTrashContent } from "@/hooks/trash/useTrashContent";
@@ -150,6 +150,46 @@ export default function TrashScreen() {
       setActiveMedia([mediaItem]);
     }
   };
+
+  const renderTrashItem = useCallback(
+    ({ item }: { item: FileModel | FolderModel }) => (
+      <View style={styles.cardWrapper}>
+        <ViewCards
+          data={item}
+          viewConfig={selectedView}
+          viewOptions={viewOptions}
+          selected={itemsSelected.some(
+            (selectedItem) => selectedItem.id === item.id,
+          )}
+          selectionMode={selectionMode}
+          isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+          onRename={handleRename}
+          onRenameCancel={() => setIsRenaming(false)}
+          onPress={() => {
+            selectionMode ? toggleSelection(item) : handleOpenItem(item);
+          }}
+          onDoublePress={(position) => {
+            setClickedItem(item);
+            setMenuPosition(position);
+            setShowMenu(true);
+          }}
+          onLongPress={() => toggleSelection(item)}
+        />
+      </View>
+    ),
+    [
+      clickedItem?.id,
+      handleOpenItem,
+      handleRename,
+      isRenaming,
+      itemsSelected,
+      selectedView,
+      selectionMode,
+      styles.cardWrapper,
+      toggleSelection,
+      viewOptions,
+    ],
+  );
 
   const menuOptions = useMemo(
     () => [
@@ -411,29 +451,7 @@ export default function TrashScreen() {
           key={`${selectedView}-${gridConfig.columns}`}
           numColumns={gridConfig.columns}
           onScroll={() => setShowMenu(false)}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
-              <ViewCards
-                data={item}
-                viewConfig={selectedView}
-                viewOptions={viewOptions}
-                selected={itemsSelected.some((i) => i.id === item.id)}
-                selectionMode={selectionMode}
-                isRenaming={clickedItem?.id === item.id ? isRenaming : false}
-                onRename={handleRename}
-                onRenameCancel={() => setIsRenaming(false)}
-                onPress={() => {
-                  selectionMode ? toggleSelection(item) : handleOpenItem(item);
-                }}
-                onDoublePress={(position) => {
-                  setClickedItem(item);
-                  setMenuPosition(position);
-                  setShowMenu(true);
-                }}
-                onLongPress={() => toggleSelection(item)}
-              />
-            </View>
-          )}
+          renderItem={renderTrashItem}
           contentContainerStyle={styles.flatListContent}
         />
       )}

@@ -253,6 +253,48 @@ export default function LibraryScreen() {
     validarComprimir,
   ]);
 
+  const renderLibraryItem = useCallback(
+    ({ item }: { item: FileModel | FolderModel }) => (
+      <View style={styles.cardWrapper}>
+        <ViewCards
+          key={`${item.id}:${clickedItem?.id === item.id && isRenaming ? "renaming" : "idle"}:${item.name}`}
+          data={item}
+          viewConfig={selectedView}
+          viewOptions={viewOptions}
+          selected={itemsSelected.some(
+            (selectedItem) => selectedItem.id === item.id,
+          )}
+          selectionMode={selectionMode}
+          isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+          onRename={handleRename}
+          onRenameCancel={() => setIsRenaming(false)}
+          onPress={() => {
+            selectionMode ? toggleSelection(item) : handleOpenItem(item);
+          }}
+          onDoublePress={(position) => {
+            setClickedItem(item);
+            setMenuPosition(position);
+            setShowMenu(true);
+          }}
+          onLongPress={() => handleEnterSelectionMode(item)}
+        />
+      </View>
+    ),
+    [
+      clickedItem?.id,
+      handleEnterSelectionMode,
+      handleOpenItem,
+      handleRename,
+      isRenaming,
+      itemsSelected,
+      selectedView,
+      selectionMode,
+      styles.cardWrapper,
+      toggleSelection,
+      viewOptions,
+    ],
+  );
+
   const menuOptions = useMemo(
     () => [
       {
@@ -621,30 +663,7 @@ export default function LibraryScreen() {
           onTouchStart={dismissSearchFocus}
           onScrollBeginDrag={dismissSearchFocus}
           onScroll={() => setShowMenu(false)}
-          renderItem={({ item }) => (
-            <View style={styles.cardWrapper}>
-              <ViewCards
-                key={`${item.id}:${clickedItem?.id === item.id && isRenaming ? "renaming" : "idle"}:${item.name}`}
-                data={item}
-                viewConfig={selectedView}
-                viewOptions={viewOptions}
-                selected={itemsSelected.some((i) => i.id === item.id)}
-                selectionMode={selectionMode}
-                isRenaming={clickedItem?.id === item.id ? isRenaming : false}
-                onRename={handleRename}
-                onRenameCancel={() => setIsRenaming(false)}
-                onPress={() => {
-                  selectionMode ? toggleSelection(item) : handleOpenItem(item);
-                }}
-                onDoublePress={(position) => {
-                  setClickedItem(item);
-                  setMenuPosition(position);
-                  setShowMenu(true);
-                }}
-                onLongPress={() => handleEnterSelectionMode(item)}
-              />
-            </View>
-          )}
+          renderItem={renderLibraryItem}
           contentContainerStyle={styles.flatListContent}
         />
       )}

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View,
   Text,
@@ -120,6 +120,20 @@ export default function TagsScreen() {
     );
   };
 
+  const renderTagItem = useCallback(
+    ({ item }: { item: TagModel }) => (
+      <TagCard
+        tag={item}
+        onPress={() =>
+          runSingleNavigation(() =>
+            router.push(`/tags-content?tagId=${item.id}&tagName=${item.name}`),
+          )
+        }
+      />
+    ),
+    [runSingleNavigation],
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -133,18 +147,7 @@ export default function TagsScreen() {
       <FlatList
         data={allTags}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <TagCard
-            tag={item}
-            onPress={() =>
-              runSingleNavigation(() =>
-                router.push(
-                  `/tags-content?tagId=${item.id}&tagName=${item.name}`,
-                ),
-              )
-            }
-          />
-        )}
+        renderItem={renderTagItem}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <>
