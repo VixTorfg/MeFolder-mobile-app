@@ -418,7 +418,7 @@ export const FolderPropertyMenu = ({
       </View>
 
       {/* Contenido */}
-      {contentCount && (
+      {contentCount !== null && (
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Contenido</Text>
           <View style={styles.infoGrid}>
