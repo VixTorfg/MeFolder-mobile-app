@@ -844,7 +844,7 @@ export default function GalleryScreen() {
           <View style={styles.popupLoadingContent}>
             <ActivityIndicator size="large" color={styles.primaryColor.color} />
             <Text style={styles.popupLoadingText}>
-              Eliminando los archivos seleccionados...
+              Eliminando los archivos seleccionados&hellip;
             </Text>
             <Text style={styles.popupLoadingHint}>
               La operación puede tardar unos segundos.

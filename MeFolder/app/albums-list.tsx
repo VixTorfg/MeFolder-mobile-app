@@ -42,7 +42,7 @@ export default function AlbumsListScreen() {
       return (
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={styles.primaryColor.color} />
-          <Text style={styles.helperText}>Cargando álbumes...</Text>
+          <Text style={styles.helperText}>Cargando álbumes&hellip;</Text>
         </View>
       );
     }

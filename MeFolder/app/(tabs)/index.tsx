@@ -367,7 +367,7 @@ export default function HomeScreen() {
         {loading ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={styles.primaryColor.color} />
-            <Text style={styles.helperText}>Cargando álbumes...</Text>
+            <Text style={styles.helperText}>Cargando álbumes&hellip;</Text>
           </View>
         ) : homeAlbums.length === 0 ? (
           <AlbumEmptyState />
@@ -453,7 +453,7 @@ export default function HomeScreen() {
               <Text style={styles.quickStatTitle}>Almacenamiento</Text>
             </View>
             {isSummaryLoading ? (
-              <Text style={styles.quickStatValue}>Cargando...</Text>
+              <Text style={styles.quickStatValue}>Cargando&hellip;</Text>
             ) : (
               <Text style={styles.quickStatValue}>
                 {formatFileSize(storageUsage.totalAppBytes)}
@@ -475,7 +475,7 @@ export default function HomeScreen() {
               <Text style={styles.quickStatTitle}>Papelera</Text>
             </View>
             {isSummaryLoading ? (
-              <Text style={styles.quickStatValue}>Cargando...</Text>
+              <Text style={styles.quickStatValue}>Cargando&hellip;</Text>
             ) : (
               <Text style={styles.quickStatValue}>
                 {deletedItemsCount} elementos

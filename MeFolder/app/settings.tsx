@@ -401,7 +401,7 @@ const SettingsScreen = () => {
             color={styles.iconColor.primaryColor}
           />
           <Text style={styles.popupLoadingText}>
-            Eliminando el contenido almacenado de la app...
+            Eliminando el contenido almacenado de la app&hellip;
           </Text>
           <Text style={styles.popupLoadingHint}>
             La operación puede tardar unos segundos.

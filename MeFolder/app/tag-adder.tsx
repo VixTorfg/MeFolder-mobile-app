@@ -169,7 +169,7 @@ export default function TagAdderScreen() {
       return (
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.emptyStateText}>Cargando etiquetas...</Text>
+          <Text style={styles.emptyStateText}>Cargando etiquetas&hellip;</Text>
         </View>
       );
     }

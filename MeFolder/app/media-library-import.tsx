@@ -139,7 +139,7 @@ export default function MediaLibraryImportScreen() {
       return (
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={styles.primaryColor.color} />
-          <Text style={styles.centerMessage}>Cargando archivos...</Text>
+          <Text style={styles.centerMessage}>Cargando archivos&hellip;</Text>
         </View>
       );
     }
@@ -185,7 +185,7 @@ export default function MediaLibraryImportScreen() {
       return (
         <View style={styles.centerState}>
           <ActivityIndicator size="large" color={styles.primaryColor.color} />
-          <Text style={styles.centerMessage}>Cargando álbumes...</Text>
+          <Text style={styles.centerMessage}>Cargando álbumes&hellip;</Text>
         </View>
       );
     }

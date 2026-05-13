@@ -126,7 +126,7 @@ export default function AlbumAdderScreen() {
       return (
         <View style={styles.emptyState}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
-          <Text style={styles.emptyStateText}>Cargando archivos...</Text>
+          <Text style={styles.emptyStateText}>Cargando archivos&hellip;</Text>
         </View>
       );
     }
