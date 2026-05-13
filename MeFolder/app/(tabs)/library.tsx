@@ -118,6 +118,7 @@ export default function LibraryScreen() {
   const fs = useFileSystem();
   const { handleSearch, clearSearch, isSearching, isSearchActive } =
     useSearch("");
+  const searchBoxKey = `${currentFolderId ?? "root"}:${selectionMode ? "selection" : "browse"}`;
 
   const dismissSearchFocus = useCallback(() => {
     if (isSearchExpanded) {
@@ -126,16 +127,13 @@ export default function LibraryScreen() {
   }, [isSearchExpanded]);
 
   useEffect(() => {
-    if (selectionMode) {
-      if (isSearchExpanded) {
-        setIsSearchExpanded(false);
-      }
-
-      if (isSearchActive) {
-        clearSearch();
-      }
+    if (!selectionMode) {
+      return;
     }
-  }, [selectionMode, isSearchExpanded, isSearchActive, clearSearch]);
+
+    clearSearch();
+    setIsSearchExpanded(false);
+  }, [selectionMode, clearSearch]);
 
   useEffect(() => {
     clearSearch();
@@ -446,6 +444,7 @@ export default function LibraryScreen() {
       return (
         <>
           <SearchBox
+            key={searchBoxKey}
             placeholder="Buscar en biblioteca..."
             iconSize={22}
             collapsible
