@@ -1,9 +1,9 @@
-import { BaseEntity, UUID } from '../common/base';
-import { ColorInfo } from '../common/colors';
+import { BaseEntity, UUID } from "../common/base";
+import { ColorInfo } from "../common/colors";
 
-export type TagType = 'system' | 'user' | 'automatic';
+export type TagType = "system" | "user" | "automatic" | "album";
 
-export type TagPriority = 'low' | 'normal' | 'high' | 'critical';
+export type TagPriority = "low" | "normal" | "high" | "critical";
 
 export interface Tag extends BaseEntity {
   name: string;
@@ -11,22 +11,23 @@ export interface Tag extends BaseEntity {
   color: ColorInfo;
   type: TagType;
   priority: TagPriority;
+  isFavorite: boolean;
   isActive: boolean;
-  
-  usageCount: number;        
-  lastUsedAt?: Date;         
-  
+
+  usageCount: number;
+  lastUsedAt?: Date;
+
   parentId?: UUID;
-  children?: UUID[];
 }
 
 export interface CreateTagInput {
   name: string;
   description?: string;
   color: ColorInfo;
-  type?: TagType;           
-  priority?: TagPriority;   
+  type?: TagType;
+  priority?: TagPriority;
   parentId?: UUID;
+  isFavorite?: boolean;
 }
 
 export interface UpdateTagInput {
@@ -36,11 +37,12 @@ export interface UpdateTagInput {
   priority?: TagPriority;
   isActive?: boolean;
   parentId?: UUID;
+  isFavorite?: boolean;
 }
 
 export interface TagWithRelations extends Tag {
   parent?: Tag;
   childrenList: Tag[];
-  fileCount: number;        
-  folderCount: number;      
+  fileCount: number;
+  folderCount: number;
 }

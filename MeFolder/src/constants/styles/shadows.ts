@@ -6,7 +6,6 @@ export const cardShadow = (theme: Theme) => ({
     shadowOpacity: theme.effects.shadowsOpacity.sm,
     shadowRadius: theme.effects.radius.md,
     elevation: theme.effects.elevation.md,
-    borderWidth: theme.effects.borderWidth.xs,
 });
 
 export const glowEffect = (theme: Theme) => ({

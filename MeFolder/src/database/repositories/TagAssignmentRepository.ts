@@ -1,15 +1,22 @@
-import { Database } from '../sqlite/Database';
-import { 
-  Tag, 
-  TagType,
-  TagPriority
-} from '../../types/entities/tag';
-import { UUID } from '../../types/common/base';
-import { 
-  TagAssignmentRepository, 
-  TagAssignmentStats, 
-  TagWithUsage 
-} from '../../types/repositories/tag';
+import { Database } from "../sqlite/Database";
+import { Tag, TagType, TagPriority } from "../../types/entities/tag";
+import {
+  File,
+  FileStatus,
+  FileVisibility,
+  FileMetadata,
+} from "../../types/entities/file";
+import {
+  FileExtension,
+  FileCategory,
+} from "../../types/common/file-extensions";
+import { ColorInfo } from "../../types/common/colors";
+import { UUID } from "../../types/common/base";
+import {
+  TagAssignmentRepository,
+  TagAssignmentStats,
+  TagWithUsage,
+} from "../../types/repositories/tag";
 
 /**
  * Implementación del repositorio de asignaciones de etiquetas.
@@ -22,8 +29,6 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
     this.db = Database.getInstance();
   }
 
-  // ===== OPERACIONES PARA ARCHIVOS =====
-
   /**
    * Asignar etiquetas a un archivo
    */
@@ -31,21 +36,51 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
     try {
       if (tagIds.length === 0) return;
 
-      // Primero obtener tags existentes para evitar duplicados
       const existingTagIds = await this.getFileTagIds(fileId);
-      const newTagIds = tagIds.filter(id => !existingTagIds.includes(id));
+      const newTagIds = tagIds.filter((id) => !existingTagIds.includes(id));
 
       if (newTagIds.length === 0) return;
 
-      const queries = newTagIds.map(tagId => ({
-        sql: 'INSERT INTO file_tags (file_id, tag_id, created_at) VALUES (?, ?, ?)',
-        params: [fileId, tagId, new Date()]
+      const queries = newTagIds.map((tagId) => ({
+        sql: "INSERT INTO file_tags (file_id, tag_id, created_at) VALUES (?, ?, ?)",
+        params: [fileId, tagId, new Date().getTime()],
       }));
 
       await this.db.transaction(queries);
     } catch (error) {
-      console.error('Error assigning tags to file:', error);
+      console.error("Error assigning tags to file:", error);
       throw new Error(`Error al asignar etiquetas al archivo: ${error}`);
+    }
+  }
+
+  /**
+   * Asignar etiquetas a archivos bulk
+   */
+  async bulkAssignTagToFiles(fileIds: UUID[], tagId: UUID): Promise<void> {
+    try {
+      if (fileIds.length === 0) return;
+
+      const now = new Date().getTime();
+      const CHUNK_SIZE = 300; // ~900 params, bajo el límite de 999
+
+      for (let i = 0; i < fileIds.length; i += CHUNK_SIZE) {
+        const chunk = fileIds.slice(i, i + CHUNK_SIZE);
+        const params: any[] = [];
+        const placeholders: string[] = [];
+
+        for (const fileId of chunk) {
+          params.push(fileId, tagId, now);
+          placeholders.push("(?, ?, ?)");
+        }
+
+        await this.db.execute(
+          `INSERT OR IGNORE INTO file_tags (file_id, tag_id, created_at) VALUES ${placeholders.join(",")}`,
+          params,
+        );
+      }
+    } catch (error) {
+      console.error("Error bulk assigning tags to files:", error);
+      throw new Error(`Error al asignar etiquetas a archivos: ${error}`);
     }
   }
 
@@ -56,13 +91,17 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
     try {
       if (tagIds.length === 0) return;
 
-      const placeholders = tagIds.map(() => '?').join(',');
+      const placeholders = tagIds.map(() => "?").join(",");
+      console.log(
+        `DELETE FROM file_tags WHERE file_id = ? AND tag_id IN (${placeholders})`,
+        [fileId, ...tagIds],
+      );
       await this.db.execute(
         `DELETE FROM file_tags WHERE file_id = ? AND tag_id IN (${placeholders})`,
-        [fileId, ...tagIds]
+        [fileId, ...tagIds],
       );
     } catch (error) {
-      console.error('Error removing tags from file:', error);
+      console.error("Error removing tags from file:", error);
       throw new Error(`Error al remover etiquetas del archivo: ${error}`);
     }
   }
@@ -73,12 +112,12 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
   async getFileTagIds(fileId: UUID): Promise<UUID[]> {
     try {
       const rows = await this.db.query<{ tag_id: UUID }>(
-        'SELECT tag_id FROM file_tags WHERE file_id = ?',
-        [fileId]
+        "SELECT tag_id FROM file_tags WHERE file_id = ?",
+        [fileId],
       );
-      return rows.map(row => row.tag_id);
+      return rows.map((row) => row.tag_id);
     } catch (error) {
-      console.error('Error getting file tag ids:', error);
+      console.error("Error getting file tag ids:", error);
       throw new Error(`Error al obtener etiquetas del archivo: ${error}`);
     }
   }
@@ -88,100 +127,22 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
    */
   async getFileTags(fileId: UUID): Promise<Tag[]> {
     try {
-      const rows = await this.db.query<any>(`
+      const rows = await this.db.query<any>(
+        `
         SELECT t.* FROM tags t
         INNER JOIN file_tags ft ON t.id = ft.tag_id
         WHERE ft.file_id = ? AND t.is_active = ?
         ORDER BY t.name
-      `, [fileId, true]);
+      `,
+        [fileId, true],
+      );
 
-      return rows.map(row => this.mapRowToTag(row));
+      return rows.map((row) => this.mapRowToTag(row));
     } catch (error) {
-      console.error('Error getting file tags:', error);
+      console.error("Error getting file tags:", error);
       throw new Error(`Error al obtener etiquetas del archivo: ${error}`);
     }
   }
-
-  // ===== OPERACIONES PARA CARPETAS =====
-
-  /**
-   * Asignar etiquetas a una carpeta
-   */
-  async assignTagsToFolder(folderId: UUID, tagIds: UUID[]): Promise<void> {
-    try {
-      if (tagIds.length === 0) return;
-
-      const existingTagIds = await this.getFolderTagIds(folderId);
-      const newTagIds = tagIds.filter(id => !existingTagIds.includes(id));
-
-      if (newTagIds.length === 0) return;
-
-      const queries = newTagIds.map(tagId => ({
-        sql: 'INSERT INTO folder_tags (folder_id, tag_id, created_at) VALUES (?, ?, ?)',
-        params: [folderId, tagId, new Date()]
-      }));
-
-      await this.db.transaction(queries);
-    } catch (error) {
-      console.error('Error assigning tags to folder:', error);
-      throw new Error(`Error al asignar etiquetas a la carpeta: ${error}`);
-    }
-  }
-
-  /**
-   * Remover etiquetas de una carpeta
-   */
-  async removeTagsFromFolder(folderId: UUID, tagIds: UUID[]): Promise<void> {
-    try {
-      if (tagIds.length === 0) return;
-
-      const placeholders = tagIds.map(() => '?').join(',');
-      await this.db.execute(
-        `DELETE FROM folder_tags WHERE folder_id = ? AND tag_id IN (${placeholders})`,
-        [folderId, ...tagIds]
-      );
-    } catch (error) {
-      console.error('Error removing tags from folder:', error);
-      throw new Error(`Error al remover etiquetas de la carpeta: ${error}`);
-    }
-  }
-
-  /**
-   * Obtener IDs de etiquetas de una carpeta
-   */
-  async getFolderTagIds(folderId: UUID): Promise<UUID[]> {
-    try {
-      const rows = await this.db.query<{ tag_id: UUID }>(
-        'SELECT tag_id FROM folder_tags WHERE folder_id = ?',
-        [folderId]
-      );
-      return rows.map(row => row.tag_id);
-    } catch (error) {
-      console.error('Error getting folder tag ids:', error);
-      throw new Error(`Error al obtener etiquetas de la carpeta: ${error}`);
-    }
-  }
-
-  /**
-   * Obtener objetos Tag completos de una carpeta
-   */
-  async getFolderTags(folderId: UUID): Promise<Tag[]> {
-    try {
-      const rows = await this.db.query<any>(`
-        SELECT t.* FROM tags t
-        INNER JOIN folder_tags ft ON t.id = ft.tag_id
-        WHERE ft.folder_id = ? AND t.is_active = ?
-        ORDER BY t.name
-      `, [folderId, true]);
-
-      return rows.map(row => this.mapRowToTag(row));
-    } catch (error) {
-      console.error('Error getting folder tags:', error);
-      throw new Error(`Error al obtener etiquetas de la carpeta: ${error}`);
-    }
-  }
-
-  // ===== OPERACIONES MIXTAS =====
 
   /**
    * Obtener archivos que tienen una etiqueta específica
@@ -189,29 +150,39 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
   async getTaggedFiles(tagId: UUID): Promise<UUID[]> {
     try {
       const rows = await this.db.query<{ file_id: UUID }>(
-        'SELECT file_id FROM file_tags WHERE tag_id = ?',
-        [tagId]
+        "SELECT file_id FROM file_tags WHERE tag_id = ?",
+        [tagId],
       );
-      return rows.map(row => row.file_id);
+      return rows.map((row) => row.file_id);
     } catch (error) {
-      console.error('Error getting tagged files:', error);
+      console.error("Error getting tagged files:", error);
       throw new Error(`Error al obtener archivos con etiqueta: ${error}`);
     }
   }
 
   /**
-   * Obtener carpetas que tienen una etiqueta específica
+   * Obtener archivos que tienen una etiqueta específica paginados
    */
-  async getTaggedFolders(tagId: UUID): Promise<UUID[]> {
+  async getTaggedFilesPaginated(
+    tagId: UUID,
+    page: number,
+    pageSize: number,
+  ): Promise<File[]> {
     try {
-      const rows = await this.db.query<{ folder_id: UUID }>(
-        'SELECT folder_id FROM folder_tags WHERE tag_id = ?',
-        [tagId]
+      const offset = (page - 1) * pageSize;
+      const rows = await this.db.query<any>(
+        `SELECT f.* FROM files f
+         INNER JOIN file_tags ft ON f.id = ft.file_id
+         WHERE ft.tag_id = ?
+         ORDER BY f.created_at DESC
+         LIMIT ? OFFSET ?`,
+        [tagId, pageSize, offset],
       );
-      return rows.map(row => row.folder_id);
+
+      return rows.map((row) => this.mapRowToFile(row));
     } catch (error) {
-      console.error('Error getting tagged folders:', error);
-      throw new Error(`Error al obtener carpetas con etiqueta: ${error}`);
+      console.error("Error getting tagged files paginated:", error);
+      throw new Error(`Error al obtener archivos con etiqueta: ${error}`);
     }
   }
 
@@ -221,76 +192,45 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
   async getTagUsageInFiles(tagId: UUID): Promise<number> {
     try {
       const [result] = await this.db.query<{ count: number }>(
-        'SELECT COUNT(*) as count FROM file_tags WHERE tag_id = ?',
-        [tagId]
+        "SELECT COUNT(*) as count FROM file_tags WHERE tag_id = ?",
+        [tagId],
       );
       return result?.count || 0;
     } catch (error) {
-      console.error('Error getting tag usage in files:', error);
+      console.error("Error getting tag usage in files:", error);
       return 0;
     }
   }
-
-  /**
-   * Contar uso de etiqueta en carpetas
-   */
-  async getTagUsageInFolders(tagId: UUID): Promise<number> {
-    try {
-      const [result] = await this.db.query<{ count: number }>(
-        'SELECT COUNT(*) as count FROM folder_tags WHERE tag_id = ?',
-        [tagId]
-      );
-      return result?.count || 0;
-    } catch (error) {
-      console.error('Error getting tag usage in folders:', error);
-      return 0;
-    }
-  }
-
-  /**
-   * Obtener uso total de una etiqueta (archivos + carpetas)
-   */
-  async getTotalTagUsage(tagId: UUID): Promise<number> {
-    try {
-      const filesUsage = await this.getTagUsageInFiles(tagId);
-      const foldersUsage = await this.getTagUsageInFolders(tagId);
-      return filesUsage + foldersUsage;
-    } catch (error) {
-      console.error('Error getting total tag usage:', error);
-      return 0;
-    }
-  }
-
-  // ===== OPERACIONES DE LIMPIEZA =====
 
   /**
    * Limpiar etiquetas no utilizadas
    */
   async cleanupUnusedTags(): Promise<UUID[]> {
     try {
-      const rows = await this.db.query<{ id: UUID }>(`
+      const rows = await this.db.query<{ id: UUID }>(
+        `
         SELECT t.id FROM tags t
         LEFT JOIN file_tags ft ON t.id = ft.tag_id
-        LEFT JOIN folder_tags fot ON t.id = fot.tag_id
         WHERE t.is_active = ? 
         AND t.type != 'system'
-        AND ft.tag_id IS NULL 
-        AND fot.tag_id IS NULL
-      `, [true]);
+        AND ft.tag_id IS NULL
+      `,
+        [true],
+      );
 
-      const unusedTagIds = rows.map(row => row.id);
+      const unusedTagIds = rows.map((row) => row.id);
 
       if (unusedTagIds.length > 0) {
-        const placeholders = unusedTagIds.map(() => '?').join(',');
+        const placeholders = unusedTagIds.map(() => "?").join(",");
         await this.db.execute(
           `UPDATE tags SET is_active = ?, updated_at = ? WHERE id IN (${placeholders})`,
-          [false, new Date(), ...unusedTagIds]
+          [false, new Date().getTime(), ...unusedTagIds],
         );
       }
 
       return unusedTagIds;
     } catch (error) {
-      console.error('Error cleaning unused tags:', error);
+      console.error("Error cleaning unused tags:", error);
       throw new Error(`Error al limpiar etiquetas no utilizadas: ${error}`);
     }
   }
@@ -300,32 +240,16 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
    */
   async removeAllTagsFromFile(fileId: UUID): Promise<void> {
     try {
-      await this.db.execute(
-        'DELETE FROM file_tags WHERE file_id = ?',
-        [fileId]
-      );
+      await this.db.execute("DELETE FROM file_tags WHERE file_id = ?", [
+        fileId,
+      ]);
     } catch (error) {
-      console.error('Error removing all tags from file:', error);
-      throw new Error(`Error al remover todas las etiquetas del archivo: ${error}`);
+      console.error("Error removing all tags from file:", error);
+      throw new Error(
+        `Error al remover todas las etiquetas del archivo: ${error}`,
+      );
     }
   }
-
-  /**
-   * Remover todas las etiquetas de una carpeta
-   */
-  async removeAllTagsFromFolder(folderId: UUID): Promise<void> {
-    try {
-      await this.db.execute(
-        'DELETE FROM folder_tags WHERE folder_id = ?',
-        [folderId]
-      );
-    } catch (error) {
-      console.error('Error removing all tags from folder:', error);
-      throw new Error(`Error al remover todas las etiquetas de la carpeta: ${error}`);
-    }
-  }
-
-  // ===== ESTADÍSTICAS =====
 
   /**
    * Obtener estadísticas de asignación de una etiqueta
@@ -333,42 +257,25 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
   async getTagAssignmentStats(tagId: UUID): Promise<TagAssignmentStats> {
     try {
       const filesCount = await this.getTagUsageInFiles(tagId);
-      const foldersCount = await this.getTagUsageInFolders(tagId);
-      const totalUsage = filesCount + foldersCount;
 
       // Obtener fecha de último uso
-      const [lastUsedResult] = await this.db.query<{ last_used: string }>(`
-        SELECT MAX(created_at) as last_used FROM (
-          SELECT created_at FROM file_tags WHERE tag_id = ?
-          UNION ALL
-          SELECT created_at FROM folder_tags WHERE tag_id = ?
-        )
-      `, [tagId, tagId]);
-
-      // Verificar si es la más usada en archivos/carpetas
-      const [mostUsedInFilesResult] = await this.db.query<{ max_usage: number }>(`
-        SELECT MAX(usage_count) as max_usage FROM (
-          SELECT COUNT(*) as usage_count FROM file_tags GROUP BY tag_id
-        )
-      `);
-
-      const [mostUsedInFoldersResult] = await this.db.query<{ max_usage: number }>(`
-        SELECT MAX(usage_count) as max_usage FROM (
-          SELECT COUNT(*) as usage_count FROM folder_tags GROUP BY tag_id
-        )
-      `);
+      const [lastUsedResult] = await this.db.query<{ last_used: string }>(
+        `
+        SELECT MAX(created_at) as last_used FROM file_tags WHERE tag_id = ?
+      `,
+        [tagId],
+      );
 
       return {
         tagId,
         filesCount,
-        foldersCount,
-        totalUsage,
-        mostUsedInFiles: filesCount === (mostUsedInFilesResult?.max_usage || 0),
-        mostUsedInFolders: foldersCount === (mostUsedInFoldersResult?.max_usage || 0),
-        ...(lastUsedResult?.last_used && { lastUsed: new Date(lastUsedResult.last_used) })
+        totalUsage: filesCount,
+        ...(lastUsedResult?.last_used && {
+          lastUsed: new Date(lastUsedResult.last_used),
+        }),
       };
     } catch (error) {
-      console.error('Error getting tag assignment stats:', error);
+      console.error("Error getting tag assignment stats:", error);
       throw new Error(`Error al obtener estadísticas de la etiqueta: ${error}`);
     }
   }
@@ -378,42 +285,113 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
    */
   async getPopularTags(limit: number): Promise<TagWithUsage[]> {
     try {
-      const rows = await this.db.query<any>(`
+      const rows = await this.db.query<any>(
+        `
         SELECT 
           t.*,
           COALESCE(file_usage.count, 0) as files_usage,
-          COALESCE(folder_usage.count, 0) as folders_usage,
-          (COALESCE(file_usage.count, 0) + COALESCE(folder_usage.count, 0)) as total_usage
+          COALESCE(file_usage.count, 0) as total_usage
         FROM tags t
         LEFT JOIN (
           SELECT tag_id, COUNT(*) as count 
           FROM file_tags 
           GROUP BY tag_id
         ) file_usage ON t.id = file_usage.tag_id
-        LEFT JOIN (
-          SELECT tag_id, COUNT(*) as count 
-          FROM folder_tags 
-          GROUP BY tag_id
-        ) folder_usage ON t.id = folder_usage.tag_id
         WHERE t.is_active = ?
         ORDER BY total_usage DESC, t.name ASC
         LIMIT ?
-      `, [true, limit]);
+      `,
+        [true, limit],
+      );
 
       // Calcular porcentaje de uso total
-      const totalAssignments = rows.reduce((sum, row) => sum + row.total_usage, 0);
+      const totalAssignments = rows.reduce(
+        (sum, row) => sum + row.total_usage,
+        0,
+      );
 
-      return rows.map(row => ({
+      return rows.map((row) => ({
         ...this.mapRowToTag(row),
         filesUsage: row.files_usage,
-        foldersUsage: row.folders_usage,
         totalUsage: row.total_usage,
-        usagePercentage: totalAssignments > 0 ? (row.total_usage / totalAssignments) * 100 : 0
+        usagePercentage:
+          totalAssignments > 0 ? (row.total_usage / totalAssignments) * 100 : 0,
       }));
     } catch (error) {
-      console.error('Error getting popular tags:', error);
+      console.error("Error getting popular tags:", error);
       throw new Error(`Error al obtener etiquetas populares: ${error}`);
     }
+  }
+
+  /**
+   * Mapear fila de base de datos a objeto File
+   */
+  private mapRowToFile(row: any): File {
+    const metadata: FileMetadata = {
+      size: row.metadata_size,
+      ...(row.metadata_mime_type && { mimeType: row.metadata_mime_type }),
+      ...(row.metadata_checksum && { checksum: row.metadata_checksum }),
+      ...(row.metadata_image_width && {
+        imageMetadata: {
+          width: row.metadata_image_width,
+          height: row.metadata_image_height,
+          ...(row.metadata_image_orientation && {
+            orientation: row.metadata_image_orientation,
+          }),
+        },
+      }),
+      ...(row.metadata_video_duration && {
+        videoMetadata: {
+          duration: row.metadata_video_duration,
+          width: row.metadata_video_width,
+          height: row.metadata_video_height,
+          ...(row.metadata_video_framerate && {
+            framerate: row.metadata_video_framerate,
+          }),
+        },
+      }),
+      ...(row.metadata_audio_duration && {
+        audioMetadata: {
+          duration: row.metadata_audio_duration,
+          ...(row.metadata_audio_bitrate && {
+            bitrate: row.metadata_audio_bitrate,
+          }),
+          ...(row.metadata_audio_sample_rate && {
+            sampleRate: row.metadata_audio_sample_rate,
+          }),
+        },
+      }),
+    };
+
+    return {
+      id: row.id,
+      createdAt: new Date(row.created_at),
+      updatedAt: new Date(row.updated_at),
+      name: row.name,
+      originalName: row.original_name,
+      extension: row.extension as FileExtension,
+      category: row.category as FileCategory,
+      path: row.path,
+      status: row.status as FileStatus,
+      visibility: row.visibility as FileVisibility,
+      metadata,
+      tagIds: [],
+      ...(row.folder_id && { folderId: row.folder_id }),
+      ...(row.color_hex && {
+        color: {
+          hex: row.color_hex,
+          rgb: { r: row.color_rgb_r, g: row.color_rgb_g, b: row.color_rgb_b },
+          isSystem: false,
+          isFavorite: false,
+        } as ColorInfo,
+      }),
+      ...(row.last_accessed_at && {
+        lastAccessedAt: new Date(row.last_accessed_at),
+      }),
+      ...(row.archived_at && { archivedAt: new Date(row.archived_at) }),
+      ...(row.storage_url && { storageUrl: row.storage_url }),
+      ...(row.thumbnail_url && { thumbnailUrl: row.thumbnail_url }),
+    };
   }
 
   /**
@@ -435,10 +413,10 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
           g: row.color_rgb_g,
           b: row.color_rgb_b,
         },
-        isSystem: row.type === 'system',
+        isSystem: row.type === "system",
       },
       usageCount: row.usage_count,
-      
+
       ...(row.description && { description: row.description }),
       ...(row.parent_id && { parentId: row.parent_id }),
       ...(row.last_used_at && { lastUsedAt: new Date(row.last_used_at) }),

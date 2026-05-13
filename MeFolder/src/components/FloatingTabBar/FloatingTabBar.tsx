@@ -1,20 +1,61 @@
-import React, { useEffect, useRef } from 'react';
-import { View, TouchableOpacity, Animated, Dimensions } from 'react-native';
-import { usePathname, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { lightTheme } from '@/themes/themes';
-import type { RouteName, FloatingTabBarProps } from '@/types';
-import { getResponsiveSize } from '@/utils/ui/responsive';
-import { useFloatingTabBarStyles } from './styles';
+import React, { useCallback, useEffect } from "react";
+import { View, useWindowDimensions } from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
+import { usePathname, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
+import Animated, {
+  Easing,
+  interpolate,
+  useAnimatedStyle,
+  useSharedValue,
+  withTiming,
+} from "react-native-reanimated";
+import { scheduleOnRN } from "react-native-worklets";
+import { lightTheme } from "@/themes/themes";
+import type { RouteName } from "@/types";
+import { getResponsiveSize } from "@/utils/ui/responsive";
+import { useFloatingTabBarStyles } from "./styles";
 
-const { width: screenWidth } = Dimensions.get('window'); 
-const responsive = getResponsiveSize(screenWidth);
+interface FloatingTabBarProps {
+  backgroundColor?: string;
+  activeColor?: string;
+  inactiveColor?: string;
+  borderRadius?: number;
+  borderColor?: string;
+}
+
+type FloatingTabBarStyles = ReturnType<typeof useFloatingTabBarStyles>;
+
+const BORDER_TIMING = {
+  duration: 300,
+  easing: Easing.out(Easing.cubic),
+};
+
+const GLOW_TIMING = {
+  duration: 400,
+  easing: Easing.out(Easing.cubic),
+};
+
+const ICON_TIMING = {
+  duration: 250,
+  easing: Easing.out(Easing.cubic),
+};
+
+const PRESS_IN_TIMING = {
+  duration: 120,
+  easing: Easing.out(Easing.quad),
+};
+
+const PRESS_OUT_TIMING = {
+  duration: 160,
+  easing: Easing.out(Easing.quad),
+};
 
 const ICONS = {
-  home: 'home-outline' as keyof typeof Ionicons.glyphMap,
-  library: 'folder-open-outline' as keyof typeof Ionicons.glyphMap, 
-  tags: 'pricetags-outline' as keyof typeof Ionicons.glyphMap,
-  trash: 'trash-outline' as keyof typeof Ionicons.glyphMap,
+  home: "home-outline" as keyof typeof Ionicons.glyphMap,
+  library: "folder-open-outline" as keyof typeof Ionicons.glyphMap,
+  tags: "pricetags-outline" as keyof typeof Ionicons.glyphMap,
+  trash: "trash-outline" as keyof typeof Ionicons.glyphMap,
 };
 
 const tabs: {
@@ -23,11 +64,134 @@ const tabs: {
   label: string;
   route: RouteName;
 }[] = [
-  { name: 'index', icon: ICONS.home, label: 'Inicio', route: '/' },
-  { name: 'library', icon: ICONS.library, label: 'Biblioteca', route: '/library' },
-  { name: 'tags', icon: ICONS.tags, label: 'Etiquetas', route: '/tags' },
-  { name: 'trash', icon: ICONS.trash, label: 'Papelera', route: '/trash' },
+  { name: "index", icon: ICONS.home, label: "Inicio", route: "/" },
+  {
+    name: "library",
+    icon: ICONS.library,
+    label: "Biblioteca",
+    route: "/library",
+  },
+  { name: "tags", icon: ICONS.tags, label: "Etiquetas", route: "/tags" },
+  { name: "trash", icon: ICONS.trash, label: "Papelera", route: "/trash" },
 ];
+
+interface FloatingTabBarItemProps {
+  tab: (typeof tabs)[number];
+  isActive: boolean;
+  styles: FloatingTabBarStyles;
+  iconSize: number;
+  activeColor: string;
+  inactiveColor: string;
+  onNavigate: (route: RouteName) => void;
+}
+
+function FloatingTabBarItem({
+  tab,
+  isActive,
+  styles,
+  iconSize,
+  activeColor,
+  inactiveColor,
+  onNavigate,
+}: FloatingTabBarItemProps) {
+  const borderProgress = useSharedValue(isActive ? 1 : 0);
+  const glowProgress = useSharedValue(isActive ? 1 : 0);
+  const iconProgress = useSharedValue(isActive ? 1 : 0);
+  const pressProgress = useSharedValue(0);
+
+  useEffect(() => {
+    const toValue = isActive ? 1 : 0;
+
+    borderProgress.value = withTiming(toValue, BORDER_TIMING);
+    glowProgress.value = withTiming(toValue, GLOW_TIMING);
+    iconProgress.value = withTiming(toValue, ICON_TIMING);
+
+    if (isActive) {
+      pressProgress.value = 0;
+    }
+  }, [borderProgress, glowProgress, iconProgress, isActive, pressProgress]);
+
+  const topBorderStyle = useAnimatedStyle(() => ({
+    opacity: borderProgress.value,
+    transform: [
+      {
+        scaleX: interpolate(borderProgress.value, [0, 1], [0.6, 1]),
+      },
+    ],
+  }));
+
+  const glowStyle = useAnimatedStyle(() => ({
+    opacity: glowProgress.value,
+    transform: [
+      {
+        scale: interpolate(glowProgress.value, [0, 1], [0.8, 1]),
+      },
+    ],
+  }));
+
+  const iconStyle = useAnimatedStyle(() => {
+    const activeScale = interpolate(iconProgress.value, [0, 1], [1, 1.1]);
+    const pressScale = interpolate(pressProgress.value, [0, 1], [1, 0.92]);
+
+    return {
+      transform: [{ scale: activeScale * pressScale }],
+    };
+  });
+
+  const handlePress = useCallback(() => {
+    if (isActive) return;
+
+    pressProgress.value = 0;
+    pressProgress.value = withTiming(1, PRESS_IN_TIMING, (finished) => {
+      if (!finished) return;
+
+      pressProgress.value = withTiming(0, PRESS_OUT_TIMING);
+      scheduleOnRN(onNavigate, tab.route);
+    });
+  }, [isActive, onNavigate, pressProgress, tab.route]);
+
+  return (
+    <TouchableOpacity
+      style={styles.tabItem}
+      onPress={handlePress}
+      activeOpacity={0.85}
+      accessible={true}
+      accessibilityLabel={`Ir a ${tab.label}`}
+      accessibilityRole="tab"
+      accessibilityState={{ selected: isActive }}
+    >
+      <Animated.View
+        style={[
+          styles.topBorder,
+          topBorderStyle,
+          {
+            backgroundColor: activeColor,
+          },
+        ]}
+      />
+
+      <Animated.View
+        style={[
+          styles.glowEffect,
+          glowStyle,
+          {
+            shadowColor: activeColor,
+            backgroundColor: `${activeColor}15`,
+          },
+        ]}
+      />
+
+      <Animated.View style={iconStyle}>
+        <Ionicons
+          name={tab.icon}
+          size={iconSize}
+          color={isActive ? activeColor : inactiveColor}
+          aria-label={`Icono de ${tab.label}`}
+        />
+      </Animated.View>
+    </TouchableOpacity>
+  );
+}
 
 export default function FloatingTabBar({
   backgroundColor = lightTheme.colors.background,
@@ -36,159 +200,62 @@ export default function FloatingTabBar({
   borderColor = lightTheme.colors.borderSoft,
   borderRadius = 25,
 }: FloatingTabBarProps = {}) {
+  const { width: screenWidth } = useWindowDimensions();
+  const responsive = getResponsiveSize(screenWidth);
   const pathname = usePathname();
-  const router = useRouter();
+  const { push } = useRouter();
   const styles = useFloatingTabBarStyles(responsive);
-  
-  const animationRefs = useRef<{[key: string]: {
-    borderAnim: Animated.Value;
-    glowAnim: Animated.Value;
-    iconAnim: Animated.Value;
-  }}>({});
-  
-  tabs.forEach(tab => {
-    if (!animationRefs.current[tab.name]) {
-      animationRefs.current[tab.name] = {
-        borderAnim: new Animated.Value(0),
-        glowAnim: new Animated.Value(0), 
-        iconAnim: new Animated.Value(0),
-      };
-    }
-  });
 
   /**
    * Maneja la navegación cuando se presiona una pestaña
    * @param route - La ruta a la que navegar
    */
-  const handleTabPress = (route: RouteName) => {
-    router.push(route);
-  };
+  const handleTabPress = useCallback(
+    (route: RouteName) => {
+      push(route);
+    },
+    [push],
+  );
 
   /**
    * Determina si una pestaña está activa basándose en la ruta actual
    * @param tabRoute - La ruta de la pestaña a verificar
    * @returns boolean - true si la pestaña está activa
    */
-  const isActiveTab = (tabRoute: RouteName): boolean => {
-    return pathname === tabRoute; //startsWith(tabRoute)
-  };
-  
-  /**
-   * Anima la activación/desactivación de una pestaña
-   * @param tabName - Nombre de la pestaña
-   * @param isActive - Si debe animarse como activa o inactiva
-   */
-  const animateTab = (tabName: string, isActive: boolean) => {
-    const anims = animationRefs.current[tabName];
-    if (!anims) return;
-    
-    const toValue = isActive ? 1 : 0;
-    const duration = 300;
-    
-    Animated.parallel([
-      Animated.timing(anims.borderAnim, {
-        toValue,
-        duration,
-        useNativeDriver: false,
-      }),
-      Animated.timing(anims.glowAnim, {
-        toValue,
-        duration: duration + 100, // Glow un poco más lento
-        useNativeDriver: false,
-      }),
-      Animated.timing(anims.iconAnim, {
-        toValue,
-        duration: duration - 50, // Ícono un poco más rápido
-        useNativeDriver: false,
-      }),
-    ]).start();
-  };
-  
-  useEffect(() => {
-    tabs.forEach(tab => {
-      const isActive = isActiveTab(tab.route);
-      animateTab(tab.name, isActive);
-    });
-  }, [pathname]);
+  const isActiveTab = useCallback(
+    (tabRoute: RouteName): boolean => pathname === tabRoute,
+    [pathname],
+  );
 
   return (
     <View style={styles.floatingTabContainer}>
-      <View style={[
-        styles.floatingTabBar,
-        { 
-          backgroundColor,
-          borderRadius,
-          borderColor,        
-        }
-      ]}>
+      <View
+        style={[
+          styles.floatingTabBar,
+          {
+            backgroundColor,
+            borderRadius,
+            borderColor,
+          },
+        ]}
+      >
         {tabs.map((tab) => {
-          const anims = animationRefs.current[tab.name];
           const isActive = isActiveTab(tab.route);
-          
+
           return (
-            <TouchableOpacity
+            <FloatingTabBarItem
               key={tab.name}
-              style={styles.tabItem}
-              onPress={() => handleTabPress(tab.route)}
-              activeOpacity={0.7}
-              accessible={true}
-              accessibilityLabel={`Ir a ${tab.label}`}
-              accessibilityRole="tab"
-              accessibilityState={{ selected: isActive }}
-            >
-              {/* Borde superior animado */}
-              <Animated.View 
-                style={[
-                  styles.topBorder,
-                  { 
-                    backgroundColor: activeColor,
-                    opacity: anims?.borderAnim || 0,
-                    transform: [{
-                      scaleX: anims?.borderAnim || 0,
-                    }]
-                  }
-                ]} 
-              />
-              
-              {/* Efecto de glow animado */}
-              <Animated.View 
-                style={[
-                  styles.glowEffect,
-                  { 
-                    shadowColor: activeColor,
-                    backgroundColor: `${activeColor}15`,
-                    opacity: anims?.glowAnim || 0,
-                    transform: [{
-                      scale: anims?.glowAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [0.8, 1],
-                      }) || 0.8,
-                    }]
-                  }
-                ]} 
-              />
-              
-              {/* Ícono con animación de color */}
-              <Animated.View style={{
-                transform: [{
-                  scale: anims?.iconAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [1, 1.1],
-                  }) || 1,
-                }]
-              }}>
-                <Ionicons
-                  name={tab.icon}
-                  size={responsive.iconSize}
-                  color={isActive ? activeColor : inactiveColor}
-                  aria-label={`Icono de ${tab.label}`}
-                />
-              </Animated.View>
-            </TouchableOpacity>
+              tab={tab}
+              isActive={isActive}
+              styles={styles}
+              iconSize={responsive.iconSize}
+              activeColor={activeColor}
+              inactiveColor={inactiveColor}
+              onNavigate={handleTabPress}
+            />
           );
         })}
       </View>
     </View>
   );
 }
-

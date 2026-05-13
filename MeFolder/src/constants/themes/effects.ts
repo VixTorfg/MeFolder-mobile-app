@@ -32,6 +32,9 @@ export const effects: Effects = {
     xs: 0.25,
     md: 1,
     lg: 2,
+  },
+  shadowColor: {
+    default: 'rgba(0, 0, 0, 0.1)',
   }
 }
 

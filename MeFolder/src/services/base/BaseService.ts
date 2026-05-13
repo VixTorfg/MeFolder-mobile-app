@@ -1,10 +1,11 @@
-import { Database } from '../../database/sqlite/Database';
+import { Database } from '@/database/sqlite/Database';
 import { 
   FileRepository,
   FolderRepository, 
   TagRepository,
-  TagAssignmentRepository
-} from '../../database/repositories';
+  TagAssignmentRepository,
+  UserColorRepository
+} from '@/database/repositories';
 
 /**
  * Clase base para servicios con configuración común y validaciones
@@ -14,6 +15,7 @@ export abstract class BaseService {
   protected folderRepo: FolderRepository;
   protected tagRepo: TagRepository;
   protected tagAssignmentRepo: TagAssignmentRepository;
+  protected userColorRepo: UserColorRepository;
   protected db: Database;
 
   constructor() {
@@ -22,6 +24,7 @@ export abstract class BaseService {
     this.folderRepo = new FolderRepository();
     this.tagRepo = new TagRepository();
     this.tagAssignmentRepo = new TagAssignmentRepository();
+    this.userColorRepo = new UserColorRepository();
   }
 
   /** Valida que la base de datos esté inicializada */

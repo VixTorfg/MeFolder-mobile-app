@@ -1,0 +1,30 @@
+TODOS
+
+Orden de prioridades:
+    -Corregir copiado y pegado de zips
+
+Mejoras en general
+    Seccion de inicio:
+        Falta diseñar la pantalla
+
+    Seccion de colores:
+        -Hay un bug raro al guardar un color el cual la pantalla popea. No es reproducible
+        Ocurre raras veces.
+
+    Seccion de TAGS:
+        -Poder buscar un tags
+        -Asociar Tags a otros tags, estructura de arbol, UN solo padre
+        -filtros combinados trabajo + urgente
+        -reglas de auto etiquetado
+        -compartir archivos por tags
+
+ 
+
+-AirDrop para compartir
+
+CORREGIR:
+
+
+ANTERIOR:
+
+
