@@ -4,7 +4,7 @@ export const useImageViewerStyles = () => {
   return useStyles((theme) => ({
     overlay: {
       flex: 1,
-      backgroundColor: "#000",
+      backgroundColor: theme.colors.mediaBackdrop,
     },
     header: {
       position: "absolute" as const,
