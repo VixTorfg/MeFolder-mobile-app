@@ -1,8 +1,10 @@
-export const formatFileSize = (bytes: number): string => {
+export const formatFileSize = (bytes?: number): string => {
     const units = ['B', 'KB', 'MB', 'GB'];
     let size = bytes;
     let unitIndex = 0;
     
+    if (size === undefined) return 'N/A';
+
     while (size >= 1024 && unitIndex < units.length - 1) {
       size /= 1024;
       unitIndex++;

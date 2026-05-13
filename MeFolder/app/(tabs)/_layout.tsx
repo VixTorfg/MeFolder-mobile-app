@@ -1,10 +1,15 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { FloatingTabBar } from '../../src/components';
+import { FloatingTabBar } from '@/components';
+import { useTheme } from '@/providers/ThemeProvider';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function TabLayout() {
+  const { theme } = useTheme();
+  const { colors } = theme;
+
   return (
-    <>
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }} edges={['top', 'left', 'right']}>
       <Tabs
         screenOptions={{
           headerShown: false,
@@ -15,31 +20,24 @@ export default function TabLayout() {
       >
         <Tabs.Screen
           name="index"
-          options={{
-            title: 'Inicio',
-          }}
         />
         <Tabs.Screen
           name="library"
-          options={{
-            title: 'Biblioteca',
-          }}
         />
         <Tabs.Screen
           name="tags"
-          options={{
-            title: 'Etiquetas',
-          }}
         />
         <Tabs.Screen
           name="trash"
-          options={{
-            title: 'Papelera',
-          }}
         />
       </Tabs>
       
-      <FloatingTabBar />
-    </>
+      <FloatingTabBar 
+        backgroundColor={colors.background}
+        activeColor={colors.primary}
+        inactiveColor={colors.textSecondary}
+        borderColor={colors.borderSoft} 
+      />
+    </SafeAreaView>
   );
 }

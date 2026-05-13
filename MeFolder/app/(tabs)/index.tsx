@@ -1,572 +1,347 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  FlatList, 
-  TouchableOpacity, 
-  StyleSheet, 
-  Alert,
-  TextInput,
-  Modal,
-  SafeAreaView,
-  StatusBar
-} from 'react-native';
+import React, { useCallback, useState, useMemo } from "react";
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
+import { router, useFocusEffect } from "expo-router";
+import {
+  AlbumCard,
+  AlbumEmptyState,
+  FavoriteTagChip,
+  PriorityTagCard,
+} from "@/components";
+import { useAlbumDailyCovers, useTagsContent } from "@/hooks/tags";
+import { useHomeStyles } from "@/screenStyles";
+import type { TagModel } from "@/models/tag";
+import {
+  useDailyBentoPattern,
+  useDeviceOrientation,
+  useSinglePress,
+  useTheme,
+} from "@/hooks";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useServices } from "@/providers";
+import type { FileStorageUsageSummary } from "@/services/FileService";
+import { formatFileSize } from "@/utils/format";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SYSTEM_ALBUM_TAG_ID } from "@/database/seeds/systemTags";
 
-import { FileService, FolderService } from '../../src/services';
-import { Database } from '../../src/database/sqlite/Database';
-import { createFilesTable } from '../../src/database/migrations/files';
-import { createFoldersTable } from '../../src/database/migrations/folders';
-import { createTagsTable, createTagTriggers } from '../../src/database/migrations/tags';
-import { File } from '../../src/types/entities/file';
-import { Folder } from '../../src/types/entities/folder';
-import { UUID } from '../../src/types/common/base';
-
-// Iconos simples usando emojis
-const ICONS = {
-  folder: '📁',
-  file: '📄',
-  back: '⬅️',
-  add: '➕',
-  home: '🏠'
+const EMPTY_STORAGE_USAGE: FileStorageUsageSummary = {
+  totalAppBytes: 0,
+  sizeByGroup: {
+    image: 0,
+    video: 0,
+    audio: 0,
+    documents: 0,
+    other: 0,
+  },
 };
 
-interface NavigationItem {
-  id: UUID | 'back';
-  name: string;
-  type: 'folder' | 'file' | 'back';
-  data?: File | Folder;
-}
+const sortAlbumsByUsage = (albums: TagModel[]): TagModel[] => {
+  return [...albums].sort((left, right) => {
+    if (right.usageCount !== left.usageCount) {
+      return right.usageCount - left.usageCount;
+    }
+
+    return left.name.localeCompare(right.name, "es", {
+      sensitivity: "base",
+    });
+  });
+};
+
+const buildPatternItems = (
+  albums: TagModel[],
+  patternSlots: {
+    index: number;
+    column: number;
+    row: number;
+    colSpan: 1 | 2;
+    rowSpan: 1 | 2;
+  }[],
+) => {
+  const sortedSlots = [...patternSlots].sort(
+    (left, right) => left.index - right.index,
+  );
+
+  return sortedSlots.flatMap((slot, slotIndex) => {
+    const album = albums[slotIndex];
+    if (!album) {
+      return [];
+    }
+
+    return [{ album, slot }];
+  });
+};
 
 export default function HomeScreen() {
-  // Estados principales
-  const [currentFolderId, setCurrentFolderId] = useState<UUID | null>(null);
-  const [items, setItems] = useState<NavigationItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [breadcrumbs, setBreadcrumbs] = useState<string[]>(['Inicio']);
-  
-  // Modal para crear archivo
-  const [modalVisible, setModalVisible] = useState(false);
-  const [newFileName, setNewFileName] = useState('');
-  
-  // Modal para crear carpeta
-  const [folderModalVisible, setFolderModalVisible] = useState(false);
-  const [newFolderName, setNewFolderName] = useState('');
+  const styles = useHomeStyles();
+  const { theme } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { isTablet, windowHeight, windowWidth } = useDeviceOrientation();
+  const { services } = useServices();
+  const { items, albums, loading } = useTagsContent();
+  const { albumDailyCovers } = useAlbumDailyCovers(albums);
+  const {
+    config: bentoConfig,
+    pattern: dailyBentoPattern,
+    isLoading: isBentoPatternLoading,
+  } = useDailyBentoPattern(isTablet);
+  const [storageUsage, setStorageUsage] =
+    useState<FileStorageUsageSummary>(EMPTY_STORAGE_USAGE);
+  const [deletedItemsCount, setDeletedItemsCount] = useState(0);
+  const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+  const { isLocked: isNavigationLocked, run: runSingleNavigation } =
+    useSinglePress();
 
-  // Servicios
-  const fileService = new FileService();
-  const folderService = new FolderService();
+  const favoriteTags = useMemo(
+    () => items.filter((tag) => tag.isFavorite).slice(0, 8),
+    [items],
+  );
+  const highPriorityTags = useMemo(
+    () =>
+      items
+        .filter((tag) => tag.priority === "high" || tag.priority === "critical")
+        .sort((left, right) => right.usageCount - left.usageCount)
+        .slice(0, 3),
+    [items],
+  );
 
-  // DEMO: Inicialización completa de la base de datos
-  const initializeEverything = async () => {
-    try {
-      console.log('🚀 DEMO: Inicializando todo...');
-      
-      // 1. Inicializar base de datos
-      const db = Database.getInstance();
-      await db.initialize();
-      
-      // 2. Ejecutar migraciones
-      console.log('📋 Ejecutando migraciones...');
-      await createFoldersTable();
-      await createFilesTable();
-      await createTagsTable();
-      await createTagTriggers();
-      
-      console.log('✅ Base de datos lista!');
-      
-      // 3. Cargar contenido inicial
-      await loadFolderContent(null);
-    } catch (error) {
-      console.error('❌ Error inicializando:', error);
-      Alert.alert('Error', 'No se pudo inicializar la base de datos');
-    }
-  };
+  const homeAlbums = useMemo(() => {
+    const albumsWithFiles = albums.filter(
+      (album) => album.id !== SYSTEM_ALBUM_TAG_ID && album.usageCount > 0,
+    );
+    return sortAlbumsByUsage(albumsWithFiles).slice(
+      0,
+      Math.min(bentoConfig.maxAlbums, dailyBentoPattern.slots.length),
+    );
+  }, [albums, bentoConfig.maxAlbums, dailyBentoPattern.slots.length]);
+  const bentoPatternItems = useMemo(
+    () => buildPatternItems(homeAlbums, dailyBentoPattern.slots),
+    [dailyBentoPattern.slots, homeAlbums],
+  );
+  const gridGap = theme.spacing.sm;
+  const horizontalPadding = theme.spacing.md;
+  const usableGridWidth = Math.max(
+    windowWidth - insets.left - insets.right - horizontalPadding * 2,
+    1,
+  );
+  const columnWidth =
+    (usableGridWidth - gridGap * (bentoConfig.columns - 1)) /
+    bentoConfig.columns;
+  const maxBaseRowHeight =
+    (bentoConfig.maxGridHeight - gridGap * (bentoConfig.rows - 1)) /
+    bentoConfig.rows;
+  const baseRowHeight = Math.min(
+    Math.min(
+      Math.max(columnWidth * bentoConfig.preferredRowHeightRatio, 84),
+      maxBaseRowHeight,
+    ),
+    windowHeight * (isTablet ? 0.24 : 0.2),
+  );
+  const gridHeight =
+    bentoConfig.rows * baseRowHeight + gridGap * (bentoConfig.rows - 1);
 
-  // Cargar contenido de la carpeta actual
-  const loadFolderContent = async (folderId: UUID | null) => {
-    try {
-      setLoading(true);
-      
-      const [folders, files] = await Promise.all([
-        folderService.getSubfolders(folderId || undefined),
-        fileService.getFilesInFolder(folderId || undefined)
-      ]);
+  useFocusEffect(
+    useCallback(() => {
+      let isCancelled = false;
 
-      const navigationItems: NavigationItem[] = [];
+      const loadQuickSummary = async () => {
+        setIsSummaryLoading(true);
 
-      // Añadir botón "Atrás" si no estamos en la raíz
-      if (folderId !== null) {
-        navigationItems.push({
-          id: 'back',
-          name: '.. Volver',
-          type: 'back'
-        });
-      }
+        try {
+          const [storageSummary, deletedFiles, deletedFolders] =
+            await Promise.all([
+              services.fileService.getStorageUsageSummary(),
+              services.fileService.getDeletedFiles(),
+              services.folderService.getDeletedFolders(),
+            ]);
 
-      // Añadir carpetas
-      folders.forEach(folder => {
-        navigationItems.push({
-          id: folder.id,
-          name: folder.name,
-          type: 'folder',
-          data: folder
-        });
-      });
+          if (isCancelled) {
+            return;
+          }
 
-      // Añadir archivos
-      files.forEach(file => {
-        navigationItems.push({
-          id: file.id,
-          name: file.name,
-          type: 'file',
-          data: file
-        });
-      });
+          setStorageUsage(storageSummary);
+          setDeletedItemsCount(deletedFiles.length + deletedFolders.length);
+        } catch {
+          if (isCancelled) {
+            return;
+          }
 
-      setItems(navigationItems);
-    } catch (error) {
-      console.error('Error cargando contenido:', error);
-      Alert.alert('Error', 'No se pudo cargar el contenido de la carpeta');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Navegar a una carpeta
-  const navigateToFolder = async (folderId: UUID | null, folderName?: string) => {
-    setCurrentFolderId(folderId);
-    
-    if (folderId === null) {
-      setBreadcrumbs(['Inicio']);
-    } else if (folderName) {
-      setBreadcrumbs(prev => [...prev, folderName]);
-    }
-    
-    await loadFolderContent(folderId);
-  };
-
-  // Volver a la carpeta padre
-  const goBack = async () => {
-    if (currentFolderId === null) return;
-    
-    try {
-      // Obtener carpeta actual para saber su padre
-      const currentFolder = await folderService.getFolder(currentFolderId);
-      const parentId = currentFolder.parentId || null;
-      
-      setBreadcrumbs(prev => prev.slice(0, -1));
-      setCurrentFolderId(parentId);
-      await loadFolderContent(parentId);
-    } catch (error) {
-      console.error('Error al volver:', error);
-      // Si hay error, ir a la raíz
-      navigateToFolder(null);
-    }
-  };
-
-  // Crear archivo demo
-  const createDemoFile = async () => {
-    if (!newFileName.trim()) {
-      Alert.alert('Error', 'Ingresa un nombre para el archivo');
-      return;
-    }
-
-    try {
-      const createFileInput: any = {
-        name: newFileName.trim(),
-        originalName: newFileName.trim(),
-        extension: 'txt',
-        category: 'document',
-        path: `/${newFileName.trim()}`,
-        metadata: {
-          size: 1024,
-          mimeType: 'text/plain'
+          setStorageUsage(EMPTY_STORAGE_USAGE);
+          setDeletedItemsCount(0);
+        } finally {
+          if (!isCancelled) {
+            setIsSummaryLoading(false);
+          }
         }
       };
 
-      // Solo agregar folderId si no es null
-      if (currentFolderId) {
-        createFileInput.folderId = currentFolderId;
-        // Actualizar path para incluir la ruta de la carpeta
-        const folderPath = breadcrumbs.length > 1 
-          ? `/${breadcrumbs.slice(1).join('/')}/` 
-          : '/';
-        createFileInput.path = `${folderPath}${newFileName.trim()}`;
-      }
+      void loadQuickSummary();
 
-      await fileService.createFile(createFileInput);
-
-      setModalVisible(false);
-      setNewFileName('');
-      Alert.alert('Éxito', 'Archivo creado correctamente');
-      
-      // Recargar contenido
-      await loadFolderContent(currentFolderId);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      console.error('Error creando archivo:', errorMessage);
-      
-      // Mostrar mensaje más específico al usuario
-      if (errorMessage.includes('ya existe')) {
-        Alert.alert('Error', 'Ya existe un archivo con ese nombre en esta carpeta');
-      } else if (errorMessage.includes('columnas')) {
-        Alert.alert('Error', 'Error de configuración de base de datos. Por favor reinicia la app.');
-      } else {
-        Alert.alert('Error', `No se pudo crear el archivo: ${errorMessage}`);
-      }
-    }
-  };
-
-  // Crear carpeta demo
-  const createDemoFolder = async () => {
-    if (!newFolderName.trim()) {
-      Alert.alert('Error', 'Ingresa un nombre para la carpeta');
-      return;
-    }
-
-    try {
-      let createFolderInput: any = {
-        name: newFolderName.trim(),
-        description: `Carpeta ${newFolderName.trim()}`,    
+      return () => {
+        isCancelled = true;
       };
-
-      if(currentFolderId) {
-        createFolderInput = {...createFolderInput, parentId: currentFolderId };
-      }
-
-      await folderService.createFolder(createFolderInput);
-
-      setFolderModalVisible(false);
-      setNewFolderName('');
-      Alert.alert('Éxito', 'Carpeta creada correctamente');
-      
-      // Recargar contenido
-      await loadFolderContent(currentFolderId);
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      console.error('Error creando carpeta:', errorMessage);
-      
-      if (errorMessage.includes('ya existe')) {
-        Alert.alert('Error', 'Ya existe una carpeta con ese nombre');
-      } else {
-        Alert.alert('Error', `No se pudo crear la carpeta: ${errorMessage}`);
-      }
-    }
-  };
-
-  // Manejar clic en item
-  const handleItemPress = (item: NavigationItem) => {
-    if (item.type === 'back') {
-      goBack();
-    } else if (item.type === 'folder') {
-      navigateToFolder(item.id as UUID, item.name);
-    } else if (item.type === 'file') {
-      Alert.alert('Archivo', `Seleccionaste: ${item.name}`);
-    }
-  };
-
-  // Renderizar item de la lista
-  const renderItem = ({ item }: { item: NavigationItem }) => (
-    <TouchableOpacity 
-      style={styles.item} 
-      onPress={() => handleItemPress(item)}
-    >
-      <Text style={styles.icon}>
-        {item.type === 'back' ? ICONS.back : 
-         item.type === 'folder' ? ICONS.folder : ICONS.file}
-      </Text>
-      <View style={styles.itemContent}>
-        <Text style={[styles.itemName, item.type === 'back' && styles.backText]}>
-          {item.name}
-        </Text>
-        {item.type !== 'back' && (
-          <Text style={styles.itemType}>
-            {item.type === 'folder' ? 'Carpeta' : 'Archivo'}
-          </Text>
-        )}
-      </View>
-    </TouchableOpacity>
+    }, [services.fileService, services.folderService]),
   );
-
-  // DEMO: Inicializar todo al arrancar
-  useEffect(() => {
-    initializeEverything();
-  }, []);
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f8f9fa" />
-      
-      {/* Header con breadcrumbs y botones de acción */}
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerIcon}>{ICONS.home}</Text>
-          <Text style={styles.headerText}>
-            {breadcrumbs.join(' / ')}
-          </Text>
-        </View>
-        
-        <View style={styles.headerButtons}>
-          <TouchableOpacity 
-            style={[styles.headerButton, styles.folderButton]}
-            onPress={() => setFolderModalVisible(true)}
-          >
-            <Text style={styles.headerButtonText}>📁</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={[styles.headerButton, styles.fileButton]}
-            onPress={() => setModalVisible(true)}
-          >
-            <Text style={styles.headerButtonText}>📄</Text>
-          </TouchableOpacity>
-        </View>
+        <Text style={styles.headerTitle}>Inicio</Text>
       </View>
 
-      {/* Lista de contenido */}
-      {loading ? (
-        <View style={styles.centered}>
-          <Text>Cargando...</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Álbumes</Text>
+          <TouchableOpacity
+            onPress={() =>
+              void runSingleNavigation(() => router.push("/albums-list"))
+            }
+            disabled={isNavigationLocked}
+          >
+            <Text style={styles.sectionAction}>Ver todos</Text>
+          </TouchableOpacity>
         </View>
-      ) : (
-        <FlatList
-          data={items}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          style={styles.list}
-          contentContainerStyle={{ paddingBottom: 120 }} // Espacio para el tab bar flotante
-        />
-      )}
 
-      {/* Modal para crear archivo */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Crear Nuevo Archivo</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre del archivo"
-              value={newFileName}
-              onChangeText={setNewFileName}
-              autoFocus={true}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => {
-                  setModalVisible(false);
-                  setNewFileName('');
-                }}
-              >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.button, styles.createButton]}
-                onPress={createDemoFile}
-              >
-                <Text style={styles.createButtonText}>Crear</Text>
-              </TouchableOpacity>
+        {loading || isBentoPatternLoading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={styles.primaryColor.color} />
+            <Text style={styles.helperText}>Cargando álbumes&hellip;</Text>
+          </View>
+        ) : homeAlbums.length === 0 ? (
+          <AlbumEmptyState />
+        ) : (
+          <View style={styles.bentoGrid}>
+            <View style={[styles.bentoCanvas, { height: gridHeight }]}>
+              {bentoPatternItems.map(({ album, slot }) => (
+                <AlbumCard
+                  key={album.id}
+                  album={album}
+                  coverUri={albumDailyCovers[album.id]?.coverUri}
+                  style={[
+                    styles.bentoCard,
+                    {
+                      width:
+                        columnWidth * slot.colSpan +
+                        gridGap * (slot.colSpan - 1),
+                      height:
+                        baseRowHeight * slot.rowSpan +
+                        gridGap * (slot.rowSpan - 1),
+                      left: slot.column * (columnWidth + gridGap),
+                      top: slot.row * (baseRowHeight + gridGap),
+                    },
+                  ]}
+                />
+              ))}
             </View>
           </View>
-        </View>
-      </Modal>
+        )}
 
-      {/* Modal para crear carpeta */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={folderModalVisible}
-        onRequestClose={() => setFolderModalVisible(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>🗂️ Nueva Carpeta</Text>
-            
-            <TextInput
-              style={styles.input}
-              placeholder="Nombre de la carpeta"
-              value={newFolderName}
-              onChangeText={setNewFolderName}
-              autoFocus={true}
-            />
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity 
-                style={[styles.button, styles.cancelButton]}
-                onPress={() => {
-                  setFolderModalVisible(false);
-                  setNewFolderName('');
-                }}
+        {favoriteTags.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Favoritos</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  void runSingleNavigation(() => router.push("/tags"))
+                }
+                disabled={isNavigationLocked}
               >
-                <Text style={styles.cancelButtonText}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
-                style={[styles.button, styles.createButton]}
-                onPress={createDemoFolder}
-              >
-                <Text style={styles.createButtonText}>Crear</Text>
+                <Text style={styles.sectionAction}>Abrir tags</Text>
               </TouchableOpacity>
             </View>
-          </View>
+            <FlatList
+              horizontal
+              data={favoriteTags}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => <FavoriteTagChip tag={item} />}
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.favoriteScrollContent}
+              style={styles.favoriteSection}
+            />
+          </>
+        )}
+
+        {highPriorityTags.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Prioridad alta</Text>
+              <TouchableOpacity
+                onPress={() =>
+                  void runSingleNavigation(() => router.push("/tags"))
+                }
+                disabled={isNavigationLocked}
+              >
+                <Text style={styles.sectionAction}>Ver etiquetas</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.prioritySection}>
+              {highPriorityTags.map((tag) => (
+                <PriorityTagCard key={tag.id} tag={tag} />
+              ))}
+            </View>
+          </>
+        )}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Resumen rápido</Text>
         </View>
-      </Modal>
+        <View style={styles.quickStatsGrid}>
+          <TouchableOpacity
+            style={styles.quickStatCard}
+            activeOpacity={0.8}
+            onPress={() =>
+              void runSingleNavigation(() => router.push("/settings"))
+            }
+            disabled={isNavigationLocked}
+          >
+            <View style={styles.quickStatHeader}>
+              <MaterialCommunityIcons
+                name="harddisk"
+                size={20}
+                color={styles.iconColor.primaryColor}
+              />
+              <Text style={styles.quickStatTitle}>Almacenamiento</Text>
+            </View>
+            {isSummaryLoading ? (
+              <Text style={styles.quickStatValue}>Cargando&hellip;</Text>
+            ) : (
+              <Text style={styles.quickStatValue}>
+                {formatFileSize(storageUsage.totalAppBytes)}
+              </Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.quickStatCard}
+            activeOpacity={0.8}
+            onPress={() =>
+              void runSingleNavigation(() => router.push("/trash"))
+            }
+            disabled={isNavigationLocked}
+          >
+            <View style={styles.quickStatHeader}>
+              <MaterialCommunityIcons
+                name="trash-can-outline"
+                size={20}
+                color={styles.iconColor.primaryColor}
+              />
+              <Text style={styles.quickStatTitle}>Papelera</Text>
+            </View>
+            {isSummaryLoading ? (
+              <Text style={styles.quickStatValue}>Cargando&hellip;</Text>
+            ) : (
+              <Text style={styles.quickStatValue}>
+                {deletedItemsCount} elementos
+              </Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  headerButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  folderButton: {
-    backgroundColor: '#ffc107',
-  },
-  fileButton: {
-    backgroundColor: '#28a745',
-  },
-  headerButtonText: {
-    fontSize: 18,
-  },
-  headerIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  headerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
-  },
-  list: {
-    flex: 1,
-  },
-  item: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginVertical: 4,
-    borderRadius: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  icon: {
-    fontSize: 24,
-    marginRight: 12,
-  },
-  itemContent: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#212529',
-    marginBottom: 2,
-  },
-  itemType: {
-    fontSize: 14,
-    color: '#6c757d',
-  },
-  backText: {
-    color: '#007bff',
-    fontWeight: '600',
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 24,
-    width: '85%',
-    maxWidth: 400,
-  },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#212529',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ced4da',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 20,
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-    padding: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cancelButton: {
-    backgroundColor: '#6c757d',
-  },
-  createButton: {
-    backgroundColor: '#007bff',
-  },
-  cancelButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-  createButtonText: {
-    color: '#fff',
-    fontWeight: '600',
-  },
-});

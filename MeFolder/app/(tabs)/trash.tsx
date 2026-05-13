@@ -1,283 +1,481 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-
-const SAMPLE_TRASH_ITEMS = [
-  { id: 1, name: 'Documento viejo.pdf', type: 'file', deletedDate: '2024-02-01', size: '2.3 MB' },
-  { id: 2, name: 'Carpeta Temporal', type: 'folder', deletedDate: '2024-01-28', size: '5 archivos' },
-  { id: 3, name: 'imagen_prueba.jpg', type: 'file', deletedDate: '2024-01-25', size: '856 KB' },
-  { id: 4, name: 'notas_borrador.txt', type: 'file', deletedDate: '2024-01-20', size: '1.2 KB' },
-];
+import {
+  ViewDropDown,
+  ViewCards,
+  MultiActionButton,
+  OptionDropDown,
+  SortDropDown,
+  ContextMenu,
+  MediaHost,
+  PropertyMenu,
+} from "@/components";
+import { FileModel, FolderModel } from "@/models";
+import {
+  useAlert,
+  useFileSystem,
+  useSelection,
+  useTrashActions,
+} from "@/hooks";
+import type { MediaHostItem } from "@/types/media/viewers";
+import React, { useCallback, useMemo, useState } from "react";
+import { View, Text, ActivityIndicator } from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useTrashContent } from "@/hooks/trash/useTrashContent";
+import { router } from "expo-router";
+import EmptyFolder from "@/components/svgIcons/emptyFolder";
+import { FlashList } from "@shopify/flash-list";
+import { useTrashStyles } from "@/screenStyles/trashStyle";
 
 export default function TrashScreen() {
-  const handleRestore = (itemName: string) => {
-    Alert.alert(
-      'Restaurar elemento',
-      `¿Deseas restaurar "${itemName}"?`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { text: 'Restaurar', onPress: () => console.log('Restaurando:', itemName) }
-      ]
-    );
+  const [showMenu, setShowMenu] = useState(false);
+  const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
+  const [clickedItem, setClickedItem] = useState<
+    FileModel | FolderModel | null
+  >(null);
+  const [menuPosition, setMenuPosition] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [activeMedia, setActiveMedia] = useState<MediaHostItem[] | null>(null);
+
+  const { showAlert } = useAlert();
+  const fs = useFileSystem();
+  const styles = useTrashStyles();
+
+  const {
+    items,
+    loading,
+    viewOptions,
+    gridConfig,
+    selectedView,
+    sortedItems,
+    sortValue,
+    orderBy,
+    handleSortItems,
+    handleViewModeChange,
+    handleViewOptionsChange,
+  } = useTrashContent();
+
+  const {
+    itemsSelected,
+    selectionMode,
+    toggleSelection,
+    clearSelection,
+    handleOnSelectOption,
+  } = useSelection(items);
+
+  const {
+    handlePermanentDelete,
+    handleRestoreSelected,
+    handleEmptyTrash,
+    handleRestoreAll,
+    handleRename,
+    handleShare,
+    handleMakeFavorite,
+  } = useTrashActions(
+    itemsSelected,
+    clearSelection,
+    clickedItem,
+    setIsRenaming,
+  );
+
+  const handleOpenItem = (item: FileModel | FolderModel) => {
+    if (item instanceof FolderModel) {
+      showAlert({
+        title: "Restaurar o eliminar",
+        message: "¿Desea restaurar o eliminar esta carpeta?",
+        buttons: [
+          {
+            text: "Restaurar",
+            onPress: () => {
+              handleRestoreSelected();
+              clearSelection();
+            },
+          },
+          {
+            text: "Eliminar",
+            onPress: () => {
+              handlePermanentDelete();
+              clearSelection();
+            },
+            style: "destructive",
+          },
+          {
+            text: "Cancelar",
+            style: "cancel",
+          },
+        ],
+      });
+    } else {
+      const uri = item.storageUrl ?? item.path;
+
+      if (!fs.fileExists(uri)) {
+        console.error("[handleOpenItem] File not found:", uri);
+        console.error("[handleOpenItem] storageUrl:", item.storageUrl);
+        console.error("[handleOpenItem] path:", item.path);
+        return;
+      }
+
+      if (
+        item.category !== "image" &&
+        item.category !== "video" &&
+        item.category !== "audio"
+      ) {
+        return;
+      }
+
+      const mediaItem: MediaHostItem = {
+        uri,
+        fileId: item.id,
+        ...(item.metadata.mimeType != null && {
+          mimeType: item.metadata.mimeType,
+        }),
+        ...(item.thumbnailUrl != null && {
+          thumbnailUrl: item.thumbnailUrl,
+        }),
+        ...(item.metadata.imageMetadata != null && {
+          mediaWidth: item.metadata.imageMetadata.width,
+          mediaHeight: item.metadata.imageMetadata.height,
+        }),
+        ...(item.metadata.videoMetadata != null && {
+          mediaWidth: item.metadata.videoMetadata.width,
+          mediaHeight: item.metadata.videoMetadata.height,
+        }),
+        displayName: item.name,
+        category: item.category,
+      };
+
+      setActiveMedia([mediaItem]);
+    }
   };
 
-  const handlePermanentDelete = (itemName: string) => {
-    Alert.alert(
-      'Eliminar permanentemente',
-      `¿Estás seguro de que deseas eliminar permanentemente "${itemName}"? Esta acción no se puede deshacer.`,
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Eliminar', 
-          style: 'destructive',
-          onPress: () => console.log('Eliminando permanentemente:', itemName) 
-        }
-      ]
-    );
-  };
+  const renderTrashItem = useCallback(
+    ({ item }: { item: FileModel | FolderModel }) => (
+      <View style={styles.cardWrapper}>
+        <ViewCards
+          data={item}
+          viewConfig={selectedView}
+          viewOptions={viewOptions}
+          selected={itemsSelected.some(
+            (selectedItem) => selectedItem.id === item.id,
+          )}
+          selectionMode={selectionMode}
+          isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+          onRename={handleRename}
+          onRenameCancel={() => setIsRenaming(false)}
+          onPress={() => {
+            selectionMode ? toggleSelection(item) : handleOpenItem(item);
+          }}
+          onDoublePress={(position) => {
+            setClickedItem(item);
+            setMenuPosition(position);
+            setShowMenu(true);
+          }}
+          onLongPress={() => toggleSelection(item)}
+        />
+      </View>
+    ),
+    [
+      clickedItem?.id,
+      handleOpenItem,
+      handleRename,
+      isRenaming,
+      itemsSelected,
+      selectedView,
+      selectionMode,
+      styles.cardWrapper,
+      toggleSelection,
+      viewOptions,
+    ],
+  );
 
-  const handleEmptyTrash = () => {
-    Alert.alert(
-      'Vaciar papelera',
-      '¿Estás seguro de que deseas vaciar toda la papelera? Esta acción no se puede deshacer.',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        { 
-          text: 'Vaciar', 
-          style: 'destructive',
-          onPress: () => console.log('Vaciando papelera...') 
-        }
-      ]
-    );
+  const handleListScrollBeginDrag = useCallback(() => {
+    setShowMenu(false);
+  }, []);
+
+  const menuOptions = useMemo(
+    () => [
+      {
+        hierarchy: "1",
+        label: "Abrir",
+        onPress: () => {
+          handleOpenItem(clickedItem!);
+        },
+        disabled: false,
+        visible: clickedItem instanceof FileModel,
+        icon: (
+          <MaterialCommunityIcons
+            name="open-in-app"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "2",
+        label: "Compartir con",
+        onPress: () => {
+          clickedItem && handleShare(clickedItem);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="share"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "3",
+        label: "Agregar a favoritos",
+        onPress: () => {
+          clickedItem && handleMakeFavorite(clickedItem as FileModel);
+        },
+        disabled: false,
+        visible: clickedItem instanceof FileModel,
+        icon: (
+          <MaterialCommunityIcons
+            name="star"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "4",
+        label: "Renombrar",
+        onPress: () => {
+          setIsRenaming(true);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="pencil"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "5",
+        label: "Eliminar",
+        onPress: () => {
+          clickedItem && handlePermanentDelete([clickedItem]);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="delete"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "6",
+        label: "Restaurar",
+        onPress: () => {
+          clickedItem && handleRestoreSelected([clickedItem]);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="restore"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "7",
+        label: "Propiedades",
+        onPress: () => {
+          setShowItemPropertyMenu(true);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="information"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+    ],
+    [clickedItem],
+  );
+
+  const renderGroupButtons = () => {
+    if (selectionMode) {
+      return (
+        <>
+          {!itemsSelected.some((i) => i instanceof FolderModel) && (
+            <MultiActionButton
+              icon={"bookmark-plus-outline"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={44}
+              onPress={() => {
+                const fileIds: string[] = [];
+
+                for (const item of itemsSelected) {
+                  if (item instanceof FileModel) {
+                    fileIds.push(item.id);
+                  }
+                }
+
+                router.push({
+                  pathname: "/tag-adder",
+                  params: { fileIds: fileIds.join(",") },
+                });
+              }}
+            />
+          )}
+
+          <MultiActionButton
+            icon={"trash-outline"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => handlePermanentDelete()}
+          />
+          <MultiActionButton
+            icon={"restore"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => handleRestoreSelected()}
+          />
+
+          <OptionDropDown
+            size={42}
+            showProperties={false}
+            onSelect={handleOnSelectOption}
+          />
+        </>
+      );
+    } else {
+      return (
+        <>
+          <MultiActionButton
+            icon={"search-outline"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => {}}
+          />
+          {itemsSelected.length >= 1 && (
+            <>
+              <MultiActionButton
+                icon={"restore"}
+                backgroundColor="transparent"
+                iconColor={styles.iconColor.color}
+                size={42}
+                onPress={() => handleRestoreAll()}
+              />
+              <MultiActionButton
+                icon={"trash-outline"}
+                backgroundColor="transparent"
+                iconColor={styles.iconColor.color}
+                size={42}
+                onPress={() => handleEmptyTrash()}
+              />{" "}
+            </>
+          )}
+          <SortDropDown
+            size={42}
+            onChangeOrderBy={async (ob) => await handleSortItems(sortValue, ob)}
+            onChangeSortValue={async (sv) => await handleSortItems(sv, orderBy)}
+            defaultOrderByValue={orderBy}
+            defaultSortValue={sortValue}
+          />
+          <ViewDropDown
+            size={42}
+            onChange={async (selectedMode) =>
+              await handleViewModeChange(selectedMode.id)
+            }
+            defaultValue={selectedView}
+            viewOptions={viewOptions}
+            onViewOptionsChange={handleViewOptionsChange}
+          />
+          <OptionDropDown
+            size={42}
+            showProperties={false}
+            onSelect={handleOnSelectOption}
+          />
+        </>
+      );
+    }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <View style={styles.headerLeft}>
-          <Text style={styles.headerIcon}>🗑️</Text>
-          <Text style={styles.headerText}>Papelera</Text>
-        </View>
-        
-        {SAMPLE_TRASH_ITEMS.length > 0 && (
-          <TouchableOpacity 
-            style={styles.emptyButton}
-            onPress={handleEmptyTrash}
-          >
-            <Text style={styles.emptyButtonText}>Vaciar</Text>
-          </TouchableOpacity>
-        )}
+        <View style={styles.buttonsGroup}>{renderGroupButtons()}</View>
       </View>
-      
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={{ paddingBottom: 120 }} // Espacio para el tab bar flotante
-      >
-        {SAMPLE_TRASH_ITEMS.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>🗑️</Text>
-            <Text style={styles.emptyTitle}>Papelera vacía</Text>
-            <Text style={styles.emptyMessage}>
-              Los archivos y carpetas eliminados aparecerán aquí.
-            </Text>
+
+      <View style={styles.headerBreadcrumb}>
+        <Text style={styles.headerBreadcrumbText}>Papelera</Text>
+      </View>
+
+      {loading ? (
+        <View
+          style={[styles.footerEmptyContainer, { justifyContent: "center" }]}
+        >
+          <ActivityIndicator
+            size="large"
+            color={styles.iconColor.primaryColor}
+          />
+        </View>
+      ) : sortedItems.length === 0 ? (
+        <View style={styles.footerEmptyContainer}>
+          <View style={styles.emptyFolderIconContainer}>
+            <EmptyFolder
+              strokeWidth={0.35}
+              width={120}
+              height={120}
+              folderColor={styles.iconColor.color}
+              crossColor={styles.iconColor.primaryColor}
+            />
+            <Text style={styles.emptyFolderText}>La papelera está vacía</Text>
           </View>
-        ) : (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>📄 Elementos eliminados</Text>
-            {SAMPLE_TRASH_ITEMS.map((item) => (
-              <View key={item.id} style={styles.trashItem}>
-                <View style={styles.itemInfo}>
-                  <Text style={styles.itemIcon}>
-                    {item.type === 'folder' ? '📁' : '📄'}
-                  </Text>
-                  <View style={styles.itemDetails}>
-                    <Text style={styles.itemName}>{item.name}</Text>
-                    <Text style={styles.itemMeta}>
-                      Eliminado: {item.deletedDate} • {item.size}
-                    </Text>
-                  </View>
-                </View>
-                
-                <View style={styles.itemActions}>
-                  <TouchableOpacity 
-                    style={styles.restoreButton}
-                    onPress={() => handleRestore(item.name)}
-                  >
-                    <Text style={styles.restoreButtonText}>↩️</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={styles.deleteButton}
-                    onPress={() => handlePermanentDelete(item.name)}
-                  >
-                    <Text style={styles.deleteButtonText}>❌</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            ))}
-            
-            <View style={styles.infoBox}>
-              <Text style={styles.infoText}>
-                💡 Los elementos en la papelera se eliminarán automáticamente después de 30 días.
-              </Text>
-            </View>
-          </View>
-        )}
-      </ScrollView>
+        </View>
+      ) : (
+        <FlashList
+          data={sortedItems}
+          keyExtractor={(item) => item.id}
+          key={`${selectedView}-${gridConfig.columns}`}
+          numColumns={gridConfig.columns}
+          onScrollBeginDrag={handleListScrollBeginDrag}
+          renderItem={renderTrashItem}
+          contentContainerStyle={styles.flatListContent}
+        />
+      )}
+
+      <ContextMenu
+        options={menuOptions}
+        visible={showMenu}
+        onDismiss={() => setShowMenu(false)}
+        position={menuPosition}
+      />
+
+      {clickedItem && (
+        <PropertyMenu
+          item={clickedItem}
+          visible={showItemPropertyMenu}
+          onClose={() => setShowItemPropertyMenu(false)}
+        />
+      )}
+
+      <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  headerIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  headerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
-  },
-  emptyButton: {
-    backgroundColor: '#dc3545',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  emptyButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  content: {
-    flex: 1,
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212529',
-    marginBottom: 12,
-  },
-  emptyState: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 32,
-    marginTop: 100,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    opacity: 0.5,
-    marginBottom: 16,
-  },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#6c757d',
-    marginBottom: 8,
-  },
-  emptyMessage: {
-    fontSize: 16,
-    color: '#6c757d',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-  trashItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  itemInfo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  itemIcon: {
-    fontSize: 20,
-    marginRight: 12,
-    opacity: 0.7,
-  },
-  itemDetails: {
-    flex: 1,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#495057',
-    marginBottom: 4,
-  },
-  itemMeta: {
-    fontSize: 12,
-    color: '#6c757d',
-  },
-  itemActions: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  restoreButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#28a745',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  restoreButtonText: {
-    fontSize: 16,
-  },
-  deleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: '#dc3545',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  deleteButtonText: {
-    fontSize: 14,
-  },
-  infoBox: {
-    backgroundColor: '#fff3cd',
-    padding: 12,
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: '#ffc107',
-    marginTop: 16,
-  },
-  infoText: {
-    fontSize: 14,
-    color: '#856404',
-    lineHeight: 20,
-  },
-});

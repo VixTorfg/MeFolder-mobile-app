@@ -1,51 +1,67 @@
-import { BaseEntity, UUID } from '../common/base';
-import { ColorInfo } from '../common/colors';
+import { BaseEntity, UUID } from "../common/base";
+import { ColorInfo } from "../common/colors";
 
-export type FolderStatus = 'active' | 'archived' | 'deleted';
+export type FolderStatus = "active" | "archived" | "deleted";
 
-export type FolderType = 'regular' | 'system' | 'shared' | 'favorite';
+export type FolderType = "regular" | "system" | "shared";
 
-export type FolderVisibility = 'private' | 'shared' | 'public';
+export type FolderVisibility = "private" | "shared" | "public";
 
-export interface FolderViewSettings {
-  sortBy: 'name' | 'date' | 'size' | 'type';
-  sortOrder: 'asc' | 'desc';
-  viewMode: 'grid' | 'list' | 'details';
+export type FolderSortBy = "name" | "date" | "size" | "type";
+export type FolderSortOrder = "asc" | "desc";
+export type FolderViewMode =
+  | "list"
+  | "grid"
+  | "big_icon"
+  | "medium_icon"
+  | "small_icon"
+  | "content";
+
+export interface ViewOptions {
+  showExtension: boolean;
   showHiddenFiles: boolean;
 }
+
+export interface ViewSettings {
+  sortBy: FolderSortBy;
+  sortOrder: FolderSortOrder;
+  viewMode: FolderViewMode;
+  options: ViewOptions;
+}
+
+/** @deprecated Use ViewSettings instead */
+export type FolderViewSettings = ViewSettings;
 
 export interface FolderStats {
   totalFiles: number;
   totalSubfolders: number;
-  totalSize: number;        
-  lastModified: Date;     
+  totalSize: number;
+  lastModified: Date;
 }
 
 export interface Folder extends BaseEntity {
   name: string;
   description?: string;
-  
-  parentId?: UUID;         
-  path: string;             
-  level: number;            
-  
+
+  parentId?: UUID;
+  path: string;
+  level: number;
+
   status: FolderStatus;
   type: FolderType;
   visibility: FolderVisibility;
-  
-  color?: ColorInfo;        
-  icon?: string;            
-  
-  tagIds: UUID[];
-  
+
+  color?: ColorInfo;
+  icon?: string;
+
   viewSettings: FolderViewSettings;
-  
+
   lastAccessedAt?: Date;
   archivedAt?: Date;
-  
+
   isFavorite: boolean;
-  isProtected: boolean;     
-  isSystemFolder: boolean;  
+  isProtected: boolean;
+  isSystemFolder: boolean;
 }
 
 export interface CreateFolderInput {
@@ -56,10 +72,8 @@ export interface CreateFolderInput {
   visibility?: FolderVisibility;
   color?: ColorInfo;
   icon?: string;
-  tagIds?: UUID[];
   viewSettings?: Partial<FolderViewSettings>;
 }
-
 export interface UpdateFolderInput {
   name?: string;
   description?: string;
@@ -68,7 +82,6 @@ export interface UpdateFolderInput {
   visibility?: FolderVisibility;
   color?: ColorInfo;
   icon?: string;
-  tagIds?: UUID[];
   viewSettings?: Partial<FolderViewSettings>;
   isFavorite?: boolean;
   isProtected?: boolean;
@@ -83,12 +96,7 @@ export interface FolderWithRelations extends Folder {
   children: {
     id: UUID;
     name: string;
-    type: 'folder' | 'file';
-  }[];
-  tags: {
-    id: UUID;
-    name: string;
-    color: ColorInfo;
+    type: "folder" | "file";
   }[];
   stats: FolderStats;
 }

@@ -1,141 +1,764 @@
-import React from 'react';
-import { View, Text, StyleSheet, SafeAreaView, ScrollView } from 'react-native';
+import {
+  ViewDropDown,
+  ViewCards,
+  ItemCreator,
+  MultiActionButton,
+  SearchBox,
+  ContextMenu,
+  Breadcrumb,
+  OptionDropDown,
+  PropertyMenu,
+  MediaHost,
+  CustomPopup,
+  MediaImportProgressOverlay,
+} from "@/components";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
+import {
+  View,
+  Text,
+  ActivityIndicator,
+  Keyboard,
+  Pressable,
+} from "react-native";
+import { TouchableOpacity } from "@/components/TouchableOpacity";
+import { useNavigationStore } from "@/stores";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { FileModel, FolderModel } from "@/models";
+import type { MediaHostItem } from "@/types/media/viewers";
+import { useLibraryStyles } from "@/screenStyles/libraryStyle";
+import EmptyFolder from "@/components/svgIcons/emptyFolder";
+import { SortDropDown } from "@/components/SortDropDown";
+import {
+  useLibraryContent,
+  useLibraryActions,
+  useLibraryArchiveActions,
+} from "@/hooks/library";
+import { useFileSystem, useSearch, useSelection } from "@/hooks";
+import { FlashList } from "@shopify/flash-list";
+import { router } from "expo-router";
+import { ArchiveFormat, OptionsIds, type OptionsType } from "@/types";
 
 export default function LibraryScreen() {
+  const [creatorVisible, setCreatorVisible] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [clickedItem, setClickedItem] = useState<
+    FileModel | FolderModel | null
+  >(null);
+  const [menuPosition, setMenuPosition] = useState({
+    x: 0,
+    y: 0,
+    width: 0,
+    height: 0,
+  });
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [showItemPropertyMenu, setShowItemPropertyMenu] = useState(false);
+  const [activeMedia, setActiveMedia] = useState<MediaHostItem[] | null>(null);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  const { currentFolderId, navigateTo, currentFolderName, navigateBack } =
+    useNavigationStore();
+
+  const {
+    items,
+    sortedItems,
+    loading,
+    selectedView,
+    orderBy,
+    sortValue,
+    viewOptions,
+    gridConfig,
+    folderService,
+    fileService,
+    handleSortItems,
+    handleViewModeChange,
+    handleViewOptionsChange,
+  } = useLibraryContent();
+
+  const {
+    itemsSelected,
+    selectionMode,
+    toggleSelection,
+    clearSelection,
+    currentData: currentFolderData,
+    showPropertyMenu,
+    closePropertyMenu,
+    handleOnSelectOption,
+  } = useSelection(items, currentFolderId);
+
+  const {
+    handleShare,
+    handleDeleteElements,
+    handleSaveFile,
+    handleSaveFolder,
+    handleRename,
+    handleCopy,
+    handleCut,
+    handlePaste,
+    handleMakeFavorite,
+    hasItems,
+  } = useLibraryActions({
+    folderService,
+    fileService,
+    clickedItem,
+    itemsSelected,
+    clearSelection,
+    setIsRenaming,
+  });
+  const {
+    archiveDialog,
+    archiveLoading,
+    closeArchiveDialog,
+    confirmArchiveAction,
+    requestCompressItem,
+    requestExtractItem,
+    setExtractHere,
+  } = useLibraryArchiveActions();
+
+  const styles = useLibraryStyles();
+  const fs = useFileSystem();
+  const { handleSearch, clearSearch, isSearching, isSearchActive } =
+    useSearch("");
+  const searchBoxKey = `${currentFolderId ?? "root"}:${selectionMode ? "selection" : "browse"}`;
+
+  const dismissSearchFocus = useCallback(() => {
+    if (isSearchExpanded) {
+      Keyboard.dismiss();
+    }
+  }, [isSearchExpanded]);
+
+  const handleListScrollBeginDrag = useCallback(() => {
+    dismissSearchFocus();
+    setShowMenu(false);
+  }, [dismissSearchFocus]);
+
+  const resetSearchUi = useCallback(() => {
+    clearSearch();
+    setIsSearchExpanded(false);
+  }, [clearSearch]);
+
+  const handleEnterSelectionMode = useCallback(
+    (item: FileModel | FolderModel) => {
+      resetSearchUi();
+      toggleSelection(item);
+    },
+    [resetSearchUi, toggleSelection],
+  );
+
+  const handleSelectionOption = useCallback(
+    (option: OptionsType) => {
+      if (
+        option.id === OptionsIds.SELECT_ALL ||
+        option.id === OptionsIds.INVERT_SELECT
+      ) {
+        resetSearchUi();
+      }
+
+      handleOnSelectOption(option);
+    },
+    [handleOnSelectOption, resetSearchUi],
+  );
+
+  useEffect(() => {
+    clearSearch();
+    setIsSearchExpanded(false);
+  }, [currentFolderId, clearSearch]);
+
+  const handleOpenItem = (item: FileModel | FolderModel) => {
+    if (item instanceof FolderModel) {
+      navigateTo(item.id, item.name);
+    } else {
+      const uri = item.storageUrl ?? item.path;
+
+      if (!fs.fileExists(uri)) {
+        console.error("[handleOpenItem] File not found:", uri);
+        console.error("[handleOpenItem] storageUrl:", item.storageUrl);
+        console.error("[handleOpenItem] path:", item.path);
+        return;
+      }
+
+      if (
+        item.category !== "image" &&
+        item.category !== "video" &&
+        item.category !== "audio"
+      ) {
+        return;
+      }
+
+      const mediaItem: MediaHostItem = {
+        uri,
+        fileId: item.id,
+        ...(item.metadata.mimeType != null && {
+          mimeType: item.metadata.mimeType,
+        }),
+        ...(item.thumbnailUrl != null && {
+          thumbnailUrl: item.thumbnailUrl,
+        }),
+        ...(item.metadata.imageMetadata != null && {
+          mediaWidth: item.metadata.imageMetadata.width,
+          mediaHeight: item.metadata.imageMetadata.height,
+        }),
+        ...(item.metadata.videoMetadata != null && {
+          mediaWidth: item.metadata.videoMetadata.width,
+          mediaHeight: item.metadata.videoMetadata.height,
+        }),
+        displayName: item.name,
+        category: item.category,
+      };
+
+      setActiveMedia([mediaItem]);
+    }
+  };
+
+  const validarComprimir = useCallback(
+    (item: FileModel | FolderModel | null) => {
+      if (!item) return false;
+
+      if (item instanceof FolderModel) return true;
+
+      const archiveExtensions: readonly ArchiveFormat[] = [
+        "zip",
+        "rar",
+        "7z",
+        "tar",
+        "gz",
+      ];
+
+      return !archiveExtensions.includes(item.extension as ArchiveFormat);
+    },
+    [],
+  );
+
+  const handleCompressWrapper = useCallback(() => {
+    if (!clickedItem) return;
+
+    setShowMenu(false);
+    requestCompressItem(clickedItem);
+  }, [clickedItem, requestCompressItem]);
+
+  const handleExtractWrapper = useCallback(() => {
+    if (!(clickedItem instanceof FileModel)) return;
+
+    setShowMenu(false);
+    requestExtractItem(clickedItem);
+  }, [clickedItem, requestExtractItem]);
+
+  const handleArchiveMenuAction = useCallback(() => {
+    if (!clickedItem) return;
+
+    if (validarComprimir(clickedItem)) {
+      handleCompressWrapper();
+      return;
+    }
+
+    handleExtractWrapper();
+  }, [
+    clickedItem,
+    handleCompressWrapper,
+    handleExtractWrapper,
+    validarComprimir,
+  ]);
+
+  const renderLibraryItem = useCallback(
+    ({ item }: { item: FileModel | FolderModel }) => (
+      <View style={styles.cardWrapper}>
+        <ViewCards
+          key={`${item.id}:${clickedItem?.id === item.id && isRenaming ? "renaming" : "idle"}:${item.name}`}
+          data={item}
+          viewConfig={selectedView}
+          viewOptions={viewOptions}
+          selected={itemsSelected.some(
+            (selectedItem) => selectedItem.id === item.id,
+          )}
+          selectionMode={selectionMode}
+          isRenaming={clickedItem?.id === item.id ? isRenaming : false}
+          onRename={handleRename}
+          onRenameCancel={() => setIsRenaming(false)}
+          onPress={() => {
+            selectionMode ? toggleSelection(item) : handleOpenItem(item);
+          }}
+          onDoublePress={(position) => {
+            setClickedItem(item);
+            setMenuPosition(position);
+            setShowMenu(true);
+          }}
+          onLongPress={() => handleEnterSelectionMode(item)}
+        />
+      </View>
+    ),
+    [
+      clickedItem?.id,
+      handleEnterSelectionMode,
+      handleOpenItem,
+      handleRename,
+      isRenaming,
+      itemsSelected,
+      selectedView,
+      selectionMode,
+      styles.cardWrapper,
+      toggleSelection,
+      viewOptions,
+    ],
+  );
+
+  const menuOptions = useMemo(
+    () => [
+      {
+        hierarchy: "1",
+        label: "Abrir",
+        onPress: () => {
+          handleOpenItem(clickedItem!);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="open-in-app"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "2",
+        label: "Compartir con",
+        onPress: () => {
+          clickedItem && handleShare(clickedItem);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="share"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "3",
+        label: "Agregar a favoritos",
+        onPress: () => {
+          clickedItem && handleMakeFavorite(clickedItem as FileModel);
+        },
+        disabled: false,
+        visible: clickedItem instanceof FileModel,
+        icon: (
+          <MaterialCommunityIcons
+            name="star"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "4",
+        label: "Renombrar",
+        onPress: () => {
+          setIsRenaming(true);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="pencil"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "5",
+        label: "Copiar",
+        onPress: () => {
+          clickedItem && handleCopy([clickedItem]);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="content-copy"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "6",
+        label: "Cortar",
+        onPress: () => {
+          clickedItem && handleCut([clickedItem]);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="content-cut"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "7",
+        label: "Pegar",
+        onPress: () => {
+          handlePaste();
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="content-paste"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "8",
+        label: validarComprimir(clickedItem) ? "Comprimir" : "Descomprimir",
+        onPress: handleArchiveMenuAction,
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name={validarComprimir(clickedItem) ? "zip-box" : "folder-download"}
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "9",
+        label: "Eliminar",
+        onPress: () => {
+          clickedItem && handleDeleteElements([clickedItem]);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="delete"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+      {
+        hierarchy: "10",
+        label: "Propiedades",
+        onPress: () => {
+          setShowItemPropertyMenu(true);
+        },
+        disabled: false,
+        visible: true,
+        icon: (
+          <MaterialCommunityIcons
+            name="information"
+            size={20}
+            color={styles.iconColor.primaryColor}
+          />
+        ),
+      },
+    ],
+    [
+      clickedItem,
+      handleArchiveMenuAction,
+      styles.iconColor.primaryColor,
+      validarComprimir,
+    ],
+  );
+
+  const renderGroupButtons = () => {
+    if (selectionMode) {
+      return (
+        <>
+          {!itemsSelected.some((i) => i instanceof FolderModel) && (
+            <MultiActionButton
+              icon={"bookmark-plus-outline"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={44}
+              onPress={() => {
+                const fileIds: string[] = [];
+
+                for (const item of itemsSelected) {
+                  if (item instanceof FileModel) {
+                    fileIds.push(item.id);
+                  }
+                }
+
+                router.push({
+                  pathname: "/tag-adder",
+                  params: { fileIds: fileIds.join(",") },
+                });
+              }}
+            />
+          )}
+          <MultiActionButton
+            icon={"trash-outline"}
+            backgroundColor="transparent"
+            iconColor={styles.iconColor.color}
+            size={42}
+            onPress={() => handleDeleteElements()}
+          />
+          <OptionDropDown size={42} onSelect={handleOnSelectOption} />
+        </>
+      );
+    } else {
+      return (
+        <>
+          <SearchBox
+            key={searchBoxKey}
+            placeholder="Buscar en biblioteca..."
+            iconSize={22}
+            collapsible
+            onSearch={async (query) => {
+              const results = await handleSearch(query);
+
+              return results.map((item) => ({
+                id: item.id,
+                name: item.name,
+                type: item instanceof FolderModel ? "folder" : "file",
+              }));
+            }}
+            onClear={clearSearch}
+            onExpandedChange={setIsSearchExpanded}
+          />
+
+          {!isSearchExpanded && (
+            <>
+              <MultiActionButton
+                icon={"add"}
+                backgroundColor="transparent"
+                iconColor={styles.iconColor.color}
+                size={42}
+                onPress={() => setCreatorVisible(true)}
+              />
+              {hasItems() === true && (
+                <MultiActionButton
+                  icon={"content-paste"}
+                  backgroundColor="transparent"
+                  iconColor={styles.iconColor.color}
+                  size={42}
+                  onPress={() => handlePaste()}
+                />
+              )}
+              <SortDropDown
+                size={42}
+                onChangeOrderBy={async (ob) =>
+                  await handleSortItems(sortValue, ob)
+                }
+                onChangeSortValue={async (sv) =>
+                  await handleSortItems(sv, orderBy)
+                }
+                defaultOrderByValue={orderBy}
+                defaultSortValue={sortValue}
+              />
+              <ViewDropDown
+                size={42}
+                onChange={async (selectedMode) =>
+                  await handleViewModeChange(selectedMode.id)
+                }
+                defaultValue={selectedView}
+                viewOptions={viewOptions}
+                onViewOptionsChange={handleViewOptionsChange}
+              />
+              <OptionDropDown size={42} onSelect={handleSelectionOption} />
+            </>
+          )}
+        </>
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerIcon}>📚</Text>
-        <Text style={styles.headerText}>Biblioteca</Text>
+        <View style={styles.headerLeft}>
+          {currentFolderId !== "sys_root" && (
+            <MultiActionButton
+              icon={"chevron-back"}
+              backgroundColor="transparent"
+              iconColor={styles.iconColor.color}
+              size={42}
+              onPress={() => {
+                clearSelection();
+                navigateBack();
+              }}
+            />
+          )}
+        </View>
+
+        <View
+          style={[
+            styles.buttonsGroup,
+            isSearchExpanded && styles.buttonsGroupSearchExpanded,
+          ]}
+        >
+          {renderGroupButtons()}
+        </View>
       </View>
-      
-      <ScrollView 
-        style={styles.content}
-        contentContainerStyle={{ paddingBottom: 120 }} // Espacio para el tab bar flotante
+
+      <View style={styles.headerBreadcrumb} onTouchStart={dismissSearchFocus}>
+        <Text style={styles.headerBreadcrumbText}>{currentFolderName}</Text>
+        <Breadcrumb />
+      </View>
+
+      <ItemCreator
+        visible={creatorVisible}
+        onClose={() => setCreatorVisible(false)}
+        currentFolderId={currentFolderId}
+        onSaveFile={(data) => {
+          handleSaveFile(data);
+          setCreatorVisible(false);
+        }}
+        onSaveFolder={(data) => {
+          handleSaveFolder(data);
+          setCreatorVisible(false);
+        }}
+      />
+      {loading || isSearching ? (
+        <View
+          style={[styles.footerEmptyContainer, { justifyContent: "center" }]}
+          onTouchStart={dismissSearchFocus}
+        >
+          <ActivityIndicator
+            size="large"
+            color={styles.iconColor.primaryColor}
+          />
+        </View>
+      ) : sortedItems.length === 0 ? (
+        <View
+          style={styles.footerEmptyContainer}
+          onTouchStart={dismissSearchFocus}
+        >
+          <View style={styles.emptyFolderIconContainer}>
+            <EmptyFolder
+              strokeWidth={0.35}
+              width={120}
+              height={120}
+              folderColor={styles.iconColor.color}
+              crossColor={styles.iconColor.primaryColor}
+            />
+            <Text style={styles.emptyFolderText}>
+              {isSearchActive
+                ? "No se encontraron resultados"
+                : "La carpeta está vacía"}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.volverButton}
+            onPress={() => {
+              clearSelection();
+              navigateBack();
+            }}
+          >
+            <Text style={styles.volverText}>Volver</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <FlashList
+          data={sortedItems}
+          keyExtractor={(item) => item.id}
+          key={`${selectedView}-${gridConfig.columns}`}
+          numColumns={gridConfig.columns}
+          keyboardDismissMode="on-drag"
+          keyboardShouldPersistTaps="handled"
+          onTouchStart={dismissSearchFocus}
+          onScrollBeginDrag={handleListScrollBeginDrag}
+          renderItem={renderLibraryItem}
+          contentContainerStyle={styles.flatListContent}
+        />
+      )}
+
+      <ContextMenu
+        options={menuOptions}
+        visible={showMenu}
+        onDismiss={() => setShowMenu(false)}
+        position={menuPosition}
+      />
+
+      {clickedItem && (
+        <PropertyMenu
+          item={clickedItem}
+          visible={showItemPropertyMenu}
+          onClose={() => setShowItemPropertyMenu(false)}
+        />
+      )}
+
+      {currentFolderData && (
+        <PropertyMenu
+          item={currentFolderData}
+          visible={showPropertyMenu}
+          onClose={closePropertyMenu}
+        />
+      )}
+
+      <CustomPopup
+        title={
+          archiveDialog.action === "compress"
+            ? "Confirmar compresión"
+            : "Confirmar extracción"
+        }
+        isVisible={archiveDialog.isVisible}
+        onDismiss={closeArchiveDialog}
       >
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>🗂️ Colecciones</Text>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Documentos Recientes</Text>
-            <Text style={styles.cardSubtitle}>15 archivos</Text>
-          </View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Favoritos</Text>
-            <Text style={styles.cardSubtitle}>8 archivos</Text>
-          </View>
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>Compartidos</Text>
-            <Text style={styles.cardSubtitle}>3 archivos</Text>
-          </View>
+        <Text style={styles.popupMessage}>
+          {archiveDialog.action === "compress"
+            ? `Se va a comprimir ${archiveDialog.item?.name ?? "el elemento seleccionado"}.`
+            : `Se va a proceder a descomprimir ${archiveDialog.item?.name ?? "el archivo seleccionado"}.`}
+        </Text>
+
+        {archiveDialog.action === "extract" ? (
+          <Pressable
+            style={styles.popupCheckboxRow}
+            onPress={() => setExtractHere(!archiveDialog.extractHere)}
+          >
+            <MaterialCommunityIcons
+              name={
+                archiveDialog.extractHere
+                  ? "checkbox-marked-outline"
+                  : "checkbox-blank-outline"
+              }
+              size={22}
+              color={styles.iconColor.primaryColor}
+            />
+            <Text style={styles.popupCheckboxLabel}>Extraer aquí</Text>
+          </Pressable>
+        ) : null}
+
+        <View style={styles.popupFooterButtons}>
+          <TouchableOpacity
+            style={styles.popupCancelButton}
+            onPress={closeArchiveDialog}
+          >
+            <Text style={styles.popupCancelButtonText}>Cancelar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.popupConfirmButton}
+            onPress={() => {
+              void confirmArchiveAction();
+            }}
+          >
+            <Text style={styles.popupConfirmButtonText}>Confirmar</Text>
+          </TouchableOpacity>
         </View>
-        
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>📊 Estadísticas</Text>
-          <View style={styles.statsContainer}>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>127</Text>
-              <Text style={styles.statLabel}>Archivos totales</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>45</Text>
-              <Text style={styles.statLabel}>Carpetas</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={styles.statNumber}>2.3 GB</Text>
-              <Text style={styles.statLabel}>Espacio usado</Text>
-            </View>
-          </View>
-        </View>
-      </ScrollView>
+      </CustomPopup>
+
+      <MediaImportProgressOverlay
+        visible={archiveLoading.isVisible}
+        title={archiveLoading.title}
+        progress={{
+          completed: archiveLoading.progress?.processedEntries ?? 0,
+          total: Math.max(archiveLoading.progress?.totalEntries ?? 0, 1),
+          currentFileName:
+            archiveLoading.progress?.currentEntryName ?? archiveLoading.message,
+        }}
+        showProgress={archiveLoading.showProgress}
+      />
+
+      <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f8f9fa',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 16,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e9ecef',
-  },
-  headerIcon: {
-    fontSize: 20,
-    marginRight: 8,
-  },
-  headerText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#495057',
-  },
-  content: {
-    flex: 1,
-  },
-  section: {
-    padding: 16,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#212529',
-    marginBottom: 12,
-  },
-  card: {
-    backgroundColor: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#212529',
-    marginBottom: 4,
-  },
-  cardSubtitle: {
-    fontSize: 14,
-    color: '#6c757d',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007bff',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#6c757d',
-    textAlign: 'center',
-  },
-});

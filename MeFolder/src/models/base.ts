@@ -3,7 +3,7 @@ import {
   UUID,  
   UpdateInput 
 } from '../types/common/base';
-import { formatFileSize } from '../utils';
+import { formatFileSize } from '../utils/format/bytes';
 
 /** Clase base para todos los modelos con funcionalidad común */
 export abstract class BaseModel<T extends BaseEntity> {

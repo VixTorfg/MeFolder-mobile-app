@@ -1,0 +1,26 @@
+TODOS
+
+Orden de prioridades:
+    Usar linking para abrir archivos
+
+Mejoras en general
+    Seccion de colores:
+        -Hay un bug raro al guardar un color el cual la pantalla popea. No es reproducible
+        Ocurre raras veces.
+
+    Seccion de TAGS:
+        -Poder buscar un tags
+        -Asociar Tags a otros tags, estructura de arbol, UN solo padre
+        -filtros combinados trabajo + urgente
+        -reglas de auto etiquetado
+
+ 
+
+-AirDrop para compartir
+
+CORREGIR:
+
+
+ANTERIOR:
+
+

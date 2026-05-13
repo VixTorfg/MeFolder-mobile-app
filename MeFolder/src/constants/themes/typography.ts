@@ -1,10 +1,10 @@
 import { Typography } from './types';
+import { fonts } from '../fonts';
 
 export const typography: Typography = {
   fontFamily: {
-    primary: 'Inter', 
-    secondary: 'Roboto', 
-    monospace: 'Fira Code',
+    title: fonts.title,
+    primary: fonts.primary,
   },
   fontSize: {
     xs: 12,
@@ -13,13 +13,6 @@ export const typography: Typography = {
     lg: 18,
     xl: 24,
     xxl: 32,
-  },
-  fontWeight: {
-    light: '300',
-    regular: '400',
-    medium: '500',
-    semiBold: '600',
-    bold: '700',
   },
   lineHeight: {
     tight: 1.2,

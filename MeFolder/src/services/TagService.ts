@@ -1,15 +1,20 @@
-import { BaseService } from './base/BaseService';
-import { 
-  Tag, 
-  CreateTagInput,
-  TagType
-} from '../types/entities/tag';
-import { UUID } from '../types/common/base';
-import { ColorInfo } from '../types/common/colors';
+import { BaseService } from "./base/BaseService";
+import { CreateTagInput, TagType } from "../types/entities/tag";
+import { UUID } from "../types/common/base";
+import { ColorInfo } from "../types/common/colors";
+import { TagModel, TagFactory } from "../models/tag";
+import { SYSTEM_ALBUM_TAG_ID } from "../database/seeds/systemTags";
+import { FileModel } from "@/models";
+import type { ViewSettings } from "../types/entities/folder";
+
+export interface AlbumCoverCandidate {
+  fileId: UUID;
+  coverUri: string;
+}
 
 /**
  * TagService MVP - Funcionalidades básicas para desarrollo inicial
- * 
+ *
  * Funciones incluidas:
  * - Crear tag simple
  * - Obtener tag por ID
@@ -18,66 +23,96 @@ import { ColorInfo } from '../types/common/colors';
  * - Actualizar tag (renombrar)
  * - Eliminar tag (soft delete)
  * - Obtener tags populares
- * 
+ *
  * Perfecta para construir MVP y gestión básica de etiquetas
  */
 export class TagService extends BaseService {
-  
   /**
    * Crear nuevo tag (operación básica)
    */
-  async createTag(input: CreateTagInput): Promise<Tag> {
+  async createTag(input: CreateTagInput): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
-      
+
       // Validar que no existe otro tag con el mismo nombre
       await this.validateUniqueTagName(input.name);
 
       // Crear tag usando el repositorio
-      return await this.tagRepo.create(input);
-      
+      const tag = await this.tagRepo.create(input);
+      return TagFactory.fromJSON(tag);
     } catch (error) {
-      return this.handleError(error, 'crear tag');
+      return this.handleError(error, "crear tag");
     }
   }
 
   /**
    * Obtener tag por ID
    */
-  async getTag(tagId: UUID): Promise<Tag> {
+  async getTag(tagId: UUID): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
 
       const tag = await this.tagRepo.findById(tagId);
       if (!tag) {
-        throw new Error('Tag no encontrado');
+        throw new Error("Tag no encontrado");
       }
 
-      return tag;
-      
+      return TagFactory.fromJSON(tag);
     } catch (error) {
-      return this.handleError(error, 'obtener tag');
+      return this.handleError(error, "obtener tag");
+    }
+  }
+
+  /**
+   * Obtener tags por IDs
+   */
+  async getTagsByIds(tagIds: UUID[]): Promise<TagModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      const tags = await this.tagRepo.getTagsByIds(tagIds);
+      if (!tags || tags.length === 0) {
+        throw new Error("Tags no encontrados");
+      }
+
+      return tags.map((tag) => TagFactory.fromJSON(tag));
+    } catch (error) {
+      return this.handleError(error, "obtener tags por IDs");
     }
   }
 
   /**
    * Obtener todos los tags activos
    */
-  async getAllTags(): Promise<Tag[]> {
+  async getAllTags(): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
-      return await this.tagRepo.findAll({ status: 'active' });
-      
+      const tags = await this.tagRepo.findAll({ status: "active" });
+      return tags.map((t) => TagFactory.fromJSON(t));
     } catch (error) {
-      return this.handleError(error, 'obtener todos los tags');
+      return this.handleError(error, "obtener todos los tags");
+    }
+  }
+
+  async getAllTagsWithoutAlbum(): Promise<TagModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      const tags = await this.tagRepo.findAll({
+        status: "active",
+        excludedType: "album",
+      });
+      return tags.map((t) => TagFactory.fromJSON(t));
+    } catch (error) {
+      return this.handleError(error, "obtener todos los tags");
     }
   }
 
   /**
    * Buscar tags por nombre (búsqueda parcial)
    */
-  async searchTagsByName(query: string): Promise<Tag[]> {
+  async searchTagsByName(query: string): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
@@ -85,108 +120,183 @@ export class TagService extends BaseService {
         return await this.getAllTags();
       }
 
-      return await this.tagRepo.search(query);
-      
+      const tags = await this.tagRepo.search(query);
+      return tags.map((t) => TagFactory.fromJSON(t));
     } catch (error) {
-      return this.handleError(error, 'buscar tags');
+      return this.handleError(error, "buscar tags");
     }
   }
 
   /**
    * Obtener tags por tipo
    */
-  async getTagsByType(type: TagType): Promise<Tag[]> {
+  async getTagsByType(type: TagType): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
-      return await this.tagRepo.findAll({ 
+      const tags = await this.tagRepo.findAll({
         type,
-        status: 'active' 
+        status: "active",
       });
-      
+      return tags.map((t) => TagFactory.fromJSON(t));
     } catch (error) {
-      return this.handleError(error, 'obtener tags por tipo');
+      return this.handleError(error, "obtener tags por tipo");
     }
   }
 
   /**
    * Renombrar tag
    */
-  async renameTag(tagId: UUID, newName: string): Promise<Tag> {
+  async renameTag(tagId: UUID, newName: string): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
 
       const tag = await this.tagRepo.findById(tagId);
-      if (!tag) throw new Error('Tag no encontrado');
+      if (!tag) throw new Error("Tag no encontrado");
+
+      if (tag.type === "system") {
+        throw new Error("No se puede renombrar una etiqueta del sistema");
+      }
 
       // Validar que no existe otro tag con el nuevo nombre
       await this.validateUniqueTagName(newName, tagId);
 
       // Actualizar nombre
-      return await this.tagRepo.update(tagId, {
-        name: newName
+      const updated = await this.tagRepo.update(tagId, {
+        name: newName,
       });
-      
+      return TagFactory.fromJSON(updated);
     } catch (error) {
-      return this.handleError(error, 'renombrar tag');
+      return this.handleError(error, "renombrar tag");
+    }
+  }
+
+  /**
+   * Actualizar descripción del tag
+   */
+  async updateTagDescription(
+    tagId: UUID,
+    description: string,
+  ): Promise<TagModel> {
+    try {
+      this.ensureDbInitialized();
+
+      const tag = await this.tagRepo.findById(tagId);
+      if (!tag) throw new Error("Tag no encontrado");
+
+      const updated = await this.tagRepo.update(tagId, {
+        description,
+      });
+      return TagFactory.fromJSON(updated);
+    } catch (error) {
+      return this.handleError(error, "actualizar descripción del tag");
     }
   }
 
   /**
    * Actualizar color del tag
    */
-  async updateTagColor(tagId: UUID, color: ColorInfo): Promise<Tag> {
+  async updateTagColor(tagId: UUID, color: ColorInfo): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
 
       const tag = await this.tagRepo.findById(tagId);
-      if (!tag) throw new Error('Tag no encontrado');
+      if (!tag) throw new Error("Tag no encontrado");
 
-      return await this.tagRepo.update(tagId, { color });
-      
+      const updated = await this.tagRepo.update(tagId, { color });
+      return TagFactory.fromJSON(updated);
     } catch (error) {
-      return this.handleError(error, 'actualizar color del tag');
+      return this.handleError(error, "actualizar color del tag");
     }
   }
 
   /**
-   * Eliminar tag (soft delete)
+   * Eliminar tag
    */
   async deleteTag(tagId: UUID): Promise<boolean> {
     try {
       this.ensureDbInitialized();
 
       const tag = await this.tagRepo.findById(tagId);
-      if (!tag) throw new Error('Tag no encontrado');
+      if (!tag) throw new Error("Tag no encontrado");
 
       // No permitir eliminar tags del sistema
-      if (tag.type === 'system') {
-        throw new Error('No se pueden eliminar tags del sistema');
+      if (tag.type === "system") {
+        throw new Error("No se pueden eliminar tags del sistema");
       }
 
-      // Cambiar status a inactivo
-      await this.tagRepo.update(tagId, { 
-        isActive: false 
-      });
-      
-      return true;
-      
+      return await this.tagRepo.permanentDelete(tagId);
     } catch (error) {
-      return this.handleError(error, 'eliminar tag');
+      return this.handleError(error, "eliminar tag");
+    }
+  }
+
+  /**
+   * Eliminar tag de un archivo (remover asociación)
+   */
+  async removeTagFromFile(fileId: UUID, tagId: UUID): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+      console.log(`Removing tag ${tagId} from file ${fileId}`);
+      await this.tagAssignmentRepo.removeTagsFromFile(fileId, [tagId]);
+    } catch (error) {
+      return this.handleError(error, "eliminar tag de archivo");
+    }
+  }
+
+  /**
+   * Asignar tags a un archivo
+   */
+  async addTagsToFile(fileId: UUID, tagIds: UUID[]): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+      await this.tagAssignmentRepo.assignTagsToFile(fileId, tagIds);
+    } catch (error) {
+      return this.handleError(error, "asignar tags al archivo");
+    }
+  }
+
+  async bulkAddTagsToFiles(fileIds: UUID[], tagId: UUID): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+      await this.tagAssignmentRepo.bulkAssignTagToFiles(fileIds, tagId);
+    } catch (error) {
+      return this.handleError(error, "asignar tags a archivos");
+    }
+  }
+
+  /**
+   *  Obtener files de un tag específico con paginación
+   */
+  async getFilesInTagPaginated(
+    tagId: UUID,
+    page: number,
+    pageSize: number,
+  ): Promise<FileModel[]> {
+    try {
+      this.ensureDbInitialized();
+      const files = await this.tagAssignmentRepo.getTaggedFilesPaginated(
+        tagId,
+        page,
+        pageSize,
+      );
+      return files.map((f) => new FileModel(f));
+    } catch (error) {
+      return this.handleError(error, "obtener archivos en tag paginados");
     }
   }
 
   /**
    * Obtener tags más utilizados
    */
-  async getPopularTags(limit: number = 10): Promise<Tag[]> {
+  async getPopularTags(limit: number = 10): Promise<TagModel[]> {
     try {
       this.ensureDbInitialized();
 
-      return await this.tagRepo.findMostUsed(limit);
-      
+      const tags = await this.tagRepo.findMostUsed(limit);
+      return tags.map((t) => TagFactory.fromJSON(t));
     } catch (error) {
-      return this.handleError(error, 'obtener tags populares');
+      return this.handleError(error, "obtener tags populares");
     }
   }
 
@@ -198,16 +308,14 @@ export class TagService extends BaseService {
       this.ensureDbInitialized();
 
       const tag = await this.tagRepo.findById(tagId);
-      if (!tag) throw new Error('Tag no encontrado');
+      if (!tag) throw new Error("Tag no encontrado");
 
-      // Contar archivos y carpetas que usan este tag
+      // Contar archivos que usan este tag
       const fileCount = await this.tagAssignmentRepo.getTagUsageInFiles(tagId);
-      const folderCount = await this.tagAssignmentRepo.getTagUsageInFolders(tagId);
-      
-      return fileCount + folderCount;
-      
+
+      return fileCount;
     } catch (error) {
-      return this.handleError(error, 'obtener estadísticas del tag');
+      return this.handleError(error, "obtener estadísticas del tag");
     }
   }
 
@@ -219,12 +327,67 @@ export class TagService extends BaseService {
       this.ensureDbInitialized();
 
       const tag = await this.tagRepo.findById(tagId);
-      if (!tag) throw new Error('Tag no encontrado');
+      if (!tag) throw new Error("Tag no encontrado");
 
       return await this.tagAssignmentRepo.getTaggedFiles(tagId);
-      
     } catch (error) {
-      return this.handleError(error, 'obtener archivos con tag');
+      return this.handleError(error, "obtener archivos con tag");
+    }
+  }
+
+  /** Obtener archivos completos asociados a un tag. */
+  async getFilesInTag(tagId: UUID): Promise<FileModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      const tag = await this.tagRepo.findById(tagId);
+      if (!tag) {
+        throw new Error("Tag no encontrado");
+      }
+
+      const files = await this.fileRepo.findByTagIds([tagId]);
+      return files.map((file) => new FileModel(file));
+    } catch (error) {
+      return this.handleError(error, "obtener archivos completos del tag");
+    }
+  }
+
+  async getRandomAlbumCover(tagId: UUID): Promise<AlbumCoverCandidate | null> {
+    try {
+      this.ensureDbInitialized();
+
+      const files = await this.getFilesInTag(tagId);
+      const eligibleFiles = files.filter(
+        (file) =>
+          (file.category === "image" || file.category === "video") &&
+          Boolean(file.thumbnailUrl ?? file.storageUrl),
+      );
+
+      if (eligibleFiles.length === 0) {
+        return null;
+      }
+
+      const selectedFile =
+        eligibleFiles[Math.floor(Math.random() * eligibleFiles.length)];
+      if (!selectedFile) {
+        return null;
+      }
+
+      const coverUri =
+        selectedFile.category === "image"
+          ? (selectedFile.storageUrl ?? selectedFile.thumbnailUrl)
+          : (selectedFile.thumbnailUrl ?? selectedFile.storageUrl);
+
+      if (!coverUri) {
+        return null;
+      }
+
+      return {
+        fileId: selectedFile.id,
+        coverUri,
+      };
+    } catch (error) {
+      return this.handleError(error, "obtener portada aleatoria del álbum");
     }
   }
 
@@ -235,9 +398,9 @@ export class TagService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      const allTags = await this.tagRepo.findAll({ 
-        type: 'user', // Solo tags de usuario
-        status: 'active' 
+      const allTags = await this.tagRepo.findAll({
+        type: "user", // Solo tags de usuario
+        status: "active",
       });
 
       let deletedCount = 0;
@@ -251,58 +414,85 @@ export class TagService extends BaseService {
       }
 
       return deletedCount;
-      
     } catch (error) {
-      return this.handleError(error, 'limpiar tags no utilizados');
+      return this.handleError(error, "limpiar tags no utilizados");
     }
   }
 
   /**
-   * Crear tags predeterminados del sistema
+   * Crear nuevo álbum (tag de tipo album, hijo de sys_album)
    */
-  async createSystemTags(): Promise<Tag[]> {
+  async createAlbum(
+    input: Omit<CreateTagInput, "type" | "parentId">,
+  ): Promise<TagModel> {
     try {
       this.ensureDbInitialized();
 
-      const systemTags = [
-        { name: 'Importante', color: { hex: '#ff4444', rgb: { r: 255, g: 68, b: 68 }, isSystem: true, systemName: 'red' as const }, type: 'system' as TagType },
-        { name: 'Trabajo', color: { hex: '#4444ff', rgb: { r: 68, g: 68, b: 255 }, isSystem: true, systemName: 'blue' as const }, type: 'system' as TagType },
-        { name: 'Personal', color: { hex: '#44ff44', rgb: { r: 68, g: 255, b: 68 }, isSystem: true, systemName: 'green' as const }, type: 'system' as TagType },
-        { name: 'Documento', color: { hex: '#ffaa44', rgb: { r: 255, g: 170, b: 68 }, isSystem: true, systemName: 'orange' as const }, type: 'system' as TagType },
-        { name: 'Imagen', color: { hex: '#aa44ff', rgb: { r: 170, g: 68, b: 255 }, isSystem: true, systemName: 'purple' as const }, type: 'system' as TagType },
-        { name: 'Favorito', color: { hex: '#ff44aa', rgb: { r: 255, g: 68, b: 170 }, isSystem: true, systemName: 'pink' as const }, type: 'system' as TagType }
-      ];
+      await this.validateUniqueTagName(input.name);
 
-      const createdTags: Tag[] = [];
+      const tag = await this.tagRepo.create({
+        ...input,
+        type: "album",
+        parentId: SYSTEM_ALBUM_TAG_ID,
+      });
 
-      for (const tagData of systemTags) {
-        try {
-          // Verificar si ya existe
-          const existing = await this.tagRepo.findByName(tagData.name);
-          if (!existing) {
-            const tag = await this.tagRepo.create(tagData);
-            createdTags.push(tag);
-          }
-        } catch {
-          // Continuar si hay error con un tag específico
-        }
-      }
-
-      return createdTags;
-      
+      return TagFactory.fromJSON(tag);
     } catch (error) {
-      return this.handleError(error, 'crear tags del sistema');
+      return this.handleError(error, "crear álbum");
+    }
+  }
+
+  /**
+   * Obtener todos los álbumes (hijos de sys_album)
+   */
+  async getAllAlbums(): Promise<TagModel[]> {
+    try {
+      this.ensureDbInitialized();
+
+      //const albums = await this.tagRepo.findByParentId(SYSTEM_ALBUM_TAG_ID);
+      const albums = await this.tagRepo.findByType("album");
+
+      return albums.map((t) => TagFactory.fromJSON(t));
+    } catch (error) {
+      return this.handleError(error, "obtener álbumes");
     }
   }
 
   // ===== MÉTODOS PRIVADOS DE VALIDACIÓN =====
 
   /** Validar que no existe otro tag con el mismo nombre */
-  private async validateUniqueTagName(name: string, excludeTagId?: UUID): Promise<void> {
+  private async validateUniqueTagName(
+    name: string,
+    excludeTagId?: UUID,
+  ): Promise<void> {
     const existing = await this.tagRepo.findByName(name);
-    
+
     if (existing && existing.id !== excludeTagId) {
       throw new Error(`Ya existe un tag con el nombre "${name}"`);
+    }
+  }
+
+  async getTagViewConfig(tagId: UUID): Promise<ViewSettings | null> {
+    try {
+      this.ensureDbInitialized();
+      return await this.tagRepo.getTagViewConfig(tagId);
+    } catch (error) {
+      return this.handleError(error, "obtener configuración de vista del tag");
+    }
+  }
+
+  async updateTagViewConfig(
+    tagId: UUID,
+    viewSettings: Partial<ViewSettings>,
+  ): Promise<void> {
+    try {
+      this.ensureDbInitialized();
+      await this.tagRepo.updateTagViewConfig(tagId, viewSettings);
+    } catch (error) {
+      return this.handleError(
+        error,
+        "actualizar configuración de vista del tag",
+      );
     }
   }
 }

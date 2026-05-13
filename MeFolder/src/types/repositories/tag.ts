@@ -1,11 +1,23 @@
-import type { UUID } from '../common';
-import { Tag, CreateTagInput, UpdateTagInput, TagPriority, TagType } from '../entities/tag';
-import { BaseRepository } from './base';
+import type { UUID } from "../common";
+import {
+  Tag,
+  CreateTagInput,
+  UpdateTagInput,
+  TagPriority,
+  TagType,
+} from "../entities/tag";
+import { File } from "../entities/file";
+import { BaseRepository } from "./base";
 
 /**
  * Repositorio base para operaciones CRUD de etiquetas
  */
-export interface TagRepository extends BaseRepository<Tag, CreateTagInput, UpdateTagInput> {
+export interface TagRepository extends BaseRepository<
+  Tag,
+  CreateTagInput,
+  UpdateTagInput
+> {
+  permanentDelete(id: UUID): Promise<boolean>;
   findByName(name: string): Promise<Tag | null>;
   findByType(type: TagType): Promise<Tag[]>;
   findByPriority(priority: TagPriority): Promise<Tag[]>;
@@ -14,27 +26,28 @@ export interface TagRepository extends BaseRepository<Tag, CreateTagInput, Updat
   findMostUsed(limit: number): Promise<Tag[]>;
   findSystemTags(): Promise<Tag[]>;
   findActiveTags(): Promise<Tag[]>;
+  getTagsByIds(ids: UUID[]): Promise<Tag[]>;
   search(query: string, filters?: any): Promise<Tag[]>;
-  
+
   updateUsageCount(tagId: UUID, increment: number): Promise<void>;
   incrementUsage(tagId: UUID): Promise<void>;
   decrementUsage(tagId: UUID): Promise<void>;
   updateLastUsed(tagId: UUID): Promise<void>;
-  
+
   createHierarchy(parentId: UUID, childIds: UUID[]): Promise<void>;
   getHierarchy(tagId: UUID): Promise<Tag[]>;
   getTagTree(): Promise<TagTreeNode[]>;
-  
+
   bulkCreate(inputs: CreateTagInput[]): Promise<Tag[]>;
   bulkDelete(ids: UUID[]): Promise<number>;
-  
+
   count(filters?: any): Promise<number>;
   exists(id: UUID): Promise<boolean>;
   existsByName(name: string): Promise<boolean>;
 }
 
 /**
- * Repositorio para asignación de etiquetas a archivos y carpetas
+ * Repositorio para asignación de etiquetas a archivos
  */
 export interface TagAssignmentRepository {
   // Operaciones para archivos
@@ -42,25 +55,21 @@ export interface TagAssignmentRepository {
   removeTagsFromFile(fileId: UUID, tagIds: UUID[]): Promise<void>;
   getFileTagIds(fileId: UUID): Promise<UUID[]>;
   getFileTags(fileId: UUID): Promise<Tag[]>;
-  
-  // Operaciones para carpetas  
-  assignTagsToFolder(folderId: UUID, tagIds: UUID[]): Promise<void>;
-  removeTagsFromFolder(folderId: UUID, tagIds: UUID[]): Promise<void>;
-  getFolderTagIds(folderId: UUID): Promise<UUID[]>;
-  getFolderTags(folderId: UUID): Promise<Tag[]>;
-  
-  // Operaciones mixtas
+  bulkAssignTagToFiles(fileIds: UUID[], tagId: UUID): Promise<void>;
+
+  // Consultas
   getTaggedFiles(tagId: UUID): Promise<UUID[]>;
-  getTaggedFolders(tagId: UUID): Promise<UUID[]>;
+  getTaggedFilesPaginated(
+    tagId: UUID,
+    page: number,
+    pageSize: number,
+  ): Promise<File[]>;
   getTagUsageInFiles(tagId: UUID): Promise<number>;
-  getTagUsageInFolders(tagId: UUID): Promise<number>;
-  getTotalTagUsage(tagId: UUID): Promise<number>;
-  
+
   // Operaciones de limpieza
   cleanupUnusedTags(): Promise<UUID[]>;
   removeAllTagsFromFile(fileId: UUID): Promise<void>;
-  removeAllTagsFromFolder(folderId: UUID): Promise<void>;
-  
+
   // Estadísticas
   getTagAssignmentStats(tagId: UUID): Promise<TagAssignmentStats>;
   getPopularTags(limit: number): Promise<TagWithUsage[]>;
@@ -82,11 +91,8 @@ export interface TagTreeNode {
 export interface TagAssignmentStats {
   tagId: UUID;
   filesCount: number;
-  foldersCount: number;
   totalUsage: number;
   lastUsed?: Date;
-  mostUsedInFiles: boolean;
-  mostUsedInFolders: boolean;
 }
 
 /**
@@ -94,7 +100,6 @@ export interface TagAssignmentStats {
  */
 export interface TagWithUsage extends Tag {
   filesUsage: number;
-  foldersUsage: number;
   totalUsage: number;
   usagePercentage: number;
 }

@@ -1,15 +1,19 @@
-import { 
-  File, 
-  CreateFileInput, 
+import {
+  File,
+  CreateFileInput,
   FileStatus,
   FileVisibility,
-  FileMetadata
-} from '../types/entities/file';
-import { FileExtension, FileCategory, FILE_CATEGORY_MAP } from '../types/common/file-extensions';
-import { UUID } from '../types/common/base';
-import { ColorInfo } from '../types/common/colors';
-import { BaseModel, ValidationResult, ValidationUtils } from './base';
-import { formatFileSize } from '../utils';
+  FileMetadata,
+} from "../types/entities/file";
+import {
+  FileExtension,
+  FileCategory,
+  FILE_CATEGORY_MAP,
+} from "../types/common/file-extensions";
+import { UUID } from "../types/common/base";
+import { ColorInfo } from "../types/common/colors";
+import { BaseModel, ValidationResult, ValidationUtils } from "./base";
+import { formatFileSize } from "../utils/format/bytes";
 
 export class FileModel extends BaseModel<File> {
   constructor(data: File) {
@@ -60,15 +64,39 @@ export class FileModel extends BaseModel<File> {
     return [...this.data.tagIds];
   }
 
+  get storageUrl(): string | undefined {
+    return this.data.storageUrl;
+  }
+
   get color(): ColorInfo | undefined {
     return this.data.color;
+  }
+
+  get createdAt(): Date {
+    return this.data.createdAt;
+  }
+
+  get updatedAt(): Date {
+    return this.data.updatedAt;
+  }
+
+  get accessedAt(): Date | undefined {
+    return this.data.lastAccessedAt;
+  }
+
+  get archivedAt(): Date | undefined {
+    return this.data.archivedAt;
+  }
+
+  get thumbnailUrl(): string | undefined {
+    return this.data.thumbnailUrl;
   }
 
   /** Establece nuevo nombre de archivo */
   setName(name: string): void {
     const cleanName = name.trim();
-    if (!cleanName) throw new Error('El nombre no puede estar vacío');
-    
+    if (!cleanName) throw new Error("El nombre no puede estar vacío");
+
     this.data.name = cleanName;
     this.updatePath();
   }
@@ -88,7 +116,7 @@ export class FileModel extends BaseModel<File> {
     this.data.status = status;
     this.data.updatedAt = new Date();
 
-    if (status === 'archived') {
+    if (status === "archived") {
       this.data.archivedAt = new Date();
     }
   }
@@ -105,17 +133,6 @@ export class FileModel extends BaseModel<File> {
       this.data.color = color;
     } else {
       delete this.data.color;
-    }
-    this.data.updatedAt = new Date();
-  }
-
-  /** Establece descripción del archivo */
-  setDescription(description: string | undefined): void {
-    const trimmed = description?.trim();
-    if (trimmed) {
-      this.data.description = trimmed;
-    } else {
-      delete this.data.description;
     }
     this.data.updatedAt = new Date();
   }
@@ -158,27 +175,35 @@ export class FileModel extends BaseModel<File> {
   validate(): ValidationResult {
     const errors = [];
 
-    const nameError = ValidationUtils.required(this.data.name, 'name');
+    const nameError = ValidationUtils.required(this.data.name, "name");
     if (nameError) errors.push(nameError);
 
-    const nameLengthError = ValidationUtils.maxLength(this.data.name, 255, 'name');
+    const nameLengthError = ValidationUtils.maxLength(
+      this.data.name,
+      255,
+      "name",
+    );
     if (nameLengthError) errors.push(nameLengthError);
 
-    const maxSize = 100 * 1024 * 1024;
-    const sizeError = ValidationUtils.fileSize(this.data.metadata.size, maxSize, 'file');
+    const maxSize = 500 * 1024 * 1024;
+    const sizeError = ValidationUtils.fileSize(
+      this.data.metadata.size,
+      maxSize,
+      "file",
+    );
     if (sizeError) errors.push(sizeError);
 
     if (!this.data.extension) {
       errors.push({
-        field: 'extension',
-        message: 'Extensión de archivo es requerida',
-        code: 'REQUIRED'
+        field: "extension",
+        message: "Extensión de archivo es requerida",
+        code: "REQUIRED",
       });
     }
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
     };
   }
 
@@ -189,32 +214,32 @@ export class FileModel extends BaseModel<File> {
 
   /** Verifica si es archivo de imagen */
   isImage(): boolean {
-    return this.data.category === 'image';
+    return this.data.category === "image";
   }
 
   /** Verifica si es archivo de vídeo */
   isVideo(): boolean {
-    return this.data.category === 'video';
+    return this.data.category === "video";
   }
 
   /** Verifica si es documento */
   isDocument(): boolean {
-    return this.data.category === 'document';
+    return this.data.category === "document";
   }
 
   /** Verifica si está archivado */
   isArchived(): boolean {
-    return this.data.status === 'archived';
+    return this.data.status === "archived";
   }
 
   /** Verifica si está eliminado */
   isDeleted(): boolean {
-    return this.data.status === 'deleted';
+    return this.data.status === "deleted";
   }
 
   /** Verifica si puede eliminarse */
   canBeDeleted(): boolean {
-    return this.data.status === 'active' || this.data.status === 'archived';
+    return this.data.status === "active" || this.data.status === "archived";
   }
 
   /** Obtiene tamaño formateado */
@@ -224,20 +249,27 @@ export class FileModel extends BaseModel<File> {
 }
 
 export class FileFactory {
-  /** Crea nuevo archivo con categoría auto-detectada */
-  static create(input: CreateFileInput): FileModel {
+  /**
+   * Crea nuevo archivo con categoría auto-detectada.
+   * @param input - Datos de entrada para el archivo
+   * @param folderPath - Path completo de la carpeta padre (basado en IDs). Si no se provee y hay folderId, usa solo folderId.
+   */
+  static create(input: CreateFileInput, folderPath?: string): FileModel {
     const now = new Date();
-    const category = FILE_CATEGORY_MAP[input.extension] || 'other';
-    
+    const category = FILE_CATEGORY_MAP[input.extension] || "other";
+    const trimmedName = input.name.trim();
+
     const file: File = {
       id: this.generateId(),
-      name: input.name.trim(),
+      name: trimmedName,
       originalName: input.originalName.trim(),
       extension: input.extension,
       category,
-      path: input.folderId ? `${input.folderId}/${input.name}` : input.name,
-      status: 'active',
-      visibility: input.visibility || 'private',
+      path: input.folderId
+        ? `${folderPath || input.folderId}/${trimmedName}`
+        : trimmedName,
+      status: "active",
+      visibility: input.visibility || "private",
       metadata: input.metadata,
       tagIds: input.tagIds || [],
       createdAt: now,
@@ -245,7 +277,6 @@ export class FileFactory {
 
       ...(input.folderId && { folderId: input.folderId }),
       ...(input.color && { color: input.color }),
-      ...(input.description?.trim() && { description: input.description.trim() }),
       ...(input.storageUrl && { storageUrl: input.storageUrl }),
       ...(input.thumbnailUrl && { thumbnailUrl: input.thumbnailUrl }),
     };
