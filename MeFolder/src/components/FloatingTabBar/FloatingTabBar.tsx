@@ -201,7 +201,7 @@ export default function FloatingTabBar({
   borderRadius = 25,
 }: FloatingTabBarProps = {}) {
   const pathname = usePathname();
-  const router = useRouter();
+  const { push } = useRouter();
   const styles = useFloatingTabBarStyles(responsive);
 
   /**
@@ -210,9 +210,9 @@ export default function FloatingTabBar({
    */
   const handleTabPress = useCallback(
     (route: RouteName) => {
-      router.push(route);
+      push(route);
     },
-    [router],
+    [push],
   );
 
   /**
