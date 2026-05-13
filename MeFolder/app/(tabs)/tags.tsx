@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { View, Text, ScrollView, FlatList } from "react-native";
+import { View, Text, FlatList } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import {
@@ -149,16 +149,15 @@ export default function TagsScreen() {
             {favoriteTags.length > 0 && (
               <>
                 {renderSectionHeader("Favoritos")}
-                <ScrollView
+                <FlatList
                   horizontal
+                  data={favoriteTags}
+                  keyExtractor={(item) => item.id}
+                  renderItem={({ item }) => <FavoriteTagChip tag={item} />}
                   showsHorizontalScrollIndicator={false}
                   contentContainerStyle={styles.favoriteScrollContent}
                   style={styles.favoriteSection}
-                >
-                  {favoriteTags.map((tag) => (
-                    <FavoriteTagChip key={tag.id} tag={tag} />
-                  ))}
-                </ScrollView>
+                />
               </>
             )}
 

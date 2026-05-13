@@ -25,6 +25,8 @@ import * as Sharing from "expo-sharing";
 import {
   ActivityIndicator,
   Animated as RNAnimated,
+  FlatList,
+  type ListRenderItem,
   View,
   Text,
   Pressable,
@@ -279,6 +281,32 @@ export default function GalleryScreen() {
   const selectedFileIds = useMemo(
     () => itemsSelected.map((item) => item.id),
     [itemsSelected],
+  );
+  const selectedItemIds = useMemo(
+    () => new Set(itemsSelected.map((item) => item.id)),
+    [itemsSelected],
+  );
+  const keyExtractor = useCallback((item: FileModel) => item.id, []);
+  const renderGalleryItem = useCallback<ListRenderItem<FileModel>>(
+    ({ item }) => (
+      <GalleryTile
+        item={item}
+        itemSize={itemSize}
+        isSelected={selectedItemIds.has(item.id)}
+        selectionMode={selectionMode}
+        onOpenItem={handleOpenItem}
+        onToggleSelection={toggleSelection}
+        styles={styles}
+      />
+    ),
+    [
+      handleOpenItem,
+      itemSize,
+      selectedItemIds,
+      selectionMode,
+      styles,
+      toggleSelection,
+    ],
   );
 
   const closeDeleteDialog = useCallback(() => {
@@ -698,29 +726,17 @@ export default function GalleryScreen() {
           </View>
         ) : (
           <GestureDetector gesture={pinchGesture}>
-            <Animated.ScrollView
+            <FlatList
+              key={`gallery-grid-${columns}`}
+              data={items}
+              keyExtractor={keyExtractor}
+              numColumns={columns}
+              extraData={selectedItemIds}
+              renderItem={renderGalleryItem}
               onScroll={handleScroll}
               scrollEventThrottle={16}
-              contentContainerStyle={[
-                styles.gridContainer,
-                { paddingBottom: scrollBottomPadding },
-              ]}
-            >
-              {items.map((item) => (
-                <GalleryTile
-                  key={item.id}
-                  item={item}
-                  itemSize={itemSize}
-                  isSelected={itemsSelected.some(
-                    (selectedItem) => selectedItem.id === item.id,
-                  )}
-                  selectionMode={selectionMode}
-                  onOpenItem={handleOpenItem}
-                  onToggleSelection={toggleSelection}
-                  styles={styles}
-                />
-              ))}
-            </Animated.ScrollView>
+              contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
+            />
           </GestureDetector>
         )}
 

@@ -1,5 +1,11 @@
 import React, { useCallback, useState, useMemo } from "react";
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  FlatList,
+  ScrollView,
+  Text,
+  View,
+} from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { router, useFocusEffect } from "expo-router";
 import {
@@ -248,16 +254,15 @@ export default function HomeScreen() {
                 <Text style={styles.sectionAction}>Abrir tags</Text>
               </TouchableOpacity>
             </View>
-            <ScrollView
+            <FlatList
               horizontal
+              data={favoriteTags}
+              keyExtractor={(item) => item.id}
+              renderItem={({ item }) => <FavoriteTagChip tag={item} />}
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.favoriteScrollContent}
               style={styles.favoriteSection}
-            >
-              {favoriteTags.map((tag) => (
-                <FavoriteTagChip key={tag.id} tag={tag} />
-              ))}
-            </ScrollView>
+            />
           </>
         )}
 
