@@ -2,7 +2,7 @@ import { View, TouchableOpacity, Dimensions, Text, Modal, Animated } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { getResponsiveSize } from '@/utils/ui/responsive';
 import { MultiActionButton } from '../MultiActionButton';
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { useSortDropDownStyles } from './styles';
 import { FolderSortBy, FolderSortOrder } from '@/types/entities/folder';
 
@@ -28,17 +28,9 @@ export default function SortDropDown({
   defaultOrderByValue = 'name',
 }: SortDropDownProps) {
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
-  const [selectedSortValue, setSelectedSortValue] = useState(defaultSortValue);
-  const [selectedOrderOption, setSelectedOrderOption] = useState(defaultOrderByValue);
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  
-  useEffect(() => {
-    setSelectedSortValue(defaultSortValue);
-  }, [defaultSortValue]);
-
-  useEffect(() => {
-    setSelectedOrderOption(defaultOrderByValue);
-  }, [defaultOrderByValue]);
+  const selectedSortValue = defaultSortValue;
+  const selectedOrderOption = defaultOrderByValue;
 
   const orderOptions: {
     id: string;
@@ -83,13 +75,11 @@ export default function SortDropDown({
     };
  
   const handleSelectOrderOption = (option: any) => {
-    setSelectedOrderOption(option.id);
     onChangeOrderBy?.(option.id);
     toggleDropdown();
   };
 
   const handleSelectSortOption = (option: any) => {
-    setSelectedSortValue(option.id);
     onChangeSortValue?.(option.id);
     toggleDropdown();
   }

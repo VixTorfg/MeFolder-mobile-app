@@ -106,12 +106,23 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
             : 4 * theme.spacing.xxl,
         }}
       >
-        {isFile && <FilePropertyMenu item={item} section={selectedSection} />}
+        {isFile && (
+          <FilePropertyMenu
+            key={item.id}
+            item={item}
+            section={selectedSection}
+          />
+        )}
         {isFolder && (
-          <FolderPropertyMenu item={item} section={selectedSection} />
+          <FolderPropertyMenu
+            key={item.id}
+            item={item}
+            section={selectedSection}
+          />
         )}
         {isTag && (
           <TagPropertyMenu
+            key={item.id}
             item={item}
             section={selectedSection}
             onClose={onClose}

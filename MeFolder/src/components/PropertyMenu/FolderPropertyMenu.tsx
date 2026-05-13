@@ -109,13 +109,6 @@ export const FolderPropertyMenu = ({
     folders: number;
   } | null>(null);
 
-  useEffect(() => {
-    setFolder(item);
-    setFolderName(item.name);
-    setFolderDescription(item.description ?? "");
-    setSelectedColor(item.color ?? null);
-  }, [item]);
-
   const isSystemFolder = folder.isSystemFolder;
   const isRenaming = folderName !== folder.name;
   const isEditingDescription = folderDescription !== (folder.description ?? "");

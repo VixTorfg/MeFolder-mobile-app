@@ -105,11 +105,6 @@ export const FilePropertyMenu = ({
   }, [file.id, services.fileService, updateItem]);
 
   useEffect(() => {
-    setFile(item);
-    setFileName(item.name);
-  }, [item]);
-
-  useEffect(() => {
     const loadTags = async () => {
       const result = await services.tagService.getTagsByIds(file.tagIds);
       setTags(result ?? []);

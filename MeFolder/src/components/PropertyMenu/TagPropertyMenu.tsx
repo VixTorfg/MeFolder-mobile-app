@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -101,13 +101,6 @@ export const TagPropertyMenu = ({
     handleSaveColor,
     handleDeleteColor,
   } = useColors();
-
-  useEffect(() => {
-    setTag(item);
-    setTagName(item.name);
-    setTagDescription(item.description ?? "");
-    setSelectedColor(item.color ?? null);
-  }, [item]);
 
   const isSystemTag = tag.isSystemTag();
   const isRenaming = tagName !== tag.name;
