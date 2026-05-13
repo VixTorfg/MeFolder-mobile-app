@@ -22,6 +22,7 @@ import { useServices } from "@/providers";
 import type { FileStorageUsageSummary } from "@/services/FileService";
 import { formatFileSize } from "@/utils/format";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { SYSTEM_ALBUM_TAG_ID } from "@/database/seeds/systemTags";
 
 const EMPTY_STORAGE_USAGE: FileStorageUsageSummary = {
   totalAppBytes: 0,
@@ -102,7 +103,9 @@ export default function HomeScreen() {
   );
 
   const homeAlbums = useMemo(() => {
-    const albumsWithFiles = albums.filter((album) => album.usageCount > 0);
+    const albumsWithFiles = albums.filter(
+      (album) => album.id !== SYSTEM_ALBUM_TAG_ID && album.usageCount > 0,
+    );
     return sortAlbumsByUsage(albumsWithFiles).slice(
       0,
       Math.min(bentoConfig.maxAlbums, dailyBentoPattern.slots.length),
