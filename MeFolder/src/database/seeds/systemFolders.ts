@@ -1,6 +1,8 @@
 import { Database } from "../sqlite/Database";
 import { SYSTEM_COLORS } from "@/constants/themes/colors";
 
+const SYSTEM_FOLDERS_SEED_LOG_PREFIX = "[Database]";
+
 /** ID fijo de la carpeta raíz del sistema */
 export const ROOT_FOLDER_PATH =
   "file:///data/user/0/host.exp.exponent/files/sys_root" as const;
@@ -103,11 +105,18 @@ export const seedSystemFolders = async (): Promise<void> => {
   }));
 
   try {
-    console.log("Insertando carpetas del sistema...");
+    console.log(
+      `${SYSTEM_FOLDERS_SEED_LOG_PREFIX} Insertando carpetas del sistema...`,
+    );
     await db.transaction([rootQuery, ...childQueries]);
-    console.log("Carpetas del sistema listas");
+    console.log(
+      `${SYSTEM_FOLDERS_SEED_LOG_PREFIX} Carpetas del sistema listas`,
+    );
   } catch (error) {
-    console.error("Error al insertar carpetas del sistema:", error);
+    console.error(
+      `${SYSTEM_FOLDERS_SEED_LOG_PREFIX} Error al insertar carpetas del sistema:`,
+      error,
+    );
     throw error;
   }
 };

@@ -1,5 +1,7 @@
 import { Database } from "../sqlite/Database";
 
+const USER_COLORS_MIGRATION_LOG_PREFIX = "[Database]";
+
 /**
  * Crea la tabla user_colors para almacenar colores personalizados del usuario
  */
@@ -32,19 +34,28 @@ export const createUserColorsTable = async (): Promise<void> => {
   ];
 
   try {
-    console.log("Creando tabla user_colors...");
+    console.log(
+      `${USER_COLORS_MIGRATION_LOG_PREFIX} Creando tabla user_colors...`,
+    );
 
     await db.execute(createTableSQL);
-    console.log("Tabla user_colors creada");
+    console.log(`${USER_COLORS_MIGRATION_LOG_PREFIX} Tabla user_colors creada`);
 
     for (const indexSQL of createIndexesSQL) {
       await db.execute(indexSQL);
     }
-    console.log("Índices de user_colors creados");
+    console.log(
+      `${USER_COLORS_MIGRATION_LOG_PREFIX} Indices de user_colors creados`,
+    );
 
-    console.log("Sistema de colores personalizados creado exitosamente");
+    console.log(
+      `${USER_COLORS_MIGRATION_LOG_PREFIX} Sistema de colores personalizados creado exitosamente`,
+    );
   } catch (error) {
-    console.error("Error al crear tabla user_colors:", error);
+    console.error(
+      `${USER_COLORS_MIGRATION_LOG_PREFIX} Error al crear tabla user_colors:`,
+      error,
+    );
     throw error;
   }
 };
@@ -56,11 +67,18 @@ export const dropUserColorsTable = async (): Promise<void> => {
   const db = Database.getInstance();
 
   try {
-    console.log("Eliminando tabla user_colors...");
+    console.log(
+      `${USER_COLORS_MIGRATION_LOG_PREFIX} Eliminando tabla user_colors...`,
+    );
     await db.execute("DROP TABLE IF EXISTS user_colors;");
-    console.log("Tabla user_colors eliminada");
+    console.log(
+      `${USER_COLORS_MIGRATION_LOG_PREFIX} Tabla user_colors eliminada`,
+    );
   } catch (error) {
-    console.error("Error al eliminar tabla user_colors:", error);
+    console.error(
+      `${USER_COLORS_MIGRATION_LOG_PREFIX} Error al eliminar tabla user_colors:`,
+      error,
+    );
     throw error;
   }
 };

@@ -1,5 +1,7 @@
 import { Database } from "../sqlite/Database";
 
+const FILES_MIGRATION_LOG_PREFIX = "[Database]";
+
 /**
  * Crea la tabla files con todas las columnas para metadatos de archivos e índices para optimizar búsquedas
  */
@@ -77,7 +79,7 @@ export const createFilesTable = async (): Promise<void> => {
   ];
 
   try {
-    console.log("Creando tabla files...");
+    console.log(`${FILES_MIGRATION_LOG_PREFIX} Creando tabla files...`);
 
     await db.execute(createTableSQL);
 
@@ -85,9 +87,14 @@ export const createFilesTable = async (): Promise<void> => {
       await db.execute(indexSQL);
     }
 
-    console.log("Tabla files creada exitosamente");
+    console.log(
+      `${FILES_MIGRATION_LOG_PREFIX} Tabla files creada exitosamente`,
+    );
   } catch (error) {
-    console.error("Error al crear tabla files:", error);
+    console.error(
+      `${FILES_MIGRATION_LOG_PREFIX} Error al crear tabla files:`,
+      error,
+    );
     throw error;
   }
 };
@@ -99,11 +106,14 @@ export const dropFilesTable = async (): Promise<void> => {
   const db = Database.getInstance();
 
   try {
-    console.log("Eliminando tabla files...");
+    console.log(`${FILES_MIGRATION_LOG_PREFIX} Eliminando tabla files...`);
     await db.execute("DROP TABLE IF EXISTS files;");
-    console.log("Tabla files eliminada");
+    console.log(`${FILES_MIGRATION_LOG_PREFIX} Tabla files eliminada`);
   } catch (error) {
-    console.error("Error al eliminar tabla files:", error);
+    console.error(
+      `${FILES_MIGRATION_LOG_PREFIX} Error al eliminar tabla files:`,
+      error,
+    );
     throw error;
   }
 };

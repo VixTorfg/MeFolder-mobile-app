@@ -1,5 +1,7 @@
 import { Database } from "../sqlite/Database";
 
+const FOLDERS_MIGRATION_LOG_PREFIX = "[Database]";
+
 /**
  * Crea la tabla folders para organización jerárquica con columnas para nombre, ruta, nivel, estado, tipo, visibilidad, color personalizado y configuración de vista
  */
@@ -69,7 +71,7 @@ export const createFoldersTable = async (): Promise<void> => {
   ];
 
   try {
-    console.log("Creando tabla folders...");
+    console.log(`${FOLDERS_MIGRATION_LOG_PREFIX} Creando tabla folders...`);
 
     await db.execute(createTableSQL);
 
@@ -77,9 +79,14 @@ export const createFoldersTable = async (): Promise<void> => {
       await db.execute(indexSQL);
     }
 
-    console.log("Tabla folders creada exitosamente");
+    console.log(
+      `${FOLDERS_MIGRATION_LOG_PREFIX} Tabla folders creada exitosamente`,
+    );
   } catch (error) {
-    console.error("Error al crear tabla folders:", error);
+    console.error(
+      `${FOLDERS_MIGRATION_LOG_PREFIX} Error al crear tabla folders:`,
+      error,
+    );
     throw error;
   }
 };
@@ -91,11 +98,14 @@ export const dropFoldersTable = async (): Promise<void> => {
   const db = Database.getInstance();
 
   try {
-    console.log("Eliminando tabla folders...");
+    console.log(`${FOLDERS_MIGRATION_LOG_PREFIX} Eliminando tabla folders...`);
     await db.execute("DROP TABLE IF EXISTS folders;");
-    console.log("Tabla folders eliminada");
+    console.log(`${FOLDERS_MIGRATION_LOG_PREFIX} Tabla folders eliminada`);
   } catch (error) {
-    console.error("Error al eliminar tabla folders:", error);
+    console.error(
+      `${FOLDERS_MIGRATION_LOG_PREFIX} Error al eliminar tabla folders:`,
+      error,
+    );
     throw error;
   }
 };
