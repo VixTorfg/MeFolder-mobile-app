@@ -10,6 +10,7 @@ import { dropFoldersTable } from "@/database/migrations/folders";
 import { dropTagsSystem } from "@/database/migrations/tags";
 import { dropUserColorsTable } from "@/database/migrations/userColors";
 import { MediaService } from "./media/MediaService";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
 
 type StorageUsageGroup = "image" | "video" | "audio" | "documents" | "other";
 
@@ -534,17 +535,29 @@ export class FileService extends BaseService {
     try {
       this.ensureDbInitialized();
 
+      const trimmedName = newName.trim();
+
+      if (!trimmedName) {
+        throw new Error("El nombre del archivo no puede estar vacío");
+      }
+
+      if (trimmedName.length > MAX_WINDOWS_ITEM_NAME_LENGTH) {
+        throw new Error(
+          `El nombre del archivo no puede superar ${MAX_WINDOWS_ITEM_NAME_LENGTH} caracteres`,
+        );
+      }
+
       const file = await this.fileRepo.findById(fileId);
 
       if (!file) throw new Error("Archivo no encontrado");
 
       const folderId = file.folderId || ROOT_FOLDER_ID;
 
-      await this.validateUniqueFileName(newName, folderId, fileId);
+      await this.validateUniqueFileName(trimmedName, folderId, fileId);
 
-      const newPath = `${this.removeLastPathSegment(file.path)}/${newName}`;
+      const newPath = `${this.removeLastPathSegment(file.path)}/${trimmedName}`;
 
-      await this.fileRepo.renameFile(fileId, newName, newPath);
+      await this.fileRepo.renameFile(fileId, trimmedName, newPath);
 
       return await this.getFile(fileId);
     } catch (error) {

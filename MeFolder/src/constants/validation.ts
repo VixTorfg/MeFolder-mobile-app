@@ -1,0 +1,1 @@
+export const MAX_WINDOWS_ITEM_NAME_LENGTH = 255;

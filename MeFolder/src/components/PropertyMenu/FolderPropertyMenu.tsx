@@ -14,6 +14,7 @@ import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useColors } from "@/hooks/useColors";
 import { ColorInfo } from "@/types/common/colors";
 import { ColorList } from "../ColorPicker";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
 
 const VISIBILITY_LABELS: Record<string, string> = {
   private: "Privado",
@@ -319,6 +320,7 @@ export const FolderPropertyMenu = ({
             scrollEnabled
             textAlignVertical="center"
             editable={!isSystemFolder}
+            maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
           />
         </View>
 

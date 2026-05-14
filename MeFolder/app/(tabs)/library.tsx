@@ -601,7 +601,13 @@ export default function LibraryScreen() {
       </View>
 
       <View style={styles.headerBreadcrumb} onTouchStart={dismissSearchFocus}>
-        <Text style={styles.headerBreadcrumbText}>{currentFolderName}</Text>
+        <Text
+          style={styles.headerBreadcrumbText}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {currentFolderName}
+        </Text>
         <Breadcrumb />
       </View>
 

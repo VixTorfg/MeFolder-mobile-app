@@ -14,6 +14,7 @@ import { UUID } from "../types/common/base";
 import { ColorInfo } from "../types/common/colors";
 import { BaseModel, ValidationResult, ValidationUtils } from "./base";
 import { formatFileSize } from "../utils/format/bytes";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
 
 export class FileModel extends BaseModel<File> {
   constructor(data: File) {
@@ -180,7 +181,7 @@ export class FileModel extends BaseModel<File> {
 
     const nameLengthError = ValidationUtils.maxLength(
       this.data.name,
-      255,
+      MAX_WINDOWS_ITEM_NAME_LENGTH,
       "name",
     );
     if (nameLengthError) errors.push(nameLengthError);

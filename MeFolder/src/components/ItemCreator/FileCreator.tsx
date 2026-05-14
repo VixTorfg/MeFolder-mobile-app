@@ -17,6 +17,7 @@ import { router } from "expo-router";
 import { useCaptureStore } from "@/stores/useCaptureStore";
 import { useFileSystem } from "@/hooks";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "../../constants/validation";
 
 type FileSource = "gallery" | "document" | "camera";
 
@@ -165,7 +166,14 @@ export default function FileCreator({
 
   const handleFileNameChange = (fileId: string, newName: string): void => {
     setSelectedFiles((prev) =>
-      prev.map((f) => (f.id === fileId ? { ...f, name: newName } : f)),
+      prev.map((f) =>
+        f.id === fileId
+          ? {
+              ...f,
+              name: newName.slice(0, MAX_WINDOWS_ITEM_NAME_LENGTH),
+            }
+          : f,
+      ),
     );
   };
 
@@ -254,6 +262,19 @@ export default function FileCreator({
 
   const handleSave = async (): Promise<void> => {
     if (!canSave) return;
+
+    const tooLongFile = selectedFiles.find(
+      (file) => file.name.trim().length > MAX_WINDOWS_ITEM_NAME_LENGTH,
+    );
+
+    if (tooLongFile) {
+      showAlert({
+        title: "Nombre demasiado largo",
+        message: `El nombre de los archivos no puede superar ${MAX_WINDOWS_ITEM_NAME_LENGTH} caracteres.`,
+      });
+      return;
+    }
+
     await onSave({
       files: selectedFiles,
       tags: [...Array.from(selectedTags), ...Array.from(selectedAlbums)],
@@ -403,6 +424,7 @@ export default function FileCreator({
                   placeholder="Nombre del archivo"
                   placeholderTextColor={theme.colors.textMuted}
                   selectTextOnFocus
+                  maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
                 />
                 <Text style={styles.fileSize}>{formatFileSize(file.size)}</Text>
               </View>

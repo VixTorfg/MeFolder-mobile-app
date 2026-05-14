@@ -14,6 +14,7 @@ import {
   ROOT_FOLDER_PATH,
 } from "../database/seeds/systemFolders";
 import { SYSTEM_COLORS } from "@/constants/themes/colors";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
 
 export class FolderModel extends BaseModel<Folder> {
   constructor(data: Folder) {
@@ -208,7 +209,7 @@ export class FolderModel extends BaseModel<Folder> {
 
     const nameMaxLengthError = ValidationUtils.maxLength(
       this.data.name,
-      100,
+      MAX_WINDOWS_ITEM_NAME_LENGTH,
       "name",
     );
     if (nameMaxLengthError) errors.push(nameMaxLengthError);

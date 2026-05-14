@@ -31,7 +31,7 @@ export default function TagCreator({
     <BottomSheet visible={visible} onClose={onClose} title="Nueva etiqueta">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentInset={{ bottom: bottomInset }}
+        contentContainerStyle={{ paddingBottom: bottomInset }}
         keyboardShouldPersistTaps="handled"
       >
         <TagCreatorForm

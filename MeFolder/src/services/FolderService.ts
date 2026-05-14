@@ -528,6 +528,8 @@ export class FolderService extends BaseService {
     try {
       this.ensureDbInitialized();
 
+      const trimmedName = newName.trim();
+
       const folder = await this.folderRepo.findById(folderId);
 
       if (folder?.isSystemFolder)
@@ -537,14 +539,14 @@ export class FolderService extends BaseService {
 
       // Validar nombre único en el mismo nivel
       await this.validateUniqueFolderName(
-        newName,
+        trimmedName,
         folder.parentId || ROOT_FOLDER_ID,
         folderId,
       );
 
       // Actualizar nombre
       const updated = await this.folderRepo.update(folderId, {
-        name: newName,
+        name: trimmedName,
       });
       return FolderFactory.fromJSON(updated);
     } catch (error) {

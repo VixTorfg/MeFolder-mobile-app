@@ -9,6 +9,7 @@ import { SYSTEM_COLORS } from "@/constants/themes/colors";
 import { FOLDER_ICONS } from "@/constants/folderIcons";
 import { ColorList } from "@/components/ColorPicker/ColorList";
 import type { ColorInfo } from "@/types/common/colors";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "../../constants/validation";
 
 export interface NewFolder {
   name: string;
@@ -79,7 +80,7 @@ export default function FolderCreator({
           placeholderTextColor={theme.colors.textMuted}
           onFocus={() => setNameFocused(true)}
           onBlur={() => setNameFocused(false)}
-          maxLength={100}
+          maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
         />
       </View>
 
