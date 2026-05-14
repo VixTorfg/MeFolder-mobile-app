@@ -36,8 +36,7 @@ export const useOptionDropDownStyles = (responsive: {
       borderBottomWidth: theme.effects.borderWidth.xs,
       borderBottomColor: theme.colors.borderSoft,
     },
-    headerTextGroup: {
-    },
+    headerTextGroup: {},
     dropdownTitle: {
       fontFamily: theme.typography.fontFamily.title.semiBold,
       fontSize: responsive.iconSize * 0.56,

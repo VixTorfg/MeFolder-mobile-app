@@ -1,20 +1,19 @@
-import { useStyles } from '@/hooks';
-import { cardShadow } from '@/constants/styles/shadows';
-
+import { useStyles } from "@/hooks";
+import { cardShadow } from "@/constants/styles/shadows";
 
 export const useSortDropDownStyles = (responsive: {
-    iconSize: number, 
-    padding: number, 
-    tabPadding: number
+  iconSize: number;
+  padding: number;
+  tabPadding: number;
 }) => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     modalOverlay: {
       flex: 1,
       backgroundColor: theme.effects.shadowColor.default,
     },
     dropdownContainer: {
-      position: 'absolute',
-      top: '10%', 
+      position: "absolute",
+      top: "10%",
       right: 16,
       zIndex: 1000,
     },
@@ -27,7 +26,7 @@ export const useSortDropDownStyles = (responsive: {
       maxWidth: 292,
       borderColor: theme.colors.borderSoft,
       paddingVertical: theme.spacing.xs,
-      overflow: 'hidden',
+      overflow: "hidden",
     },
 
     dropdownHeader: {
@@ -37,8 +36,7 @@ export const useSortDropDownStyles = (responsive: {
       borderBottomWidth: theme.effects.borderWidth.xs,
       borderBottomColor: theme.colors.borderSoft,
     },
-    headerTextGroup: {
-    },
+    headerTextGroup: {},
     dropdownTitle: {
       fontFamily: theme.typography.fontFamily.title.semiBold,
       fontSize: responsive.iconSize * 0.56,
@@ -51,12 +49,12 @@ export const useSortDropDownStyles = (responsive: {
       fontFamily: theme.typography.fontFamily.primary.medium,
       fontSize: responsive.iconSize * 0.3,
       color: theme.colors.textMuted,
-      textTransform: 'uppercase',
+      textTransform: "uppercase",
       letterSpacing: 0.4,
     },
     dropdownItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       marginHorizontal: theme.spacing.xs,
       marginVertical: 2,
       paddingHorizontal: theme.spacing.sm,
@@ -75,15 +73,15 @@ export const useSortDropDownStyles = (responsive: {
     selectedIconColor: {
       color: theme.colors.textOnColor,
     },
-    IconColor:{
+    IconColor: {
       color: theme.colors.textPrimary,
     },
     itemIconWrapper: {
       width: 34,
       height: 34,
       borderRadius: theme.effects.radius.md,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
       backgroundColor: theme.colors.surface,
     },
     selectedItemIconWrapper: {
