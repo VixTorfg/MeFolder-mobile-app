@@ -260,7 +260,12 @@ export default function LibraryScreen() {
 
   const renderLibraryItem = useCallback(
     ({ item }: { item: FileModel | FolderModel }) => (
-      <View style={styles.cardWrapper}>
+      <View
+        style={[
+          styles.cardWrapper,
+          selectedView === "grid" && styles.gridCardWrapper,
+        ]}
+      >
         <ViewCards
           key={`${item.id}:${clickedItem?.id === item.id && isRenaming ? "renaming" : "idle"}:${item.name}`}
           data={item}

@@ -238,7 +238,12 @@ export default function TagsContent() {
 
   const renderTagContentItem = useCallback(
     ({ item }: { item: FileModel }) => (
-      <View style={styles.cardWrapper}>
+      <View
+        style={[
+          styles.cardWrapper,
+          selectedView === "grid" && styles.gridCardWrapper,
+        ]}
+      >
         <ViewCards
           data={item}
           viewConfig={selectedView}
@@ -353,7 +358,13 @@ export default function TagsContent() {
       </View>
 
       <View style={styles.headerBreadcrumb}>
-        <Text style={styles.headerBreadcrumbText}>{tagName}</Text>
+        <Text
+          style={styles.headerBreadcrumbText}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {tagName}
+        </Text>
       </View>
 
       {loading ? (
@@ -462,6 +473,9 @@ const useTagsContentStyles = () => {
       alignItems: "center",
       paddingBottom: theme.spacing.sm,
     },
+    gridCardWrapper: {
+      paddingHorizontal: 5,
+    },
     volverButton: {
       ...cardShadow(theme),
       backgroundColor: theme.colors.primary,
@@ -501,6 +515,8 @@ const useTagsContentStyles = () => {
       fontSize: 34,
       fontFamily: theme.typography.fontFamily.title.semiBold,
       color: theme.colors.textPrimary,
+      maxWidth: "80%",
+      textAlign: "center",
     },
   }));
 };

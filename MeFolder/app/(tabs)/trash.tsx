@@ -153,7 +153,12 @@ export default function TrashScreen() {
 
   const renderTrashItem = useCallback(
     ({ item }: { item: FileModel | FolderModel }) => (
-      <View style={styles.cardWrapper}>
+      <View
+        style={[
+          styles.cardWrapper,
+          selectedView === "grid" && styles.gridCardWrapper,
+        ]}
+      >
         <ViewCards
           data={item}
           viewConfig={selectedView}
