@@ -238,7 +238,13 @@ export const FolderPropertyMenu = ({
               color={folderColor}
             />
           </View>
-          <Text style={folderStyles.previewName}>{folder.name}</Text>
+          <Text
+            style={folderStyles.previewName}
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {folder.name}
+          </Text>
         </View>
 
         <View style={folderStyles.colorSection}>

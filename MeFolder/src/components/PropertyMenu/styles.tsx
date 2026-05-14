@@ -287,6 +287,7 @@ export const useFolderPropertyMenuStyles = () => {
       fontSize: theme.typography.fontSize.lg,
       fontFamily: theme.typography.fontFamily.primary.semiBold,
       color: theme.colors.textPrimary,
+      width: "80%",
     },
     colorSection: {
       marginBottom: theme.spacing.md,
