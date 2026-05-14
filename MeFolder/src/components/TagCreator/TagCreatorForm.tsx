@@ -14,6 +14,7 @@ import {
   MAX_ITEM_DESCRIPTION_LENGTH,
   MAX_WINDOWS_ITEM_NAME_LENGTH,
 } from "@/constants/validation";
+import { stripInvalidNameCharacters } from "@/utils/format/name";
 
 export type AlbumCreationMode = "empty";
 
@@ -129,7 +130,14 @@ export default function TagCreatorForm({
               nameFocused && styles.textInputFocused,
             ]}
             value={tagName}
-            onChangeText={setTagName}
+            onChangeText={(text) =>
+              setTagName(
+                stripInvalidNameCharacters(text).slice(
+                  0,
+                  MAX_WINDOWS_ITEM_NAME_LENGTH,
+                ),
+              )
+            }
             placeholder="Nombre de la etiqueta"
             placeholderTextColor={theme.colors.textMuted}
             onFocus={() => setNameFocused(true)}

@@ -13,6 +13,7 @@ import {
   MAX_ITEM_DESCRIPTION_LENGTH,
   MAX_WINDOWS_ITEM_NAME_LENGTH,
 } from "@/constants/validation";
+import { stripInvalidNameCharacters } from "@/utils/format/name";
 
 export interface NewFolder {
   name: string;
@@ -89,7 +90,14 @@ export default function FolderCreator({
         <TextInput
           style={[styles.textInput, nameFocused && styles.textInputFocused]}
           value={folderName}
-          onChangeText={setFolderName}
+          onChangeText={(text) =>
+            setFolderName(
+              stripInvalidNameCharacters(text).slice(
+                0,
+                MAX_WINDOWS_ITEM_NAME_LENGTH,
+              ),
+            )
+          }
           placeholder="Nombre de la carpeta"
           placeholderTextColor={theme.colors.textMuted}
           onFocus={() => setNameFocused(true)}

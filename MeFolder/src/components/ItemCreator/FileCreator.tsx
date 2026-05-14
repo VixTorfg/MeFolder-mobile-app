@@ -18,6 +18,10 @@ import { useCaptureStore } from "@/stores/useCaptureStore";
 import { useFileSystem } from "@/hooks";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "../../constants/validation";
+import {
+  sanitizeFileName,
+  stripInvalidNameCharacters,
+} from "@/utils/format/name";
 
 type FileSource = "gallery" | "document" | "camera";
 
@@ -107,7 +111,7 @@ export default function FileCreator({
     }
 
     const pickedFiles: SelectedFile[] = result.assets.map((asset, index) => {
-      const fileName = asset.name || `archivo_${Date.now()}`;
+      const fileName = sanitizeFileName(asset.name || `archivo_${Date.now()}`);
       return {
         id: `file_${Date.now()}_${index}`,
         name: fileName,
@@ -165,12 +169,16 @@ export default function FileCreator({
   };
 
   const handleFileNameChange = (fileId: string, newName: string): void => {
+    const sanitizedName = sanitizeFileName(
+      stripInvalidNameCharacters(newName),
+    ).slice(0, MAX_WINDOWS_ITEM_NAME_LENGTH);
+
     setSelectedFiles((prev) =>
       prev.map((f) =>
         f.id === fileId
           ? {
               ...f,
-              name: newName.slice(0, MAX_WINDOWS_ITEM_NAME_LENGTH),
+              name: sanitizedName,
             }
           : f,
       ),
@@ -235,8 +243,9 @@ export default function FileCreator({
       if (selectedSource !== "camera" || !uri || !type) return;
 
       const fileInfo = fs.getFileInfo(uri);
-      const fileName =
-        fileInfo?.name ?? uri.split("/").pop() ?? `captura_${Date.now()}`;
+      const fileName = sanitizeFileName(
+        fileInfo?.name ?? uri.split("/").pop() ?? `captura_${Date.now()}`,
+      );
 
       setSelectedFiles([
         {

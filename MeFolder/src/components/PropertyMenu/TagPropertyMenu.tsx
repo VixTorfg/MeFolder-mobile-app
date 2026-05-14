@@ -19,6 +19,7 @@ import {
   MAX_ITEM_DESCRIPTION_LENGTH,
   MAX_WINDOWS_ITEM_NAME_LENGTH,
 } from "@/constants/validation";
+import { stripInvalidNameCharacters } from "@/utils/format/name";
 
 const TYPE_LABELS: Record<string, string> = {
   system: "Sistema",
@@ -286,7 +287,14 @@ export const TagPropertyMenu = ({
             value={tagName}
             onBlur={() => setFocused(false)}
             onFocus={() => setFocused(true)}
-            onChangeText={setTagName}
+            onChangeText={(text) =>
+              setTagName(
+                stripInvalidNameCharacters(text).slice(
+                  0,
+                  MAX_WINDOWS_ITEM_NAME_LENGTH,
+                ),
+              )
+            }
             placeholder="Nombre de la etiqueta"
             placeholderTextColor={theme.colors.textMuted}
             selectTextOnFocus

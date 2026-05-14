@@ -6,6 +6,7 @@ import { TagModel, TagFactory } from "../models/tag";
 import { SYSTEM_ALBUM_TAG_ID } from "../database/seeds/systemTags";
 import { FileModel } from "@/models";
 import type { ViewSettings } from "../types/entities/folder";
+import { sanitizeTagName } from "@/utils/format/name";
 
 export interface AlbumCoverCandidate {
   fileId: UUID;
@@ -34,11 +35,16 @@ export class TagService extends BaseService {
     try {
       this.ensureDbInitialized();
 
+      const sanitizedName = sanitizeTagName(input.name);
+
       // Validar que no existe otro tag con el mismo nombre
-      await this.validateUniqueTagName(input.name);
+      await this.validateUniqueTagName(sanitizedName);
 
       // Crear tag usando el repositorio
-      const tag = await this.tagRepo.create(input);
+      const tag = await this.tagRepo.create({
+        ...input,
+        name: sanitizedName,
+      });
       return TagFactory.fromJSON(tag);
     } catch (error) {
       return this.handleError(error, "crear tag");
@@ -151,6 +157,8 @@ export class TagService extends BaseService {
     try {
       this.ensureDbInitialized();
 
+      const sanitizedName = sanitizeTagName(newName);
+
       const tag = await this.tagRepo.findById(tagId);
       if (!tag) throw new Error("Tag no encontrado");
 
@@ -159,11 +167,11 @@ export class TagService extends BaseService {
       }
 
       // Validar que no existe otro tag con el nuevo nombre
-      await this.validateUniqueTagName(newName, tagId);
+      await this.validateUniqueTagName(sanitizedName, tagId);
 
       // Actualizar nombre
       const updated = await this.tagRepo.update(tagId, {
-        name: newName,
+        name: sanitizedName,
       });
       return TagFactory.fromJSON(updated);
     } catch (error) {
@@ -428,10 +436,13 @@ export class TagService extends BaseService {
     try {
       this.ensureDbInitialized();
 
-      await this.validateUniqueTagName(input.name);
+      const sanitizedName = sanitizeTagName(input.name);
+
+      await this.validateUniqueTagName(sanitizedName);
 
       const tag = await this.tagRepo.create({
         ...input,
+        name: sanitizedName,
         type: "album",
         parentId: SYSTEM_ALBUM_TAG_ID,
       });

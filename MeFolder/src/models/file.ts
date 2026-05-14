@@ -15,6 +15,10 @@ import { ColorInfo } from "../types/common/colors";
 import { BaseModel, ValidationResult, ValidationUtils } from "./base";
 import { formatFileSize } from "../utils/format/bytes";
 import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
+import {
+  hasInvalidNameCharacters,
+  sanitizeFileName,
+} from "@/utils/format/name";
 
 export class FileModel extends BaseModel<File> {
   constructor(data: File) {
@@ -98,7 +102,7 @@ export class FileModel extends BaseModel<File> {
     const cleanName = name.trim();
     if (!cleanName) throw new Error("El nombre no puede estar vacío");
 
-    this.data.name = cleanName;
+    this.data.name = sanitizeFileName(cleanName);
     this.updatePath();
   }
 
@@ -186,6 +190,14 @@ export class FileModel extends BaseModel<File> {
     );
     if (nameLengthError) errors.push(nameLengthError);
 
+    if (this.data.name && hasInvalidNameCharacters(this.data.name)) {
+      errors.push({
+        field: "name",
+        message: "El nombre contiene caracteres no válidos",
+        code: "INVALID_CHARACTERS",
+      });
+    }
+
     const maxSize = 500 * 1024 * 1024;
     const sizeError = ValidationUtils.fileSize(
       this.data.metadata.size,
@@ -258,7 +270,7 @@ export class FileFactory {
   static create(input: CreateFileInput, folderPath?: string): FileModel {
     const now = new Date();
     const category = FILE_CATEGORY_MAP[input.extension] || "other";
-    const trimmedName = input.name.trim();
+    const trimmedName = sanitizeFileName(input.name);
 
     const file: File = {
       id: this.generateId(),

@@ -26,6 +26,7 @@ import type {
   UUID,
 } from "@/types";
 import { EXTENSION_MIME_MAP } from "@/types/common/file-extensions";
+import { sanitizeFileName, sanitizeFolderName } from "@/utils/format/name";
 import { FileService } from "../FileService";
 import { FolderService } from "../FolderService";
 import { FileSystemService } from "../filesystem/FileSystemService";
@@ -343,8 +344,9 @@ export class ArchiveService {
           );
         }
 
+        const safeFileName = sanitizeFileName(fileEntry.name);
         const targetUri = this.fs.resolveUri(
-          joinArchivePath(fileFolderPath, fileEntry.name),
+          joinArchivePath(fileFolderPath, safeFileName),
         );
         const base64Content = await zipFile.async("base64");
         const writeResult = this.fs.writeFile({
@@ -373,7 +375,7 @@ export class ArchiveService {
         );
 
         const extractedFile = await this.fileService.createFile({
-          name: fileEntry.name,
+          name: safeFileName,
           originalName: fileEntry.name,
           extension: resolvedExtension as CreateFileInput["extension"],
           folderId: fileFolderId,
@@ -1013,7 +1015,7 @@ export class ArchiveService {
 
   /** Valida y limpia nombres de carpeta generados o introducidos por el usuario. */
   private normalizeFolderName(name: string): string {
-    const trimmedName = name.trim();
+    const trimmedName = sanitizeFolderName(name, "Nueva carpeta");
     if (!trimmedName) {
       throw new Error("El nombre de carpeta no puede estar vacio");
     }
