@@ -4,9 +4,11 @@ import { CustomPopup } from "@/components/CustomAlert/CustomPopup";
 import { formatFileSize } from "@/utils/format";
 import { useStyles } from "@/hooks/useStyles";
 import { useAlert, useServices, useTheme } from "@/providers";
+import { DatabaseDebugExportService } from "@/services/debug/DatabaseDebugExportService";
 import Constants from "expo-constants";
 import { Paths } from "expo-file-system";
 import { router } from "expo-router";
+import * as Sharing from "expo-sharing";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   ActivityIndicator,
@@ -111,11 +113,16 @@ const SettingsScreen = () => {
   const { showAlert } = useAlert();
   const { currentTheme, isThemeHydrated, setTheme, themePreference } =
     useTheme();
+  const debugExportService = useMemo(
+    () => new DatabaseDebugExportService(),
+    [],
+  );
   const appVersion = Constants.expoConfig?.version ?? "Desconocida";
   const [storageUsage, setStorageUsage] =
     useState<StorageUsageSummary>(EMPTY_STORAGE_USAGE);
   const [isStorageLoading, setIsStorageLoading] = useState(true);
   const [isDeletingContent, setIsDeletingContent] = useState(false);
+  const [isExportingDatabase, setIsExportingDatabase] = useState(false);
 
   useEffect(() => {
     const loadStorageUsage = async () => {
@@ -219,6 +226,39 @@ const SettingsScreen = () => {
       ],
     });
   }, [exitApp, services.fileService, showAlert]);
+
+  const handleExportDebugDatabase = useCallback(async () => {
+    try {
+      setIsExportingDatabase(true);
+
+      const result = await debugExportService.exportSnapshot();
+      const sharingAvailable = await Sharing.isAvailableAsync();
+
+      if (sharingAvailable) {
+        await Sharing.shareAsync(result.zipUri, {
+          mimeType: "application/zip",
+          dialogTitle: "Exportar snapshot de base de datos",
+        });
+      }
+
+      showAlert({
+        title: "Exportación completada",
+        message: sharingAvailable
+          ? `Se ha generado un ZIP con la base de datos y el árbol físico completo.\n\nZIP: ${result.zipFileName}\nDocumento: ${result.reportFileName}`
+          : `Se ha generado la exportación, pero compartir no está disponible en este dispositivo.\n\nZIP: ${result.zipFileName}\nDocumento: ${result.reportFileName}`,
+      });
+    } catch (error) {
+      showAlert({
+        title: "Error al exportar la base de datos",
+        message:
+          error instanceof Error
+            ? error.message
+            : "No se pudo generar la exportación de depuración.",
+      });
+    } finally {
+      setIsExportingDatabase(false);
+    }
+  }, [debugExportService, showAlert]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -387,6 +427,61 @@ const SettingsScreen = () => {
             Versión: {appVersion}
           </Text>
         </View>
+
+        {/* DEV-ONLY TEST: herramientas de exportación para inspección manual */}
+        {__DEV__ ? (
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>Desarrollo</Text>
+            <Text style={styles.sectionDescription}>
+              Exporta un snapshot de prueba con la SQLite actual y un documento
+              con el árbol físico de directorios normales y thumbnails,
+              resolviendo ids de carpeta a nombres legibles.
+            </Text>
+
+            <TouchableOpacity
+              style={[
+                styles.optionRow,
+                isExportingDatabase && styles.optionRowDisabled,
+              ]}
+              onPress={() => {
+                void handleExportDebugDatabase();
+              }}
+              disabled={isExportingDatabase}
+            >
+              <View style={styles.optionRowContent}>
+                <View style={styles.optionIconWrapper}>
+                  <MaterialCommunityIcons
+                    name="database-outline"
+                    size={20}
+                    color={styles.iconColor.primaryColor}
+                  />
+                </View>
+                <View style={styles.optionTextGroup}>
+                  <Text style={styles.optionTitle}>
+                    Exportar base de datos y árbol (DEV)
+                  </Text>
+                  <Text style={styles.optionDescription}>
+                    Genera un ZIP con la base de datos y un TXT con la
+                    estructura física real de almacenamiento y thumbnails.
+                  </Text>
+                </View>
+              </View>
+
+              {isExportingDatabase ? (
+                <ActivityIndicator
+                  size="small"
+                  color={styles.iconColor.primaryColor}
+                />
+              ) : (
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color={styles.iconColor.color}
+                />
+              )}
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </ScrollView>
 
       <CustomPopup
@@ -405,6 +500,28 @@ const SettingsScreen = () => {
           </Text>
           <Text style={styles.popupLoadingHint}>
             La operación puede tardar unos segundos.
+          </Text>
+        </View>
+      </CustomPopup>
+
+      {/* DEV-ONLY TEST: feedback de progreso mientras se genera el snapshot */}
+      <CustomPopup
+        title="Exportando base de datos"
+        isVisible={isExportingDatabase}
+        onDismiss={() => undefined}
+        dismissOnBackdropPress={false}
+      >
+        <View style={styles.popupLoadingContent}>
+          <ActivityIndicator
+            size="large"
+            color={styles.iconColor.primaryColor}
+          />
+          <Text style={styles.popupLoadingText}>
+            Generando la base de datos y el árbol físico del
+            almacenamiento&hellip;
+          </Text>
+          <Text style={styles.popupLoadingHint}>
+            Este proceso recorre directorios reales, archivos y thumbnails.
           </Text>
         </View>
       </CustomPopup>
@@ -492,6 +609,9 @@ const useSettingsStyles = () => {
     optionRowSelected: {
       borderColor: theme.colors.primary,
       backgroundColor: theme.colors.primarySoft,
+    },
+    optionRowDisabled: {
+      opacity: 0.65,
     },
     optionRowContent: {
       flex: 1,
