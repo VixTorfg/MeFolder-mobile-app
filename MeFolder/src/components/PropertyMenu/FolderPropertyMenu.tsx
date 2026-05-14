@@ -14,7 +14,10 @@ import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useColors } from "@/hooks/useColors";
 import { ColorInfo } from "@/types/common/colors";
 import { ColorList } from "../ColorPicker";
-import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
+import {
+  MAX_ITEM_DESCRIPTION_LENGTH,
+  MAX_WINDOWS_ITEM_NAME_LENGTH,
+} from "@/constants/validation";
 
 const VISIBILITY_LABELS: Record<string, string> = {
   private: "Privado",
@@ -194,10 +197,11 @@ export const FolderPropertyMenu = ({
   const handleUpdateDescription = async () => {
     try {
       const description = folderDescription.trim();
-      if (description?.length > 200) {
+
+      if (description.length > MAX_ITEM_DESCRIPTION_LENGTH) {
         showAlert({
           title: "Error",
-          message: "La descripción no puede exceder los 200 caracteres",
+          message: `No se puede crear o modificar la descripción si supera los ${MAX_ITEM_DESCRIPTION_LENGTH} caracteres.`,
         });
         return;
       }
@@ -372,7 +376,7 @@ export const FolderPropertyMenu = ({
           placeholderTextColor={theme.colors.textMuted}
           multiline
           numberOfLines={3}
-          maxLength={200}
+          maxLength={MAX_ITEM_DESCRIPTION_LENGTH}
           textAlignVertical="top"
         />
       </View>

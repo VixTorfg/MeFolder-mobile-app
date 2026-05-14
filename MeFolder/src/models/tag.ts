@@ -7,6 +7,10 @@ import {
 import { UUID } from "../types/common/base";
 import { ColorInfo } from "../types/common/colors";
 import { BaseModel, ValidationResult, ValidationUtils } from "./base";
+import {
+  MAX_ITEM_DESCRIPTION_LENGTH,
+  MAX_WINDOWS_ITEM_NAME_LENGTH,
+} from "@/constants/validation";
 
 export class TagModel extends BaseModel<Tag> {
   constructor(data: Tag) {
@@ -112,7 +116,7 @@ export class TagModel extends BaseModel<Tag> {
 
     const nameMaxLengthError = ValidationUtils.maxLength(
       this.data.name,
-      50,
+      MAX_WINDOWS_ITEM_NAME_LENGTH,
       "name",
     );
     if (nameMaxLengthError) errors.push(nameMaxLengthError);
@@ -120,7 +124,7 @@ export class TagModel extends BaseModel<Tag> {
     if (this.data.description) {
       const descMaxLengthError = ValidationUtils.maxLength(
         this.data.description,
-        200,
+        MAX_ITEM_DESCRIPTION_LENGTH,
         "description",
       );
       if (descMaxLengthError) errors.push(descMaxLengthError);

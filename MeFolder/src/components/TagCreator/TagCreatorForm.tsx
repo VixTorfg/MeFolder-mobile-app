@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, Text, TextInput } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useTheme } from "@/providers";
+import { useAlert, useTheme } from "@/providers";
 import { useColors } from "@/hooks";
 import { useTagCreatorFormStyles } from "./styles";
 import type { TagType, TagPriority } from "@/types/entities/tag";
@@ -10,6 +10,10 @@ import type { ColorInfo } from "@/types/common/colors";
 import { ToggleAlbum, ToggleFavourite, PrioritySelector } from "../Toggles";
 import { ColorList } from "@/components/ColorPicker";
 import { TagPreview } from "./TagPreview";
+import {
+  MAX_ITEM_DESCRIPTION_LENGTH,
+  MAX_WINDOWS_ITEM_NAME_LENGTH,
+} from "@/constants/validation";
 
 export type AlbumCreationMode = "empty";
 
@@ -33,6 +37,7 @@ export default function TagCreatorForm({
   onImportZipAlbum,
 }: TagCreatorFormProps) {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const styles = useTagCreatorFormStyles();
   const {
     colors,
@@ -59,9 +64,19 @@ export default function TagCreatorForm({
   const handleSave = async (): Promise<void> => {
     if (!canSave) return;
 
+    const trimmedDescription = description.trim();
+
+    if (trimmedDescription.length > MAX_ITEM_DESCRIPTION_LENGTH) {
+      showAlert({
+        title: "Descripción demasiado larga",
+        message: `No se puede crear o modificar la descripción si supera los ${MAX_ITEM_DESCRIPTION_LENGTH} caracteres.`,
+      });
+      return;
+    }
+
     await onSave({
       name: tagName.trim(),
-      description: description.trim() || null,
+      description: trimmedDescription || null,
       color: selectedColor,
       type: isAlbum ? "album" : "user",
       priority,
@@ -119,7 +134,7 @@ export default function TagCreatorForm({
             placeholderTextColor={theme.colors.textMuted}
             onFocus={() => setNameFocused(true)}
             onBlur={() => setNameFocused(false)}
-            maxLength={50}
+            maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
           />
           <View style={styles.namePreview}>
             <TagPreview
@@ -149,7 +164,7 @@ export default function TagCreatorForm({
           numberOfLines={3}
           onFocus={() => setDescFocused(true)}
           onBlur={() => setDescFocused(false)}
-          maxLength={300}
+          maxLength={MAX_ITEM_DESCRIPTION_LENGTH}
         />
       </View>
 
