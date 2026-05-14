@@ -16,6 +16,13 @@ export const Breadcrumb = () => {
     : segments;
   const startIndex = segments.length - visibleSegments.length;
 
+  if (segments.length === 1 && segments[0]?.id === "sys_root") return null;
+
+  const segmentCount = visibleSegments.length;
+
+  // Cada segmento puede ocupar como máximo su parte proporcional
+  const maxSegmentPercent = Math.floor(100 / segmentCount);
+
   return (
     <View style={styles.container}>
       {shouldTruncate && (
@@ -31,7 +38,10 @@ export const Breadcrumb = () => {
         const isLast = realIndex === segments.length - 1;
 
         return (
-          <View key={segment.id ?? "sys_root"} style={styles.segment}>
+          <View
+            key={segment.id ?? "sys_root"}
+            style={[styles.segment, { maxWidth: `${maxSegmentPercent}%` }]}
+          >
             <TouchableOpacity
               onPress={() => navigateToIndex(realIndex)}
               disabled={isLast}

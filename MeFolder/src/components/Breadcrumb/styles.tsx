@@ -7,15 +7,17 @@ export const useBreadcrumbStyles = () => {
       alignItems: "center",
       paddingHorizontal: theme.spacing.md,
       paddingVertical: theme.spacing.sm,
-      width: "80%",
+      maxWidth: "80%",
     },
     segment: {
       flexDirection: "row",
       alignItems: "center",
       flexShrink: 1,
+      minWidth: 0,
     },
     segmentButton: {
       flexShrink: 1,
+      minWidth: 0,
     },
     segmentText: {
       fontSize: theme.typography.fontSize.md,
