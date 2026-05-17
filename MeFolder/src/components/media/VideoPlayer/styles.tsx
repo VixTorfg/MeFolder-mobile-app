@@ -33,7 +33,7 @@ export const useVideoPlayerStyles = () => {
     /* ── Skip indicator (YouTube-style) ─────────────────────── */
     skipIndicator: {
       position: "absolute" as const,
-      top: "40%" as const,
+      top: "48.5%" as const,
       width: 72,
       height: 72,
       borderRadius: 36,
@@ -48,10 +48,11 @@ export const useVideoPlayerStyles = () => {
       right: "15%" as const,
     },
     skipText: {
+      position: "absolute" as const,
+      bottom: 8,
       fontSize: theme.typography.fontSize.xs,
       fontFamily: theme.typography.fontFamily.primary.semiBold,
       color: "#FFFFFF",
-      marginTop: 2,
     },
 
     /* ── Overlays ───────────────────────────────────────────── */

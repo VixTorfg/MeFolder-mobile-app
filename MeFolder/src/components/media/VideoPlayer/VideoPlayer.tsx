@@ -3,11 +3,13 @@ import { View, Text, Pressable, ActivityIndicator } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useVideoPlayer, VideoView } from "expo-video";
-import { useEvent } from "expo";
+import { useEvent, useEventListener } from "expo";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
+  cancelAnimation,
   useSharedValue,
   useAnimatedStyle,
+  withDecay,
   withTiming,
 } from "react-native-reanimated";
 import type { VideoPlayerProps } from "@/types/media/viewers";
@@ -21,6 +23,15 @@ const DOUBLE_TAP_DELAY = 300;
 const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const SWIPE_SCALE_TOLERANCE = 0.05;
+
+type SeekPreviewState = {
+  position: number;
+  isPlaying: boolean;
+};
+
+const clamp = (value: number, min: number, max: number) => {
+  return Math.min(Math.max(value, min), max);
+};
 
 export default function VideoPlayer({
   source,
@@ -36,6 +47,7 @@ export default function VideoPlayer({
 
   const notifySwipeAvailability = useCallback(
     (enabled: boolean) => {
+      setIsPanEnabled(!enabled);
       onSwipeAvailabilityChange?.(enabled);
     },
     [onSwipeAvailabilityChange],
@@ -59,11 +71,15 @@ export default function VideoPlayer({
   const [duration, setDuration] = useState(0);
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [scrubRatio, setScrubRatio] = useState(0);
+  const [seekPreview, setSeekPreview] = useState<SeekPreviewState | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [controlsVisible, setControlsVisible] = useState(true);
   const [skipSide, setSkipSide] = useState<"left" | "right" | null>(null);
+  const [isPanEnabled, setIsPanEnabled] = useState(false);
 
   const trackWidthRef = useRef(1);
+  const lastScrubRatioRef = useRef(0);
+  const hasPendingScrubRef = useRef(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const skipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastTapRef = useRef({ time: 0, x: 0 });
@@ -78,13 +94,52 @@ export default function VideoPlayer({
   const savedTX = useSharedValue(0);
   const savedTY = useSharedValue(0);
 
-  const playbackRatio = duration > 0 ? position / duration : 0;
+  const resetTransform = useCallback(() => {
+    "worklet";
+    scale.value = withTiming(MIN_SCALE);
+    savedScale.value = MIN_SCALE;
+    translateX.value = withTiming(0);
+    translateY.value = withTiming(0);
+    savedTX.value = 0;
+    savedTY.value = 0;
+    scheduleOnRN(notifySwipeAvailability, true);
+  }, [
+    notifySwipeAvailability,
+    savedScale,
+    savedTX,
+    savedTY,
+    scale,
+    translateX,
+    translateY,
+  ]);
+
+  const displayedIsPlaying = seekPreview?.isPlaying ?? isPlaying;
+  const resolvedPosition = seekPreview?.position ?? position;
+  const playbackRatio = duration > 0 ? resolvedPosition / duration : 0;
   const displayedRatio = isScrubbing ? scrubRatio : playbackRatio;
   const displayedPosition = displayedRatio * duration;
+  const progressPercentage = `${clamp(displayedRatio * 100, 0, 100)}%` as any;
 
   const getRatioFromX = useCallback(
-    (lx: number) => Math.min(Math.max(lx / trackWidthRef.current, 0), 1),
+    (lx: number) => clamp(lx / trackWidthRef.current, 0, 1),
     [],
+  );
+
+  const handleTrackLayout = useCallback((width: number) => {
+    trackWidthRef.current = width;
+  }, []);
+
+  const updateScrubRatio = useCallback((ratio: number) => {
+    const nextRatio = clamp(ratio, 0, 1);
+    lastScrubRatioRef.current = nextRatio;
+    setScrubRatio(nextRatio);
+  }, []);
+
+  const setScrubFromLocation = useCallback(
+    (locationX: number) => {
+      updateScrubRatio(getRatioFromX(locationX));
+    },
+    [getRatioFromX, updateScrubRatio],
   );
 
   const clearHideTimeout = useCallback(() => {
@@ -93,6 +148,22 @@ export default function VideoPlayer({
       hideTimeoutRef.current = null;
     }
   }, []);
+
+  const resetProgressInteractionState = useCallback(
+    (preview: SeekPreviewState | null = null) => {
+      setIsScrubbing(false);
+      setScrubRatio(0);
+      setSeekPreview(preview);
+      lastScrubRatioRef.current = 0;
+      hasPendingScrubRef.current = false;
+    },
+    [],
+  );
+
+  const showControlsImmediately = useCallback(() => {
+    setControlsVisible(true);
+    controlsOpacity.value = withTiming(1, { duration: 200 });
+  }, [controlsOpacity]);
 
   const hideControls = useCallback(() => {
     controlsOpacity.value = withTiming(0, { duration: 250 });
@@ -107,10 +178,9 @@ export default function VideoPlayer({
   }, [isPlaying, clearHideTimeout, hideControls]);
 
   const showControls = useCallback(() => {
-    setControlsVisible(true);
-    controlsOpacity.value = withTiming(1, { duration: 200 });
+    showControlsImmediately();
     scheduleHide();
-  }, [controlsOpacity, scheduleHide]);
+  }, [scheduleHide, showControlsImmediately]);
 
   const toggleControls = useCallback(() => {
     if (controlsVisible) {
@@ -127,27 +197,36 @@ export default function VideoPlayer({
     skipTimerRef.current = setTimeout(() => setSkipSide(null), 600);
   }, []);
 
+  const seekToPosition = useCallback(
+    (targetPosition: number) => {
+      if (duration <= 0) {
+        return;
+      }
+
+      const nextPosition = clamp(targetPosition, 0, duration);
+
+      setSeekPreview({ position: nextPosition, isPlaying: displayedIsPlaying });
+      setPosition(nextPosition);
+
+      try {
+        player.currentTime = nextPosition;
+      } catch {
+        setSeekPreview(null);
+        return;
+      }
+    },
+    [displayedIsPlaying, duration, player],
+  );
+
   const handleSkipBack = useCallback(() => {
-    const t = Math.max(0, player.currentTime - SKIP_SECONDS);
-    try {
-      player.currentTime = t;
-    } catch {
-      return;
-    }
-    setPosition(t);
+    seekToPosition(resolvedPosition - SKIP_SECONDS);
     flashSkip("left");
-  }, [player, flashSkip]);
+  }, [flashSkip, resolvedPosition, seekToPosition]);
 
   const handleSkipForward = useCallback(() => {
-    const t = Math.min(duration, player.currentTime + SKIP_SECONDS);
-    try {
-      player.currentTime = t;
-    } catch {
-      return;
-    }
-    setPosition(t);
+    seekToPosition(resolvedPosition + SKIP_SECONDS);
     flashSkip("right");
-  }, [player, duration, flashSkip]);
+  }, [flashSkip, resolvedPosition, seekToPosition]);
 
   const toggleMute = useCallback(() => {
     const next = !player.muted;
@@ -161,7 +240,9 @@ export default function VideoPlayer({
 
   const handlePlayPause = useCallback(() => {
     try {
-      if (isPlaying) {
+      setSeekPreview(null);
+
+      if (displayedIsPlaying) {
         player.pause();
       } else if (duration > 0 && player.currentTime >= duration - 0.5) {
         player.replay();
@@ -172,7 +253,7 @@ export default function VideoPlayer({
       return;
     }
     showControls();
-  }, [isPlaying, player, duration, showControls]);
+  }, [displayedIsPlaying, player, duration, showControls]);
 
   const handleClose = useCallback(() => {
     try {
@@ -180,10 +261,113 @@ export default function VideoPlayer({
     } catch {
       // Ignora players ya liberados por el desmontaje nativo.
     }
-    setIsScrubbing(false);
+    resetTransform();
+    resetProgressInteractionState();
     clearHideTimeout();
     onClose();
-  }, [player, onClose, clearHideTimeout]);
+  }, [
+    player,
+    onClose,
+    clearHideTimeout,
+    resetProgressInteractionState,
+    resetTransform,
+  ]);
+
+  const beginScrub = useCallback(
+    (locationX: number) => {
+      if (!isLoaded) return;
+
+      clearHideTimeout();
+      hasPendingScrubRef.current = true;
+      setIsScrubbing(true);
+      setSeekPreview(null);
+      setScrubFromLocation(locationX);
+    },
+    [clearHideTimeout, isLoaded, setScrubFromLocation],
+  );
+
+  const moveScrub = useCallback(
+    (locationX: number) => {
+      if (!isLoaded) return;
+
+      setScrubFromLocation(locationX);
+    },
+    [isLoaded, setScrubFromLocation],
+  );
+
+  const commitScrub = useCallback(
+    (ratio: number) => {
+      if (!hasPendingScrubRef.current) {
+        return;
+      }
+
+      hasPendingScrubRef.current = false;
+
+      if (duration <= 0) {
+        resetProgressInteractionState();
+        scheduleHide();
+        return;
+      }
+
+      const nextRatio = clamp(ratio, 0, 1);
+      const targetPosition = nextRatio * duration;
+
+      updateScrubRatio(nextRatio);
+      setIsScrubbing(false);
+      seekToPosition(targetPosition);
+      scheduleHide();
+    },
+    [duration, scheduleHide, seekToPosition, updateScrubRatio],
+  );
+
+  const commitScrubFromLocation = useCallback(
+    (locationX: number) => {
+      commitScrub(getRatioFromX(locationX));
+    },
+    [commitScrub, getRatioFromX],
+  );
+
+  const cancelScrub = useCallback(() => {
+    commitScrub(lastScrubRatioRef.current);
+  }, [commitScrub]);
+
+  const handlePlaybackEnded = useCallback(() => {
+    clearHideTimeout();
+    resetProgressInteractionState({ position: 0, isPlaying: false });
+    setPosition(0);
+    showControlsImmediately();
+
+    try {
+      player.pause();
+      player.currentTime = 0;
+      player.pause();
+    } catch {
+      return;
+    }
+  }, [
+    clearHideTimeout,
+    player,
+    resetProgressInteractionState,
+    showControlsImmediately,
+  ]);
+
+  const progressGesture = Gesture.Pan()
+    .enabled(isLoaded)
+    .shouldCancelWhenOutside(false)
+    .onBegin((event) => {
+      scheduleOnRN(beginScrub, event.x);
+    })
+    .onUpdate((event) => {
+      scheduleOnRN(moveScrub, event.x);
+    })
+    .onEnd((event) => {
+      scheduleOnRN(commitScrubFromLocation, event.x);
+    })
+    .onFinalize(() => {
+      scheduleOnRN(cancelScrub);
+    });
+
+  useEventListener(player, "playToEnd", handlePlaybackEnded);
 
   const handleTapArea = useCallback(
     (x: number) => {
@@ -240,6 +424,18 @@ export default function VideoPlayer({
   }, [isLoaded]);
 
   useEffect(() => {
+    resetProgressInteractionState();
+  }, [resetProgressInteractionState, source.uri]);
+
+  useEffect(() => {
+    if (seekPreview === null) return;
+
+    if (Math.abs(position - seekPreview.position) <= 0.35) {
+      setSeekPreview(null);
+    }
+  }, [position, seekPreview]);
+
+  useEffect(() => {
     hasReportedInitialRenderRef.current = false;
   }, [source.uri]);
 
@@ -258,10 +454,15 @@ export default function VideoPlayer({
     }
     if (!isPlaying) {
       clearHideTimeout();
-      setControlsVisible(true);
-      controlsOpacity.value = withTiming(1, { duration: 200 });
+      showControlsImmediately();
     }
-  }, [isPlaying]);
+  }, [
+    clearHideTimeout,
+    controlsVisible,
+    isPlaying,
+    scheduleHide,
+    showControlsImmediately,
+  ]);
 
   // AutoPlay
   useEffect(() => {
@@ -300,6 +501,22 @@ export default function VideoPlayer({
     [viewportWidth, viewportHeight],
   );
 
+  const getPanBounds = useCallback(
+    (s: number) => {
+      "worklet";
+      const mx = ((s - 1) * viewportWidth) / 2;
+      const my = ((s - 1) * viewportHeight) / 2;
+
+      return {
+        minX: -mx,
+        maxX: mx,
+        minY: -my,
+        maxY: my,
+      };
+    },
+    [viewportWidth, viewportHeight],
+  );
+
   const pinch = Gesture.Pinch()
     .onStart(() => {
       savedScale.value = scale.value;
@@ -329,8 +546,12 @@ export default function VideoPlayer({
     });
 
   const panZoom = Gesture.Pan()
-    .minPointers(2)
+    .minPointers(1)
+    .maxPointers(2)
+    .enabled(isPanEnabled)
     .onStart(() => {
+      cancelAnimation(translateX);
+      cancelAnimation(translateY);
       savedTX.value = translateX.value;
       savedTY.value = translateY.value;
     })
@@ -343,9 +564,25 @@ export default function VideoPlayer({
       translateX.value = c.x;
       translateY.value = c.y;
     })
-    .onEnd(() => {
-      savedTX.value = translateX.value;
-      savedTY.value = translateY.value;
+    .onEnd((e) => {
+      const bounds = getPanBounds(scale.value);
+
+      translateX.value = withDecay({
+        velocity: e.velocityX,
+        clamp: [bounds.minX, bounds.maxX],
+        deceleration: 0.992,
+        rubberBandEffect: false,
+      });
+      translateY.value = withDecay({
+        velocity: e.velocityY,
+        clamp: [bounds.minY, bounds.maxY],
+        deceleration: 0.992,
+        rubberBandEffect: false,
+      });
+
+      const c = clampXY(translateX.value, translateY.value, scale.value);
+      savedTX.value = c.x;
+      savedTY.value = c.y;
     });
 
   const zoomGesture = Gesture.Simultaneous(pinch, panZoom);
@@ -372,9 +609,9 @@ export default function VideoPlayer({
   }));
 
   useEffect(() => {
-    notifySwipeAvailability(true);
+    resetTransform();
     return () => notifySwipeAvailability(true);
-  }, [notifySwipeAvailability, source.uri]);
+  }, [notifySwipeAvailability, resetTransform, source.uri]);
 
   return (
     <View style={styles.container}>
@@ -393,6 +630,7 @@ export default function VideoPlayer({
           {/* Tap detection layer (single tap ↔ controls / double tap ↔ skip) */}
           <Pressable
             style={styles.tapLayer}
+            pointerEvents={isPanEnabled ? "none" : "auto"}
             onPress={(e) => handleTapArea(e.nativeEvent.locationX)}
           />
 
@@ -465,7 +703,7 @@ export default function VideoPlayer({
                 disabled={!isLoaded}
               >
                 <Ionicons
-                  name={isPlaying ? "pause" : "play"}
+                  name={displayedIsPlaying ? "pause" : "play"}
                   size={44}
                   color="#FFFFFF"
                 />
@@ -474,54 +712,30 @@ export default function VideoPlayer({
 
             {/* Bottom: progress bar + time */}
             <View style={styles.bottom}>
-              <View
-                style={styles.progressTouchArea}
-                onLayout={(e) => {
-                  trackWidthRef.current = e.nativeEvent.layout.width;
-                }}
-                onStartShouldSetResponder={() => isLoaded}
-                onResponderGrant={(e) => {
-                  clearHideTimeout();
-                  const ratio = getRatioFromX(e.nativeEvent.locationX);
-                  setIsScrubbing(true);
-                  setScrubRatio(ratio);
-                }}
-                onResponderMove={(e) => {
-                  setScrubRatio(getRatioFromX(e.nativeEvent.locationX));
-                }}
-                onResponderRelease={(e) => {
-                  const ratio = getRatioFromX(e.nativeEvent.locationX);
-                  const target = ratio * duration;
-                  player.currentTime = target;
-                  setPosition(target);
-                  setIsScrubbing(false);
-                  scheduleHide();
-                }}
-                onResponderTerminate={() => {
-                  setIsScrubbing(false);
-                  scheduleHide();
-                }}
-              >
-                <View style={styles.progressTrack}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${Math.min(displayedRatio * 100, 100)}%` as any,
-                      },
-                    ]}
-                  />
-                  <View
-                    style={[
-                      styles.progressThumb,
-                      isScrubbing && styles.progressThumbActive,
-                      {
-                        left: `${Math.min(displayedRatio * 100, 100)}%` as any,
-                      },
-                    ]}
-                  />
+              <GestureDetector gesture={progressGesture}>
+                <View
+                  style={styles.progressTouchArea}
+                  onLayout={(e) => {
+                    handleTrackLayout(e.nativeEvent.layout.width);
+                  }}
+                >
+                  <View style={styles.progressTrack}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        { width: progressPercentage },
+                      ]}
+                    />
+                    <View
+                      style={[
+                        styles.progressThumb,
+                        isScrubbing && styles.progressThumbActive,
+                        { left: progressPercentage },
+                      ]}
+                    />
+                  </View>
                 </View>
-              </View>
+              </GestureDetector>
 
               <View style={styles.timeRow}>
                 <Text

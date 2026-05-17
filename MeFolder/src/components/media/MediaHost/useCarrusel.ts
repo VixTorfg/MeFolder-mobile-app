@@ -111,7 +111,10 @@ export function useCarrusel({
   const gesture = Gesture.Pan()
     .minPointers(1)
     .maxPointers(1)
-    .activeOffsetX([-16, 16])
+    .activeOffsetX([
+      -CAROUSEL_CONFIG.activeOffsetX,
+      CAROUSEL_CONFIG.activeOffsetX,
+    ])
     .onBegin(() => {
       isDragging.value = true;
     })
