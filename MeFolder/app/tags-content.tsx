@@ -18,11 +18,11 @@ import { FileModel } from "@/models/file";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { cardShadow } from "@/constants/styles/shadows";
-import EmptyFolder from "@/components/svgIcons/emptyFolder";
 import { useFilesInTag } from "@/hooks/tags/useFilesInTag";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useContentTagActions } from "@/hooks/tags/useContentTagActions";
 import { useTagContentStore } from "@/stores/useTagContentStore";
+import EmptyTag from "@/components/svgIcons/emptyTag";
 
 export default function TagsContent() {
   const [showMenu, setShowMenu] = useState(false);
@@ -379,11 +379,11 @@ export default function TagsContent() {
       ) : sortedItems.length === 0 ? (
         <View style={styles.footerEmptyContainer}>
           <View style={styles.emptyFolderIconContainer}>
-            <EmptyFolder
-              strokeWidth={0.35}
-              width={120}
-              height={120}
-              folderColor={styles.iconColor.color}
+            <EmptyTag
+              strokeWidth={7}
+              width={135}
+              height={135}
+              tagColor={styles.iconColor.color}
               crossColor={styles.iconColor.primaryColor}
             />
             <Text style={styles.emptyFolderText}>La etiqueta está vacía</Text>

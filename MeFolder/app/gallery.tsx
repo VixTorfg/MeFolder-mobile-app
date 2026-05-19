@@ -39,13 +39,13 @@ import { Image } from "expo-image";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { formatVideoDuration } from "@/utils/format/date";
-import EmptyFolder from "@/components/svgIcons/emptyFolder";
 import { cardShadow } from "@/constants/styles/shadows";
 import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
 import Animated, { LinearTransition, FadeIn } from "react-native-reanimated";
+import EmptyAlbum from "@/components/svgIcons/emptyAlbum";
 
 const SPACING_HORIZONTAL_SM = 10;
 const DELETE_DIALOG_CLOSE_DELAY_MS = 180;
@@ -712,11 +712,11 @@ export default function GalleryScreen() {
         ) : items.length === 0 ? (
           <View style={styles.emptyAlbumContainer}>
             <View style={styles.emptyFolderIconContainer}>
-              <EmptyFolder
-                strokeWidth={0.35}
-                width={120}
-                height={120}
-                folderColor={styles.iconColor.color}
+              <EmptyAlbum
+                strokeWidth={7}
+                width={135}
+                height={135}
+                albumColor={styles.iconColor.color}
                 crossColor={styles.primaryColor.color}
               />
               <Text style={styles.emptyFolderText}>El álbum está vacío</Text>
