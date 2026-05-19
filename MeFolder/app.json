@@ -21,7 +21,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#f1f2eb",
-        "foregroundImage": "./assets/images/icon.png",
+        "foregroundImage": "./assets/images/splash-icon.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
@@ -54,7 +54,8 @@
       ],
       "expo-audio",
       "expo-video",
-      "expo-media-library"
+      "expo-media-library",
+      "expo-asset"
     ],
     "experiments": {
       "typedRoutes": true,
