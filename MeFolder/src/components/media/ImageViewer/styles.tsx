@@ -30,6 +30,9 @@ export const useImageViewerStyles = () => {
       alignItems: "center" as const,
       justifyContent: "center" as const,
     },
+    headerButtonDisabled: {
+      opacity: 0.45,
+    },
     headerTitle: {
       flex: 1,
       fontSize: theme.typography.fontSize.md,

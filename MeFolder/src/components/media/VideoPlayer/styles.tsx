@@ -90,6 +90,14 @@ export const useVideoPlayerStyles = () => {
       alignItems: "center" as const,
       justifyContent: "center" as const,
     },
+    headerBtnDisabled: {
+      opacity: 0.45,
+    },
+    headerActions: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: theme.spacing.xs,
+    },
     headerTitle: {
       flex: 1,
       fontSize: theme.typography.fontSize.md,

@@ -16,6 +16,7 @@ import type { VideoPlayerProps } from "@/types/media/viewers";
 import { useVideoPlayerStyles } from "./styles";
 import { formatAudioDuration } from "@/utils/format/date";
 import { scheduleOnRN } from "react-native-worklets";
+import { useSaveToMediaLibrary } from "@/hooks/mediaLibrary";
 
 const CONTROLS_HIDE_DELAY = 3000;
 const SKIP_SECONDS = 10;
@@ -44,6 +45,8 @@ export default function VideoPlayer({
   viewportHeight,
 }: VideoPlayerProps) {
   const styles = useVideoPlayerStyles();
+  const { isSavingToMediaLibrary, saveToMediaLibrary } =
+    useSaveToMediaLibrary();
 
   const notifySwipeAvailability = useCallback(
     (enabled: boolean) => {
@@ -272,6 +275,14 @@ export default function VideoPlayer({
     resetProgressInteractionState,
     resetTransform,
   ]);
+
+  const handleSaveToGallery = useCallback(() => {
+    void saveToMediaLibrary({
+      uri: source.uri,
+      kind: "video",
+      displayName: source.displayName,
+    });
+  }, [saveToMediaLibrary, source.displayName, source.uri]);
 
   const beginScrub = useCallback(
     (locationX: number) => {
@@ -681,17 +692,32 @@ export default function VideoPlayer({
                 {source.displayName ?? "Video"}
               </Text>
 
-              <TouchableOpacity
-                style={styles.headerBtn}
-                onPress={toggleMute}
-                activeOpacity={0.7}
-              >
-                <Ionicons
-                  name={isMuted ? "volume-mute" : "volume-high"}
-                  size={24}
-                  color="#FFFFFF"
-                />
-              </TouchableOpacity>
+              <View style={styles.headerActions}>
+                <TouchableOpacity
+                  style={[
+                    styles.headerBtn,
+                    (!isLoaded || isSavingToMediaLibrary) &&
+                      styles.headerBtnDisabled,
+                  ]}
+                  onPress={handleSaveToGallery}
+                  activeOpacity={0.7}
+                  disabled={!isLoaded || isSavingToMediaLibrary}
+                >
+                  <Ionicons name="download-outline" size={24} color="#FFFFFF" />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.headerBtn}
+                  onPress={toggleMute}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons
+                    name={isMuted ? "volume-mute" : "volume-high"}
+                    size={24}
+                    color="#FFFFFF"
+                  />
+                </TouchableOpacity>
+              </View>
             </Animated.View>
 
             {/* Center play / pause */}

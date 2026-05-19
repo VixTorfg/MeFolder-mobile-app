@@ -18,6 +18,8 @@ import type {
   FSWriteOptions,
 } from "@/types/filesystem";
 
+const MAX_MD5_FILE_SIZE_BYTES = 16 * 1024 * 1024;
+
 /**
  * FileSystemService — Servicio puro para operaciones sobre el sistema de archivos.
  *
@@ -73,12 +75,14 @@ export class FileSystemService {
       const mimeType = file.type ?? "";
 
       // md5 es un getter síncrono que lee el archivo completo.
-      // Para archivos grandes puede lanzar OOM, así que lo intentamos por separado.
+      // Lo evitamos en archivos grandes para no bloquear la UI al importar media pesada.
       let md5: string | null = null;
-      try {
-        md5 = file.md5 ?? null;
-      } catch {
-        // Ignorar — el checksum es opcional
+      if ((file.size ?? 0) <= MAX_MD5_FILE_SIZE_BYTES) {
+        try {
+          md5 = file.md5 ?? null;
+        } catch {
+          // Ignorar — el checksum es opcional
+        }
       }
 
       return {

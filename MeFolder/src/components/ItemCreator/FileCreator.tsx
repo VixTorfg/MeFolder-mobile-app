@@ -103,6 +103,8 @@ export default function FileCreator({
   const handlePickDocument = async (): Promise<void> => {
     const result = await getDocumentAsync({
       multiple: true,
+      copyToCacheDirectory: true,
+      type: ["application/*", "text/*", "audio/*"],
     });
 
     if (result.canceled === true) {
