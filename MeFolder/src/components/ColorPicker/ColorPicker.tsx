@@ -404,7 +404,7 @@ export default function ColorPicker({
     <BottomSheet visible={visible} onClose={onClose} title="Personalizar color">
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentInset={{ bottom: bottomInset }}
+        contentContainerStyle={{ paddingBottom: bottomInset }}
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.colorMapSection}>

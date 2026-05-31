@@ -6,7 +6,6 @@ export const useOptionDropDownStyles = (responsive: {
   padding: number;
   tabPadding: number;
 }) => {
-  const horizantalPadding = responsive.padding - 12;
   return useStyles((theme) => ({
     modalOverlay: {
       flex: 1,
@@ -21,33 +20,47 @@ export const useOptionDropDownStyles = (responsive: {
     dropdown: {
       ...cardShadow(theme),
       borderWidth: theme.effects.borderWidth.xs,
-      backgroundColor: theme.colors.background,
-      borderRadius: 8,
-      minWidth: 200,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.effects.radius.lg,
+      minWidth: 232,
+      maxWidth: 304,
       borderColor: theme.colors.borderSoft,
+      paddingVertical: theme.spacing.xs,
+      overflow: "hidden",
     },
 
     dropdownHeader: {
-      paddingHorizontal: horizantalPadding,
-      paddingVertical: responsive.padding / 2,
-      borderBottomWidth: theme.effects.borderWidth.md,
+      paddingHorizontal: theme.spacing.md,
+      paddingTop: theme.spacing.sm,
+      paddingBottom: theme.spacing.sm,
+      borderBottomWidth: theme.effects.borderWidth.xs,
       borderBottomColor: theme.colors.borderSoft,
     },
+    headerTextGroup: {},
     dropdownTitle: {
       fontFamily: theme.typography.fontFamily.title.semiBold,
-      fontSize: responsive.iconSize * 0.55,
+      fontSize: responsive.iconSize * 0.56,
       color: theme.colors.textPrimary,
     },
     dropdownItem: {
       flexDirection: "row",
       alignItems: "center",
-      paddingHorizontal: horizantalPadding,
-      paddingVertical: responsive.padding / 2,
-      gap: 12,
+      marginHorizontal: theme.spacing.xs,
+      marginVertical: 2,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
+      gap: theme.spacing.sm,
+      minHeight: 56,
+      borderRadius: theme.effects.radius.md,
+      borderWidth: theme.effects.borderWidth.xs,
+      borderColor: theme.colors.borderSoft,
+      backgroundColor: theme.colors.background,
     },
     groupSeparatorItem: {
-      borderTopWidth: theme.effects.borderWidth.md,
+      marginTop: theme.spacing.xs,
+      borderTopWidth: theme.effects.borderWidth.xs,
       borderTopColor: theme.colors.borderSoft,
+      paddingTop: theme.spacing.md,
     },
     selectedItem: {
       backgroundColor: theme.colors.primarySoft,
@@ -58,11 +71,21 @@ export const useOptionDropDownStyles = (responsive: {
     IconColor: {
       color: theme.colors.textPrimary,
     },
-    itemText: {
+    itemIconWrapper: {
+      width: 34,
+      height: 34,
+      borderRadius: theme.effects.radius.md,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.surface,
+    },
+    itemTextGroup: {
       flex: 1,
+    },
+    itemText: {
       fontSize: responsive.iconSize / 2,
       color: theme.colors.textPrimary,
-      fontFamily: theme.typography.fontFamily.primary.regular,
+      fontFamily: theme.typography.fontFamily.primary.medium,
     },
     selectedItemText: {
       color: theme.colors.primary,

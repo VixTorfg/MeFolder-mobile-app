@@ -13,6 +13,7 @@ import {
 } from "@/utils";
 import { useRef, useState } from "react";
 import { Image } from "expo-image";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
 
 export default function ContentCard({
   viewOptions,
@@ -148,6 +149,7 @@ export default function ContentCard({
             numberOfLines={1}
             scrollEnabled
             textAlignVertical="center"
+            maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
             onSubmitEditing={() => {
               if (renameValue.trim() && renameValue !== data.name) {
                 onRename && onRename(renameValue.trim());

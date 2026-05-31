@@ -7,6 +7,11 @@ import {
 import { UUID } from "../types/common/base";
 import { ColorInfo } from "../types/common/colors";
 import { BaseModel, ValidationResult, ValidationUtils } from "./base";
+import {
+  MAX_ITEM_DESCRIPTION_LENGTH,
+  MAX_WINDOWS_ITEM_NAME_LENGTH,
+} from "@/constants/validation";
+import { hasInvalidNameCharacters, sanitizeTagName } from "@/utils/format/name";
 
 export class TagModel extends BaseModel<Tag> {
   constructor(data: Tag) {
@@ -54,7 +59,7 @@ export class TagModel extends BaseModel<Tag> {
     if (this.isSystemTag()) {
       throw new Error("No se puede renombrar una etiqueta del sistema");
     }
-    this.data.name = name.trim();
+    this.data.name = sanitizeTagName(name);
     this.data.updatedAt = new Date();
   }
 
@@ -112,15 +117,23 @@ export class TagModel extends BaseModel<Tag> {
 
     const nameMaxLengthError = ValidationUtils.maxLength(
       this.data.name,
-      50,
+      MAX_WINDOWS_ITEM_NAME_LENGTH,
       "name",
     );
     if (nameMaxLengthError) errors.push(nameMaxLengthError);
 
+    if (this.data.name && hasInvalidNameCharacters(this.data.name)) {
+      errors.push({
+        field: "name",
+        message: "El nombre contiene caracteres no válidos",
+        code: "INVALID_CHARACTERS",
+      });
+    }
+
     if (this.data.description) {
       const descMaxLengthError = ValidationUtils.maxLength(
         this.data.description,
-        200,
+        MAX_ITEM_DESCRIPTION_LENGTH,
         "description",
       );
       if (descMaxLengthError) errors.push(descMaxLengthError);
@@ -170,9 +183,10 @@ export class TagFactory {
   /** Crea nueva etiqueta con configuración por defecto */
   static create(input: CreateTagInput): TagModel {
     const now = new Date();
+    const safeTagName = sanitizeTagName(input.name);
     const tag: Tag = {
       id: this.generateId(),
-      name: input.name.trim(),
+      name: safeTagName,
       color: input.color,
       type: input.type || "user",
       priority: input.priority || "normal",

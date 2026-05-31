@@ -2,13 +2,18 @@ import React, { useState } from "react";
 import { View, Text, TextInput } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
-import { useTheme } from "@/providers";
+import { useAlert, useTheme } from "@/providers";
 import { useColors } from "@/hooks";
 import { useFolderCreatorStyles } from "./styles";
 import { SYSTEM_COLORS } from "@/constants/themes/colors";
 import { FOLDER_ICONS } from "@/constants/folderIcons";
 import { ColorList } from "@/components/ColorPicker/ColorList";
 import type { ColorInfo } from "@/types/common/colors";
+import {
+  MAX_ITEM_DESCRIPTION_LENGTH,
+  MAX_WINDOWS_ITEM_NAME_LENGTH,
+} from "@/constants/validation";
+import { stripInvalidNameCharacters } from "@/utils/format/name";
 
 export interface NewFolder {
   name: string;
@@ -28,6 +33,7 @@ export default function FolderCreator({
   currentFolderId,
 }: FolderCreatorProps) {
   const { theme } = useTheme();
+  const { showAlert } = useAlert();
   const styles = useFolderCreatorStyles();
   const {
     colors,
@@ -52,11 +58,21 @@ export default function FolderCreator({
   const handleSave = async (): Promise<void> => {
     if (!canSave) return;
 
+    const trimmedDescription = description.trim();
+
+    if (trimmedDescription.length > MAX_ITEM_DESCRIPTION_LENGTH) {
+      showAlert({
+        title: "Descripción demasiado larga",
+        message: `No se puede crear o modificar la descripción si supera los ${MAX_ITEM_DESCRIPTION_LENGTH} caracteres.`,
+      });
+      return;
+    }
+
     const color = selectedColor;
 
     await onSave({
       name: folderName.trim(),
-      description: description.trim() || null,
+      description: trimmedDescription || null,
       color: color || SYSTEM_COLORS["yellow"],
       icon: selectedIcon,
       parentId: currentFolderId ?? "",
@@ -74,12 +90,19 @@ export default function FolderCreator({
         <TextInput
           style={[styles.textInput, nameFocused && styles.textInputFocused]}
           value={folderName}
-          onChangeText={setFolderName}
+          onChangeText={(text) =>
+            setFolderName(
+              stripInvalidNameCharacters(text).slice(
+                0,
+                MAX_WINDOWS_ITEM_NAME_LENGTH,
+              ),
+            )
+          }
           placeholder="Nombre de la carpeta"
           placeholderTextColor={theme.colors.textMuted}
           onFocus={() => setNameFocused(true)}
           onBlur={() => setNameFocused(false)}
-          maxLength={100}
+          maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
         />
       </View>
 
@@ -99,7 +122,7 @@ export default function FolderCreator({
           numberOfLines={3}
           onFocus={() => setDescFocused(true)}
           onBlur={() => setDescFocused(false)}
-          maxLength={300}
+          maxLength={MAX_ITEM_DESCRIPTION_LENGTH}
         />
       </View>
 

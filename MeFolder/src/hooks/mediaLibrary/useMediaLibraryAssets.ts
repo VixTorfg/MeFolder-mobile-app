@@ -24,38 +24,66 @@ export function useMediaLibraryAssets(
   const [isLoadingAssets, setIsLoadingAssets] = useState(false);
   const [isLoadingAlbums, setIsLoadingAlbums] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const isLimitedAccess = permission?.accessPrivileges === "limited";
+
+  const showExpoGoPermissionAlert = useCallback(() => {
+    showAlert({
+      title: "Expo Go no puede abrir toda la galería",
+      message:
+        "En Android, Expo Go ya no puede probar el acceso completo a la galería. Para validar esta funcionalidad usa un development build o una APK instalada.",
+    });
+  }, [showAlert]);
 
   const refreshPermission = useCallback(async () => {
-    const nextPermission = await MediaLibrary.getPermissionsAsync();
-    setPermission(nextPermission);
-    return nextPermission;
-  }, []);
-
-  const requestPermission = useCallback(async () => {
-    const nextPermission = await MediaLibrary.requestPermissionsAsync();
-    setPermission(nextPermission);
-    return nextPermission;
-  }, []);
-
-  const loadAssets = useCallback(async (after?: string) => {
-    setIsLoadingAssets(true);
     try {
-      const result = await MediaLibrary.getAssetsAsync({
-        first: 60,
-        ...(after ? { after } : {}),
-        mediaType: [MediaLibrary.MediaType.photo, MediaLibrary.MediaType.video],
-        sortBy: [MediaLibrary.SortBy.creationTime],
-      });
-
-      setAssets((prev) =>
-        after ? [...prev, ...result.assets] : result.assets,
-      );
-      setAssetsEndCursor(result.endCursor);
-      setHasNextPage(result.hasNextPage);
-    } finally {
-      setIsLoadingAssets(false);
+      const nextPermission = await MediaLibrary.getPermissionsAsync(false, [
+        "photo",
+        "video",
+      ]);
+      setPermission(nextPermission);
+      return nextPermission;
+    } catch {
+      return null;
     }
   }, []);
+
+  const loadAssets = useCallback(
+    async (after?: string) => {
+      setIsLoadingAssets(true);
+      try {
+        const result = await MediaLibrary.getAssetsAsync({
+          first: 60,
+          ...(after ? { after } : {}),
+          mediaType: [
+            MediaLibrary.MediaType.photo,
+            MediaLibrary.MediaType.video,
+          ],
+          // `creationTime` se apoya en DATE_TAKEN, que en Android solo rellenan
+          // de forma fiable las fotos de la cámara. `modificationTime` (DATE_MODIFIED)
+          // existe para todos los archivos, así que devuelve toda la galería.
+          sortBy: [MediaLibrary.SortBy.modificationTime],
+        });
+
+        setAssets((prev) =>
+          after ? [...prev, ...result.assets] : result.assets,
+        );
+        setAssetsEndCursor(result.endCursor);
+        setHasNextPage(result.hasNextPage);
+      } catch {
+        if (!after) {
+          setAssets([]);
+        }
+        showAlert({
+          title: "No se pudieron cargar los archivos",
+          message:
+            "La galería no devolvió la lista de archivos en este dispositivo.",
+        });
+      } finally {
+        setIsLoadingAssets(false);
+      }
+    },
+    [showAlert],
+  );
 
   const loadAlbums = useCallback(async () => {
     setIsLoadingAlbums(true);
@@ -76,6 +104,61 @@ export function useMediaLibraryAssets(
       setIsLoadingAlbums(false);
     }
   }, [showAlert]);
+
+  const requestPermission = useCallback(async () => {
+    try {
+      const nextPermission = await MediaLibrary.requestPermissionsAsync(false, [
+        "photo",
+        "video",
+      ]);
+      setPermission(nextPermission);
+      return nextPermission;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (message.includes("Expo Go can no longer provide full access")) {
+        showExpoGoPermissionAlert();
+      } else {
+        showAlert({
+          title: "No se pudo pedir acceso a la galería",
+          message:
+            "Inténtalo de nuevo o concede el permiso desde ajustes del sistema.",
+        });
+      }
+
+      return await refreshPermission();
+    }
+  }, [refreshPermission, showAlert, showExpoGoPermissionAlert]);
+
+  const openPermissionsPicker = useCallback(async () => {
+    try {
+      await MediaLibrary.presentPermissionsPickerAsync(["photo", "video"]);
+      const nextPermission = await refreshPermission();
+
+      if (nextPermission?.granted) {
+        await Promise.all([loadAssets(), loadAlbums()]);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+
+      if (message.includes("Expo Go")) {
+        showExpoGoPermissionAlert();
+        return;
+      }
+
+      showAlert({
+        title: "No se pudo ampliar el acceso",
+        message:
+          "Abre los ajustes del sistema y concede acceso completo a fotos y videos para ver toda tu galería.",
+      });
+    }
+  }, [
+    loadAlbums,
+    loadAssets,
+    refreshPermission,
+    showAlert,
+    showExpoGoPermissionAlert,
+  ]);
 
   useEffect(() => {
     void refreshPermission();
@@ -175,7 +258,9 @@ export function useMediaLibraryAssets(
     isLoadingAssets,
     isLoadingAlbums,
     isRefreshing,
+    isLimitedAccess,
     requestPermission,
+    openPermissionsPicker,
     refreshPermission,
     refresh,
     handleModeChange,

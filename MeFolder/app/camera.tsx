@@ -30,6 +30,7 @@ const TORCH_MODES = [
 
 const BOX_SHADOW_ELEVATION_10 = "0px 6px 18px rgba(0, 0, 0, 0.28)";
 const BOX_SHADOW_ELEVATION_20 = "0px 12px 28px rgba(0, 0, 0, 0.34)";
+const ICON_SHADOW_COLOR = "rgba(0, 0, 0, 0.45)";
 
 export default function CameraScreen() {
   const { width: windowWidth, height: windowHeight } = useWindowDimensions();
@@ -251,7 +252,12 @@ export default function CameraScreen() {
 
       {/* Botón cerrar */}
       <TouchableOpacity style={styles.closeButton} onPress={handleClose}>
-        <Ionicons name="close" size={28} color="white" />
+        <Ionicons
+          name="close"
+          size={28}
+          color="white"
+          style={styles.iconShadow}
+        />
       </TouchableOpacity>
 
       {isRecording && (
@@ -267,6 +273,7 @@ export default function CameraScreen() {
           name={flash.icon}
           size={28}
           color={flash.color}
+          style={styles.iconShadow}
         />
       </TouchableOpacity>
 
@@ -275,6 +282,7 @@ export default function CameraScreen() {
           name={torch.icon}
           size={28}
           color={torch.color}
+          style={styles.iconShadow}
         />
       </TouchableOpacity>
 
@@ -284,7 +292,12 @@ export default function CameraScreen() {
           style={styles.flipButton}
           onPress={toggleCameraFacing}
         >
-          <Ionicons name="camera-reverse-outline" size={28} color="white" />
+          <Ionicons
+            name="camera-reverse-outline"
+            size={28}
+            color="white"
+            style={styles.iconShadow}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -342,7 +355,6 @@ const styles = StyleSheet.create({
     left: 20,
     padding: 8,
     zIndex: 20,
-    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   filaContainer: {
     position: "absolute",
@@ -366,7 +378,9 @@ const styles = StyleSheet.create({
     fontFamily: lightTheme.typography.fontFamily.primary.semiBold,
     fontSize: 16,
     zIndex: 20,
-    boxShadow: BOX_SHADOW_ELEVATION_20,
+    textShadowColor: ICON_SHADOW_COLOR,
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 12,
   },
   flashButton: {
     position: "absolute",
@@ -374,7 +388,6 @@ const styles = StyleSheet.create({
     right: 20,
     padding: 8,
     zIndex: 20,
-    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   torchButton: {
     position: "absolute",
@@ -382,7 +395,6 @@ const styles = StyleSheet.create({
     right: 100,
     padding: 8,
     zIndex: 20,
-    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   buttonContainer: {
     position: "absolute",
@@ -393,7 +405,11 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     zIndex: 20,
-    boxShadow: BOX_SHADOW_ELEVATION_20,
+  },
+  iconShadow: {
+    textShadowColor: ICON_SHADOW_COLOR,
+    textShadowOffset: { width: 0, height: 4 },
+    textShadowRadius: 12,
   },
   flipButton: {
     width: 44,
@@ -409,6 +425,7 @@ const styles = StyleSheet.create({
     borderColor: "white",
     alignItems: "center",
     justifyContent: "center",
+    boxShadow: BOX_SHADOW_ELEVATION_20,
   },
   captureInner: {
     width: 58,

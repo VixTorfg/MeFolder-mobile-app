@@ -1,20 +1,23 @@
-import { useStyles } from '@/hooks';
+import { useStyles } from "@/hooks";
 
 export const useBreadcrumbStyles = () => {
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     container: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       paddingHorizontal: theme.spacing.md,
       paddingVertical: theme.spacing.sm,
+      maxWidth: "80%",
     },
     segment: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      flexDirection: "row",
+      alignItems: "center",
       flexShrink: 1,
+      minWidth: 0,
     },
     segmentButton: {
       flexShrink: 1,
+      minWidth: 0,
     },
     segmentText: {
       fontSize: theme.typography.fontSize.md,

@@ -17,6 +17,7 @@ import type {
   MediaImportProgress,
 } from "@/types/media";
 import type { UUID } from "@/types/common/base";
+import { sanitizeFileName } from "@/utils/format/name";
 import { FileService } from "../FileService";
 import { TagService } from "../TagService";
 import { FileSystemService } from "../filesystem/FileSystemService";
@@ -147,11 +148,12 @@ export class MediaImportService {
     tagIds: UUID[];
     folderId?: UUID | undefined;
   }): RegisterExistingMediaFile {
+    const sanitizedName = sanitizeFileName(args.file.name);
     const resolvedExt = this.resolveExtension(
       args.file.mimeType,
-      args.file.name,
+      sanitizedName,
     );
-    const fileNameWithExt = this.buildFileName(args.file.name, resolvedExt);
+    const fileNameWithExt = this.buildFileName(sanitizedName, resolvedExt);
     const destinationUri = this.fs.resolveUri(
       `${args.targetPath}/${fileNameWithExt}`,
     );
@@ -167,7 +169,7 @@ export class MediaImportService {
 
     return {
       id: args.file.id,
-      name: args.file.name,
+      name: fileNameWithExt,
       originalName: args.file.originalName,
       uri: copyResult.toUri,
       type: args.file.type,

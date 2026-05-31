@@ -26,6 +26,7 @@ import type {
   UUID,
 } from "@/types";
 import { EXTENSION_MIME_MAP } from "@/types/common/file-extensions";
+import { sanitizeFileName, sanitizeFolderName } from "@/utils/format/name";
 import { FileService } from "../FileService";
 import { FolderService } from "../FolderService";
 import { FileSystemService } from "../filesystem/FileSystemService";
@@ -40,6 +41,33 @@ import {
 } from "./archiveUtils";
 
 const SUPPORTED_FORMATS: readonly SupportedArchiveFormat[] = ["zip"];
+
+/**
+ * Límites defensivos frente a "ZIP bombs" (archivos maliciosos que se expanden
+ * hasta agotar memoria/almacenamiento) y rutas de tipo "Zip Slip" (entradas que
+ * intentan escribir fuera del destino). Se aplican tanto en la inspección como
+ * en la extracción. Ajusta los valores a las necesidades reales de la app.
+ */
+const ARCHIVE_EXTRACTION_LIMITS = {
+  /** Número máximo de entradas (archivos + carpetas) admitidas en el ZIP. */
+  maxEntries: 10_000,
+  /** Tamaño total descomprimido máximo permitido para todo el ZIP. */
+  maxTotalUncompressedBytes: 2 * 1024 * 1024 * 1024, // 2 GB
+  /** Tamaño descomprimido máximo por archivo individual. */
+  maxFileUncompressedBytes: 512 * 1024 * 1024, // 512 MB
+  /**
+   * Ratio de compresión por entrada (descomprimido / comprimido) a partir del
+   * cual se sospecha de una bomba. Un .txt repetido puede pasar de 1000:1.
+   */
+  maxCompressionRatio: 120,
+  /**
+   * El ratio solo se evalúa cuando el tamaño descomprimido supera este umbral,
+   * para no penalizar archivos pequeños que son legítimamente muy comprimibles.
+   */
+  compressionRatioFloorBytes: 1 * 1024 * 1024, // 1 MB
+  /** Profundidad máxima de anidamiento de rutas dentro del ZIP. */
+  maxPathDepth: 64,
+} as const;
 
 interface PreparedArchiveFileEntry {
   zipPath: string;
@@ -170,6 +198,12 @@ export class ArchiveService {
         );
       }
 
+      // Rechazamos archivos peligrosos antes de exponer su estructura.
+      const safetyError = this.detectArchiveSafetyError(zip.data);
+      if (safetyError) {
+        return this.fail(safetyError);
+      }
+
       const inspection = await this.buildInspection({
         zip: zip.data,
         format,
@@ -221,6 +255,14 @@ export class ArchiveService {
       }
 
       const zip = zipResult.data;
+
+      // Primera barrera anti ZIP bomb / Zip Slip: validamos los tamaños y rutas
+      // declarados en las cabeceras del ZIP antes de descomprimir nada.
+      const safetyError = this.detectArchiveSafetyError(zip);
+      if (safetyError) {
+        return this.fail(safetyError);
+      }
+
       const inspection = await this.buildInspection({
         zip,
         format,
@@ -280,6 +322,9 @@ export class ArchiveService {
       const zipEntries = this.indexZipFiles(zip);
       const totalEntries = directoryEntries.length + fileEntries.length;
       let processedEntries = 0;
+      // Segunda barrera anti ZIP bomb: contabiliza los bytes REALMENTE escritos.
+      // Cubre el caso en que las cabeceras del ZIP mientan sobre el tamaño.
+      let extractedBytes = 0;
 
       for (const directoryEntry of directoryEntries) {
         const parentArchivePath = getParentArchivePath(directoryEntry.path);
@@ -294,7 +339,7 @@ export class ArchiveService {
         }
 
         const createdFolder = await this.folderService.createFolder({
-          name: directoryEntry.name,
+          name: this.normalizeFolderName(directoryEntry.name),
           parentId: folderParentId,
           visibility: parentFolder.visibility as FolderVisibility,
         });
@@ -343,10 +388,23 @@ export class ArchiveService {
           );
         }
 
+        const safeFileName = sanitizeFileName(fileEntry.name);
         const targetUri = this.fs.resolveUri(
-          joinArchivePath(fileFolderPath, fileEntry.name),
+          joinArchivePath(fileFolderPath, safeFileName),
         );
         const base64Content = await zipFile.async("base64");
+
+        // Tope acumulado por el tamaño real ya descomprimido. Si lo superamos,
+        // abortamos: el catch dispara el rollback de lo escrito hasta ahora.
+        extractedBytes += this.approximateBase64Bytes(base64Content);
+        if (
+          extractedBytes > ARCHIVE_EXTRACTION_LIMITS.maxTotalUncompressedBytes
+        ) {
+          throw new Error(
+            "La extracción supera el tamaño máximo permitido; se aborta por posible ZIP bomb",
+          );
+        }
+
         const writeResult = this.fs.writeFile({
           uri: targetUri,
           content: base64Content,
@@ -373,7 +431,7 @@ export class ArchiveService {
         );
 
         const extractedFile = await this.fileService.createFile({
-          name: fileEntry.name,
+          name: safeFileName,
           originalName: fileEntry.name,
           extension: resolvedExtension as CreateFileInput["extension"],
           folderId: fileFolderId,
@@ -775,6 +833,152 @@ export class ArchiveService {
     return null;
   }
 
+  /**
+   * Aplica los límites anti "ZIP bomb" y anti "Zip Slip" sobre el contenido
+   * declarado en las cabeceras del ZIP, sin descomprimir nada todavía.
+   * Devuelve el primer error encontrado o `null` si el archivo es seguro.
+   */
+  private detectArchiveSafetyError(zip: JSZip): ArchiveOperationError | null {
+    let entryCount = 0;
+    let totalUncompressedBytes = 0;
+
+    for (const entryName of Object.keys(zip.files)) {
+      const entry = zip.files[entryName];
+      if (!entry) {
+        continue;
+      }
+
+      entryCount += 1;
+      if (entryCount > ARCHIVE_EXTRACTION_LIMITS.maxEntries) {
+        return {
+          code: "invalid_archive",
+          message: `El ZIP supera el máximo de ${ARCHIVE_EXTRACTION_LIMITS.maxEntries} entradas permitidas`,
+        };
+      }
+
+      if (this.isUnsafeArchivePath(entry.name)) {
+        return {
+          code: "invalid_archive",
+          message: `El ZIP contiene una ruta no segura y no se extraerá: ${entry.name}`,
+        };
+      }
+
+      if (
+        this.archivePathDepth(entry.name) >
+        ARCHIVE_EXTRACTION_LIMITS.maxPathDepth
+      ) {
+        return {
+          code: "invalid_archive",
+          message: `El ZIP contiene rutas demasiado anidadas: ${entry.name}`,
+        };
+      }
+
+      if (entry.dir) {
+        continue;
+      }
+
+      const sizes = this.readEntryDeclaredSizes(entry);
+      if (!sizes) {
+        continue;
+      }
+
+      if (
+        sizes.uncompressedSize >
+        ARCHIVE_EXTRACTION_LIMITS.maxFileUncompressedBytes
+      ) {
+        return {
+          code: "invalid_archive",
+          message: `La entrada ${entry.name} supera el tamaño máximo permitido por archivo`,
+        };
+      }
+
+      if (
+        sizes.compressedSize > 0 &&
+        sizes.uncompressedSize >
+          ARCHIVE_EXTRACTION_LIMITS.compressionRatioFloorBytes &&
+        sizes.uncompressedSize / sizes.compressedSize >
+          ARCHIVE_EXTRACTION_LIMITS.maxCompressionRatio
+      ) {
+        return {
+          code: "invalid_archive",
+          message: `La entrada ${entry.name} tiene un ratio de compresión sospechoso (posible ZIP bomb)`,
+        };
+      }
+
+      totalUncompressedBytes += sizes.uncompressedSize;
+      if (
+        totalUncompressedBytes >
+        ARCHIVE_EXTRACTION_LIMITS.maxTotalUncompressedBytes
+      ) {
+        return {
+          code: "invalid_archive",
+          message:
+            "El contenido descomprimido del ZIP supera el tamaño total permitido (posible ZIP bomb)",
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Lee los tamaños declarados (comprimido/descomprimido) de una entrada JSZip.
+   * Esta información vive en el campo interno `_data`, no expuesto en los tipos
+   * públicos, por eso accedemos a él de forma defensiva.
+   */
+  private readEntryDeclaredSizes(
+    entry: JSZip.JSZipObject,
+  ): { compressedSize: number; uncompressedSize: number } | null {
+    const data = (
+      entry as unknown as {
+        _data?: { compressedSize?: number; uncompressedSize?: number };
+      }
+    )._data;
+
+    if (!data || typeof data.uncompressedSize !== "number") {
+      return null;
+    }
+
+    return {
+      compressedSize:
+        typeof data.compressedSize === "number" ? data.compressedSize : 0,
+      uncompressedSize: data.uncompressedSize,
+    };
+  }
+
+  /** Detecta rutas absolutas, con unidad de Windows o con segmentos "..". */
+  private isUnsafeArchivePath(name: string): boolean {
+    if (!name) {
+      return false;
+    }
+
+    const normalized = name.replace(/\\/g, "/");
+
+    if (normalized.startsWith("/") || /^[a-zA-Z]:/.test(normalized)) {
+      return true;
+    }
+
+    return normalized.split("/").some((segment) => segment === "..");
+  }
+
+  /** Calcula la profundidad de anidamiento de una ruta del ZIP. */
+  private archivePathDepth(name: string): number {
+    return name
+      .replace(/\\/g, "/")
+      .split("/")
+      .filter((segment) => segment.length > 0).length;
+  }
+
+  /** Aproxima los bytes reales representados por una cadena base64. */
+  private approximateBase64Bytes(base64: string): number {
+    if (!base64) {
+      return 0;
+    }
+
+    const padding = base64.endsWith("==") ? 2 : base64.endsWith("=") ? 1 : 0;
+    return Math.max(0, Math.floor((base64.length * 3) / 4) - padding);
+  }
+
   /** Abre un archivo comprimido y lo carga como instancia de JSZip. */
   private async loadArchiveZip(
     archiveFile: ArchiveSourceFile,
@@ -1013,7 +1217,7 @@ export class ArchiveService {
 
   /** Valida y limpia nombres de carpeta generados o introducidos por el usuario. */
   private normalizeFolderName(name: string): string {
-    const trimmedName = name.trim();
+    const trimmedName = sanitizeFolderName(name, "Nueva carpeta");
     if (!trimmedName) {
       throw new Error("El nombre de carpeta no puede estar vacio");
     }

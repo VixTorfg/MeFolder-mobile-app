@@ -1,27 +1,31 @@
-import { StyleSheet } from 'react-native';
-import { useStyles } from '@/hooks';
+import { StyleSheet } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useStyles } from "@/hooks";
 
 export const useBottomSheetStyles = () => {
-  return useStyles(theme => ({
+  const insets = useSafeAreaInsets();
+
+  return useStyles((theme) => ({
     overlay: {
       ...StyleSheet.absoluteFillObject,
-      backgroundColor: 'rgba(0,0,0,0.5)',
+      backgroundColor: "rgba(0,0,0,0.5)",
     },
     containerWrapper: {
-      position: 'absolute',
+      position: "absolute",
       bottom: 0,
       left: 0,
       right: 0,
-      maxHeight: '90%',
+      maxHeight: "90%",
     },
     container: {
       backgroundColor: theme.colors.background,
       borderTopLeftRadius: theme.effects.radius.lg + 8,
       borderTopRightRadius: theme.effects.radius.lg + 8,
       paddingHorizontal: theme.spacing.lg,
+      paddingBottom: Math.max(insets.bottom, theme.spacing.md),
     },
     handleZone: {
-      alignItems: 'center',
+      alignItems: "center",
       paddingVertical: theme.spacing.md,
     },
     handle: {
@@ -31,24 +35,24 @@ export const useBottomSheetStyles = () => {
       borderRadius: theme.effects.radius.exs,
     },
     header: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
+      flexDirection: "row",
+      alignItems: "center",
+      justifyContent: "space-between",
       marginBottom: theme.spacing.lg,
     },
     headerTitle: {
       fontSize: theme.typography.fontSize.xl,
       fontFamily: theme.typography.fontFamily.title.bold,
       color: theme.colors.textPrimary,
-      maxWidth: '80%',
+      maxWidth: "80%",
     },
     closeButton: {
       width: 36,
       height: 36,
       borderRadius: theme.effects.radius.md,
       backgroundColor: theme.colors.subCard,
-      alignItems: 'center',
-      justifyContent: 'center',
+      alignItems: "center",
+      justifyContent: "center",
     },
   }));
 };

@@ -1,66 +1,99 @@
-import { useStyles } from '@/hooks';
-import { cardShadow } from '@/constants/styles/shadows';
-
+import { useStyles } from "@/hooks";
+import { cardShadow } from "@/constants/styles/shadows";
 
 export const useSortDropDownStyles = (responsive: {
-    iconSize: number, 
-    padding: number, 
-    tabPadding: number
+  iconSize: number;
+  padding: number;
+  tabPadding: number;
 }) => {
-  const horizantalPadding = responsive.padding - 12;
-  return useStyles(theme => ({
+  return useStyles((theme) => ({
     modalOverlay: {
       flex: 1,
       backgroundColor: theme.effects.shadowColor.default,
     },
     dropdownContainer: {
-      position: 'absolute',
-      top: '10%', 
+      position: "absolute",
+      top: "10%",
       right: 16,
       zIndex: 1000,
     },
     dropdown: {
       ...cardShadow(theme),
       borderWidth: theme.effects.borderWidth.xs,
-      backgroundColor: theme.colors.background,
-      borderRadius: 8,
-      minWidth: 200,
+      backgroundColor: theme.colors.surface,
+      borderRadius: theme.effects.radius.lg,
+      minWidth: 228,
+      maxWidth: 292,
       borderColor: theme.colors.borderSoft,
+      paddingVertical: theme.spacing.xs,
+      overflow: "hidden",
     },
 
     dropdownHeader: {
-      paddingHorizontal: horizantalPadding,
-      paddingVertical: responsive.padding / 2,
-      borderBottomWidth: theme.effects.borderWidth.md,
+      paddingHorizontal: theme.spacing.md,
+      paddingTop: theme.spacing.sm,
+      paddingBottom: theme.spacing.sm,
+      borderBottomWidth: theme.effects.borderWidth.xs,
       borderBottomColor: theme.colors.borderSoft,
     },
+    headerTextGroup: {},
     dropdownTitle: {
       fontFamily: theme.typography.fontFamily.title.semiBold,
-      fontSize: responsive.iconSize * 0.55,
+      fontSize: responsive.iconSize * 0.56,
       color: theme.colors.textPrimary,
     },
+    sectionLabel: {
+      paddingHorizontal: theme.spacing.md,
+      paddingTop: theme.spacing.sm,
+      paddingBottom: theme.spacing.xs,
+      fontFamily: theme.typography.fontFamily.primary.medium,
+      fontSize: responsive.iconSize * 0.3,
+      color: theme.colors.textMuted,
+      textTransform: "uppercase",
+      letterSpacing: 0.4,
+    },
     dropdownItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: horizantalPadding,
-      paddingVertical: responsive.padding / 2,
-      gap: 12,
+      flexDirection: "row",
+      alignItems: "center",
+      marginHorizontal: theme.spacing.xs,
+      marginVertical: 2,
+      paddingHorizontal: theme.spacing.sm,
+      paddingVertical: theme.spacing.sm,
+      gap: theme.spacing.sm,
+      minHeight: 54,
+      borderRadius: theme.effects.radius.md,
+      borderWidth: theme.effects.borderWidth.xs,
+      borderColor: theme.colors.borderSoft,
+      backgroundColor: theme.colors.background,
     },
     selectedItem: {
       backgroundColor: theme.colors.primarySoft,
-      borderRadius: 8,
+      borderColor: theme.colors.primary,
     },
     selectedIconColor: {
-      color: theme.colors.primary,
+      color: theme.colors.textOnColor,
     },
-    IconColor:{
+    IconColor: {
       color: theme.colors.textPrimary,
+    },
+    itemIconWrapper: {
+      width: 34,
+      height: 34,
+      borderRadius: theme.effects.radius.md,
+      alignItems: "center",
+      justifyContent: "center",
+      backgroundColor: theme.colors.surface,
+    },
+    selectedItemIconWrapper: {
+      backgroundColor: theme.colors.primary,
+    },
+    itemTextGroup: {
+      flex: 1,
     },
     itemText: {
-      flex: 1,
       fontSize: responsive.iconSize / 2,
       color: theme.colors.textPrimary,
-      fontFamily: theme.typography.fontFamily.primary.regular,
+      fontFamily: theme.typography.fontFamily.primary.medium,
     },
     selectedItemText: {
       color: theme.colors.primary,
@@ -75,6 +108,8 @@ export const useSortDropDownStyles = (responsive: {
     divider: {
       height: 1,
       backgroundColor: theme.colors.borderSoft,
+      marginHorizontal: theme.spacing.md,
+      marginVertical: theme.spacing.xs,
     },
   }));
 };

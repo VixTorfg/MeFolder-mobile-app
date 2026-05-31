@@ -146,7 +146,9 @@ export default function OptionDropDown({
               ]}
             >
               <View style={styles.dropdownHeader}>
-                <Text style={styles.dropdownTitle}>Ver Más</Text>
+                <View style={styles.headerTextGroup}>
+                  <Text style={styles.dropdownTitle}>Ver más</Text>
+                </View>
               </View>
               {options.map((option) => (
                 <TouchableOpacity
@@ -158,12 +160,16 @@ export default function OptionDropDown({
                   ]}
                   onPress={() => handleSelect(option)}
                 >
-                  <Ionicons
-                    name={option.icon}
-                    size={responsive.iconSize * 0.55}
-                    style={styles.IconColor}
-                  />
-                  <Text style={styles.itemText}>{option.name}</Text>
+                  <View style={styles.itemIconWrapper}>
+                    <Ionicons
+                      name={option.icon}
+                      size={responsive.iconSize * 0.5}
+                      style={styles.IconColor}
+                    />
+                  </View>
+                  <View style={styles.itemTextGroup}>
+                    <Text style={styles.itemText}>{option.name}</Text>
+                  </View>
                 </TouchableOpacity>
               ))}
             </Animated.View>

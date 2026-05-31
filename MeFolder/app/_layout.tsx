@@ -7,17 +7,37 @@ import {
 } from "@/providers";
 import { useFonts } from "expo-font";
 import { fontAssets } from "@/constants/fonts";
-import { ActivityIndicator, View, Text, StyleSheet } from "react-native";
+import { darkTheme, lightTheme, typography } from "@/constants/themes";
+import {
+  ActivityIndicator,
+  View,
+  Text,
+  StyleSheet,
+  useColorScheme,
+} from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import SplashLogo from "@/components/svgIcons/splashLogo";
+
+const SPLASH_BACKGROUND = "#f1f2eb";
+const SPLASH_BACKGROUND_DARK = "#000000";
 
 /** Pantalla de carga durante el arranque */
 function LoadingScreen() {
+  const colorScheme = useColorScheme();
+  const isDark = colorScheme === "dark";
+  const spinnerColor = isDark
+    ? darkTheme.colors.primary
+    : lightTheme.colors.primary;
+
   return (
-    <View style={styles.center}>
-      <ActivityIndicator size="large" />
-      <Text style={styles.loadingText}>Iniciando MeFolder&hellip;</Text>
+    <View style={[styles.center, isDark && styles.centerDark]}>
+      <SplashLogo width={200} height={164} style={styles.logo} />
+      <ActivityIndicator size="large" color={spinnerColor} />
+      <Text style={[styles.loadingText, isDark && styles.loadingTextDark]}>
+        Cargando informacion&hellip;
+      </Text>
     </View>
   );
 }
@@ -83,12 +103,24 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 24,
-    backgroundColor: "#fff",
+    backgroundColor: SPLASH_BACKGROUND,
+  },
+  centerDark: {
+    backgroundColor: SPLASH_BACKGROUND_DARK,
+  },
+  logo: {
+    width: 200,
+    height: 200,
+    marginBottom: 24,
   },
   loadingText: {
     marginTop: 16,
-    fontSize: 16,
+    fontSize: typography.fontSize.md,
     color: "#666",
+    fontFamily: typography.fontFamily.primary.regular,
+  },
+  loadingTextDark: {
+    color: "#fff",
   },
   errorTitle: {
     fontSize: 20,

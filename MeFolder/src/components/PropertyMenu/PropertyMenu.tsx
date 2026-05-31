@@ -102,7 +102,7 @@ export const PropertyMenu = ({ item, visible, onClose }: PropertyMenuProps) => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentInset={{ bottom: bottomInset }}
+        contentContainerStyle={{ paddingBottom: bottomInset }}
       >
         {isFile && (
           <FilePropertyMenu

@@ -18,11 +18,11 @@ import { FileModel } from "@/models/file";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { FlashList } from "@shopify/flash-list";
 import { cardShadow } from "@/constants/styles/shadows";
-import EmptyFolder from "@/components/svgIcons/emptyFolder";
 import { useFilesInTag } from "@/hooks/tags/useFilesInTag";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useContentTagActions } from "@/hooks/tags/useContentTagActions";
 import { useTagContentStore } from "@/stores/useTagContentStore";
+import EmptyTag from "@/components/svgIcons/emptyTag";
 
 export default function TagsContent() {
   const [showMenu, setShowMenu] = useState(false);
@@ -238,7 +238,12 @@ export default function TagsContent() {
 
   const renderTagContentItem = useCallback(
     ({ item }: { item: FileModel }) => (
-      <View style={styles.cardWrapper}>
+      <View
+        style={[
+          styles.cardWrapper,
+          selectedView === "grid" && styles.gridCardWrapper,
+        ]}
+      >
         <ViewCards
           data={item}
           viewConfig={selectedView}
@@ -353,7 +358,13 @@ export default function TagsContent() {
       </View>
 
       <View style={styles.headerBreadcrumb}>
-        <Text style={styles.headerBreadcrumbText}>{tagName}</Text>
+        <Text
+          style={styles.headerBreadcrumbText}
+          numberOfLines={1}
+          ellipsizeMode="tail"
+        >
+          {tagName}
+        </Text>
       </View>
 
       {loading ? (
@@ -368,11 +379,11 @@ export default function TagsContent() {
       ) : sortedItems.length === 0 ? (
         <View style={styles.footerEmptyContainer}>
           <View style={styles.emptyFolderIconContainer}>
-            <EmptyFolder
-              strokeWidth={0.35}
-              width={120}
-              height={120}
-              folderColor={styles.iconColor.color}
+            <EmptyTag
+              strokeWidth={7}
+              width={135}
+              height={135}
+              tagColor={styles.iconColor.color}
               crossColor={styles.iconColor.primaryColor}
             />
             <Text style={styles.emptyFolderText}>La etiqueta está vacía</Text>
@@ -462,6 +473,9 @@ const useTagsContentStyles = () => {
       alignItems: "center",
       paddingBottom: theme.spacing.sm,
     },
+    gridCardWrapper: {
+      paddingHorizontal: 5,
+    },
     volverButton: {
       ...cardShadow(theme),
       backgroundColor: theme.colors.primary,
@@ -501,6 +515,8 @@ const useTagsContentStyles = () => {
       fontSize: 34,
       fontFamily: theme.typography.fontFamily.title.semiBold,
       color: theme.colors.textPrimary,
+      maxWidth: "80%",
+      textAlign: "center",
     },
   }));
 };

@@ -1,6 +1,9 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStyles } from "@/hooks/useStyles";
 
 export const useAudioPlayerStyles = () => {
+  const insets = useSafeAreaInsets();
+
   return useStyles((theme) => ({
     overlay: {
       flex: 1,
@@ -10,7 +13,7 @@ export const useAudioPlayerStyles = () => {
       flexDirection: "row" as const,
       alignItems: "center" as const,
       justifyContent: "space-between" as const,
-      paddingTop: 50,
+      paddingTop: Math.max(insets.top + theme.spacing.sm, 50),
       paddingHorizontal: theme.spacing.md,
       paddingBottom: theme.spacing.sm,
     },
@@ -19,6 +22,9 @@ export const useAudioPlayerStyles = () => {
       height: 44,
       alignItems: "center" as const,
       justifyContent: "center" as const,
+    },
+    headerButtonDisabled: {
+      opacity: 0.45,
     },
     headerTitle: {
       flex: 1,
@@ -43,7 +49,7 @@ export const useAudioPlayerStyles = () => {
     },
     controlsContainer: {
       paddingHorizontal: theme.spacing.lg,
-      paddingBottom: theme.spacing.xxl,
+      paddingBottom: insets.bottom + theme.spacing.xxl,
       gap: theme.spacing.md,
     },
     // Área de toque ampliada — hace más fácil pulsar y arrastrar

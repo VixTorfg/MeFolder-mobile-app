@@ -150,8 +150,11 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
   async getTaggedFiles(tagId: UUID): Promise<UUID[]> {
     try {
       const rows = await this.db.query<{ file_id: UUID }>(
-        "SELECT file_id FROM file_tags WHERE tag_id = ?",
-        [tagId],
+        `SELECT ft.file_id
+         FROM file_tags ft
+         INNER JOIN files f ON f.id = ft.file_id
+         WHERE ft.tag_id = ? AND f.status != ?`,
+        [tagId, "deleted"],
       );
       return rows.map((row) => row.file_id);
     } catch (error) {
@@ -173,10 +176,10 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
       const rows = await this.db.query<any>(
         `SELECT f.* FROM files f
          INNER JOIN file_tags ft ON f.id = ft.file_id
-         WHERE ft.tag_id = ?
+         WHERE ft.tag_id = ? AND f.status != ?
          ORDER BY f.created_at DESC
          LIMIT ? OFFSET ?`,
-        [tagId, pageSize, offset],
+        [tagId, "deleted", pageSize, offset],
       );
 
       return rows.map((row) => this.mapRowToFile(row));
@@ -192,8 +195,11 @@ export class TagAssignmentRepositoryImplementation implements TagAssignmentRepos
   async getTagUsageInFiles(tagId: UUID): Promise<number> {
     try {
       const [result] = await this.db.query<{ count: number }>(
-        "SELECT COUNT(*) as count FROM file_tags WHERE tag_id = ?",
-        [tagId],
+        `SELECT COUNT(*) as count
+         FROM file_tags ft
+         INNER JOIN files f ON f.id = ft.file_id
+         WHERE ft.tag_id = ? AND f.status != ?`,
+        [tagId, "deleted"],
       );
       return result?.count || 0;
     } catch (error) {
