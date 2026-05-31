@@ -32,21 +32,23 @@ export default function SortDropDown({
   const selectedOrderOption = defaultOrderByValue;
 
   const orderOptions: {
-    id: string;
+    id: FolderSortBy;
     name: string;
+    icon: keyof typeof Ionicons.glyphMap;
   }[] = [
-    { id: "name", name: "Nombre" },
-    { id: "date", name: "Fecha" },
-    { id: "size", name: "Tamaño" },
-    { id: "type", name: "Tipo" },
+    { id: "name", name: "Nombre", icon: "text-outline" },
+    { id: "date", name: "Fecha", icon: "calendar-outline" },
+    { id: "size", name: "Tamaño", icon: "resize-outline" },
+    { id: "type", name: "Tipo", icon: "pricetag-outline" },
   ];
 
   const sortOptions: {
-    id: string;
+    id: FolderSortOrder;
     name: string;
+    icon: keyof typeof Ionicons.glyphMap;
   }[] = [
-    { id: "asc", name: "Ascendente" },
-    { id: "desc", name: "Descendente" },
+    { id: "asc", name: "Ascendente", icon: "arrow-up-outline" },
+    { id: "desc", name: "Descendente", icon: "arrow-down-outline" },
   ];
 
   const styles = useSortDropDownStyles(responsive);
@@ -73,12 +75,12 @@ export default function SortDropDown({
     }
   };
 
-  const handleSelectOrderOption = (option: any) => {
+  const handleSelectOrderOption = (option: (typeof orderOptions)[number]) => {
     onChangeOrderBy?.(option.id);
     toggleDropdown();
   };
 
-  const handleSelectSortOption = (option: any) => {
+  const handleSelectSortOption = (option: (typeof sortOptions)[number]) => {
     onChangeSortValue?.(option.id);
     toggleDropdown();
   };
@@ -122,8 +124,11 @@ export default function SortDropDown({
               ]}
             >
               <View style={styles.dropdownHeader}>
-                <Text style={styles.dropdownTitle}>Ordenar</Text>
+                <View style={styles.headerTextGroup}>
+                  <Text style={styles.dropdownTitle}>Ordenar</Text>
+                </View>
               </View>
+              <Text style={styles.sectionLabel}>Campo</Text>
               {orderOptions.map((option) => (
                 <TouchableOpacity
                   key={option.id}
@@ -133,25 +138,45 @@ export default function SortDropDown({
                   ]}
                   onPress={() => handleSelectOrderOption(option)}
                 >
-                  <Text
+                  <View
                     style={[
-                      styles.itemText,
+                      styles.itemIconWrapper,
                       selectedOrderOption === option.id &&
-                        styles.selectedItemText,
+                        styles.selectedItemIconWrapper,
                     ]}
                   >
-                    {option.name}
-                  </Text>
+                    <Ionicons
+                      name={option.icon}
+                      size={responsive.iconSize * 0.5}
+                      style={[
+                        styles.IconColor,
+                        selectedOrderOption === option.id &&
+                          styles.selectedIconColor,
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.itemTextGroup}>
+                    <Text
+                      style={[
+                        styles.itemText,
+                        selectedOrderOption === option.id &&
+                          styles.selectedItemText,
+                      ]}
+                    >
+                      {option.name}
+                    </Text>
+                  </View>
                   {selectedOrderOption === option.id && (
                     <Ionicons
-                      name={"ellipse"}
-                      size={responsive.iconSize * 0.25}
+                      name={"checkmark-circle"}
+                      size={responsive.iconSize * 0.42}
                       style={styles.checkmark}
                     />
                   )}
                 </TouchableOpacity>
               ))}
               <View style={styles.divider} />
+              <Text style={styles.sectionLabel}>Dirección</Text>
               {sortOptions.map((option) => (
                 <TouchableOpacity
                   key={option.id}
@@ -161,19 +186,38 @@ export default function SortDropDown({
                   ]}
                   onPress={() => handleSelectSortOption(option)}
                 >
-                  <Text
+                  <View
                     style={[
-                      styles.itemText,
+                      styles.itemIconWrapper,
                       selectedSortValue === option.id &&
-                        styles.selectedItemText,
+                        styles.selectedItemIconWrapper,
                     ]}
                   >
-                    {option.name}
-                  </Text>
+                    <Ionicons
+                      name={option.icon}
+                      size={responsive.iconSize * 0.5}
+                      style={[
+                        styles.IconColor,
+                        selectedSortValue === option.id &&
+                          styles.selectedIconColor,
+                      ]}
+                    />
+                  </View>
+                  <View style={styles.itemTextGroup}>
+                    <Text
+                      style={[
+                        styles.itemText,
+                        selectedSortValue === option.id &&
+                          styles.selectedItemText,
+                      ]}
+                    >
+                      {option.name}
+                    </Text>
+                  </View>
                   {selectedSortValue === option.id && (
                     <Ionicons
-                      name={"ellipse"}
-                      size={responsive.iconSize * 0.25}
+                      name={"checkmark-circle"}
+                      size={responsive.iconSize * 0.42}
                       style={styles.checkmark}
                     />
                   )}

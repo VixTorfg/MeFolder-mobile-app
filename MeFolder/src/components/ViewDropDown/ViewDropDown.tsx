@@ -9,6 +9,7 @@ import {
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { getResponsiveSize } from "@/utils/ui/responsive";
+import { useTheme } from "@/providers";
 import { MultiActionButton } from "../MultiActionButton";
 import { useRef, useState } from "react";
 import { useViewDropDownStyles } from "./styles";
@@ -37,6 +38,7 @@ export default function ViewDropDown({
 }: ViewDropDownProps = {}) {
   const { width: screenWidth } = useWindowDimensions();
   const responsive = getResponsiveSize(screenWidth);
+  const { theme } = useTheme();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [showOptionsPanel, setShowOptionsPanel] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -80,7 +82,11 @@ export default function ViewDropDown({
     }
   };
 
-  const selectViewMode = (mode: any) => {
+  const selectViewMode = (mode: {
+    id: FolderViewMode;
+    name: string;
+    icon: keyof typeof Ionicons.glyphMap;
+  }) => {
     onChange?.(mode);
     toggleDropdown();
   };
@@ -127,11 +133,7 @@ export default function ViewDropDown({
                 <>
                   <View style={styles.dropdownHeader}>
                     <TouchableOpacity
-                      style={{
-                        flexDirection: "row",
-                        alignItems: "center",
-                        gap: 4,
-                      }}
+                      style={styles.headerBackButton}
                       onPress={() => setShowOptionsPanel(false)}
                     >
                       <Ionicons
@@ -139,16 +141,22 @@ export default function ViewDropDown({
                         size={responsive.iconSize * 0.45}
                         style={styles.IconColor}
                       />
-                      <Text style={styles.dropdownTitle}>Mostrar</Text>
+                      <View style={styles.headerTextGroup}>
+                        <Text style={styles.dropdownTitle}>Mostrar</Text>
+                      </View>
                     </TouchableOpacity>
                   </View>
-                  <View style={styles.dropdownItem}>
-                    <Ionicons
-                      name="text-outline"
-                      size={responsive.iconSize * 0.55}
-                      style={styles.IconColor}
-                    />
-                    <Text style={styles.itemText}>Extensiones</Text>
+                  <View style={[styles.dropdownItem, styles.switchItem]}>
+                    <View style={styles.itemIconWrapper}>
+                      <Ionicons
+                        name="text-outline"
+                        size={responsive.iconSize * 0.5}
+                        style={styles.IconColor}
+                      />
+                    </View>
+                    <View style={styles.itemTextGroup}>
+                      <Text style={styles.itemText}>Extensiones</Text>
+                    </View>
                     <Switch
                       value={viewOptions.showExtension}
                       onValueChange={(value) =>
@@ -157,15 +165,25 @@ export default function ViewDropDown({
                           showExtension: value,
                         })
                       }
+                      trackColor={{
+                        false: theme.colors.borderSoft,
+                        true: theme.colors.primary,
+                      }}
+                      thumbColor={theme.colors.surface}
+                      ios_backgroundColor={theme.colors.borderSoft}
                     />
                   </View>
-                  <View style={styles.dropdownItem}>
-                    <Ionicons
-                      name="eye-off-outline"
-                      size={responsive.iconSize * 0.55}
-                      style={styles.IconColor}
-                    />
-                    <Text style={styles.itemText}>Archivos ocultos</Text>
+                  <View style={[styles.dropdownItem, styles.switchItem]}>
+                    <View style={styles.itemIconWrapper}>
+                      <Ionicons
+                        name="eye-off-outline"
+                        size={responsive.iconSize * 0.5}
+                        style={styles.IconColor}
+                      />
+                    </View>
+                    <View style={styles.itemTextGroup}>
+                      <Text style={styles.itemText}>Archivos ocultos</Text>
+                    </View>
                     <Switch
                       value={viewOptions.showHiddenFiles}
                       onValueChange={(value) =>
@@ -174,13 +192,21 @@ export default function ViewDropDown({
                           showHiddenFiles: value,
                         })
                       }
+                      trackColor={{
+                        false: theme.colors.borderSoft,
+                        true: theme.colors.primary,
+                      }}
+                      thumbColor={theme.colors.surface}
+                      ios_backgroundColor={theme.colors.borderSoft}
                     />
                   </View>
                 </>
               ) : (
                 <>
                   <View style={styles.dropdownHeader}>
-                    <Text style={styles.dropdownTitle}>Ver</Text>
+                    <View style={styles.headerTextGroup}>
+                      <Text style={styles.dropdownTitle}>Vista</Text>
+                    </View>
                   </View>
                   {viewModes.map((mode) => (
                     <TouchableOpacity
@@ -191,28 +217,38 @@ export default function ViewDropDown({
                       ]}
                       onPress={() => selectViewMode(mode)}
                     >
-                      <Ionicons
-                        name={mode.icon}
-                        size={responsive.iconSize * 0.55}
+                      <View
                         style={[
-                          styles.IconColor,
+                          styles.itemIconWrapper,
                           selectedViewMode === mode.id &&
-                            styles.selectedIconColor,
-                        ]}
-                      />
-                      <Text
-                        style={[
-                          styles.itemText,
-                          selectedViewMode === mode.id &&
-                            styles.selectedItemText,
+                            styles.selectedItemIconWrapper,
                         ]}
                       >
-                        {mode.name}
-                      </Text>
+                        <Ionicons
+                          name={mode.icon}
+                          size={responsive.iconSize * 0.5}
+                          style={[
+                            styles.IconColor,
+                            selectedViewMode === mode.id &&
+                              styles.selectedIconColor,
+                          ]}
+                        />
+                      </View>
+                      <View style={styles.itemTextGroup}>
+                        <Text
+                          style={[
+                            styles.itemText,
+                            selectedViewMode === mode.id &&
+                              styles.selectedItemText,
+                          ]}
+                        >
+                          {mode.name}
+                        </Text>
+                      </View>
                       {selectedViewMode === mode.id && (
                         <Ionicons
-                          name={"ellipse"}
-                          size={responsive.iconSize * 0.25}
+                          name={"checkmark-circle"}
+                          size={responsive.iconSize * 0.42}
                           style={styles.checkmark}
                         />
                       )}
@@ -222,16 +258,20 @@ export default function ViewDropDown({
                     style={styles.dropdownItem}
                     onPress={() => setShowOptionsPanel(true)}
                   >
-                    <Ionicons
-                      name="options-outline"
-                      size={responsive.iconSize * 0.55}
-                      style={styles.IconColor}
-                    />
-                    <Text style={styles.itemText}>Mostrar</Text>
+                    <View style={styles.itemIconWrapper}>
+                      <Ionicons
+                        name="options-outline"
+                        size={responsive.iconSize * 0.5}
+                        style={styles.IconColor}
+                      />
+                    </View>
+                    <View style={styles.itemTextGroup}>
+                      <Text style={styles.itemText}>Mostrar</Text>
+                    </View>
                     <Ionicons
                       name="chevron-forward-outline"
                       size={responsive.iconSize * 0.45}
-                      style={styles.IconColor}
+                      style={styles.trailingIcon}
                     />
                   </TouchableOpacity>
                 </>

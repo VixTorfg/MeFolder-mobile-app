@@ -1,6 +1,9 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStyles } from "@/hooks/useStyles";
 
 export const useVideoPlayerStyles = () => {
+  const insets = useSafeAreaInsets();
+
   return useStyles((theme) => ({
     container: {
       flex: 1,
@@ -33,7 +36,7 @@ export const useVideoPlayerStyles = () => {
     /* ── Skip indicator (YouTube-style) ─────────────────────── */
     skipIndicator: {
       position: "absolute" as const,
-      top: "40%" as const,
+      top: "48.5%" as const,
       width: 72,
       height: 72,
       borderRadius: 36,
@@ -48,10 +51,11 @@ export const useVideoPlayerStyles = () => {
       right: "15%" as const,
     },
     skipText: {
+      position: "absolute" as const,
+      bottom: 8,
       fontSize: theme.typography.fontSize.xs,
       fontFamily: theme.typography.fontFamily.primary.semiBold,
       color: "#FFFFFF",
-      marginTop: 2,
     },
 
     /* ── Overlays ───────────────────────────────────────────── */
@@ -78,7 +82,7 @@ export const useVideoPlayerStyles = () => {
       flexDirection: "row" as const,
       alignItems: "center" as const,
       justifyContent: "space-between" as const,
-      paddingTop: 50,
+      paddingTop: Math.max(insets.top + theme.spacing.sm, 50),
       paddingHorizontal: theme.spacing.md,
       paddingBottom: theme.spacing.sm,
       backgroundColor: "rgba(0,0,0,0.4)",
@@ -88,6 +92,14 @@ export const useVideoPlayerStyles = () => {
       height: 44,
       alignItems: "center" as const,
       justifyContent: "center" as const,
+    },
+    headerBtnDisabled: {
+      opacity: 0.45,
+    },
+    headerActions: {
+      flexDirection: "row" as const,
+      alignItems: "center" as const,
+      gap: theme.spacing.xs,
     },
     headerTitle: {
       flex: 1,
@@ -115,7 +127,7 @@ export const useVideoPlayerStyles = () => {
     /* ── Bottom controls ────────────────────────────────────── */
     bottom: {
       paddingHorizontal: theme.spacing.md,
-      paddingBottom: theme.spacing.xl,
+      paddingBottom: insets.bottom + theme.spacing.xl,
       backgroundColor: "rgba(0,0,0,0.4)",
     },
     progressTouchArea: {

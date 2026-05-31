@@ -30,6 +30,8 @@ interface DatabaseProviderProps {
 }
 
 const DatabaseContext = createContext<DatabaseContextType | null>(null);
+const DATABASE_PROVIDER_LOG_PREFIX = "[Database]";
+const DATABASE_MIGRATIONS_LOG_PREFIX = "[Database-Migrations]";
 
 /**
  * Hook para acceder al contexto de la base de datos.
@@ -52,7 +54,7 @@ export const useDatabase = (): DatabaseContextType => {
  * Ejecuta todas las migraciones de base de datos en orden.
  */
 const runMigrations = async (): Promise<void> => {
-  console.log("Ejecutando migraciones...");
+  console.log(`${DATABASE_MIGRATIONS_LOG_PREFIX} Ejecutando migraciones...`);
 
   const migrationSteps = [
     createFoldersTable,
@@ -67,7 +69,9 @@ const runMigrations = async (): Promise<void> => {
     await step();
   }
 
-  console.log("Migraciones completadas exitosamente");
+  console.log(
+    `${DATABASE_MIGRATIONS_LOG_PREFIX} Migraciones completadas exitosamente`,
+  );
 };
 
 /**
@@ -99,20 +103,25 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
       setIsReady(false);
       setError(null);
 
-      console.log("DatabaseProvider: Iniciando inicialización...");
+      console.log(
+        `${DATABASE_PROVIDER_LOG_PREFIX} Iniciando inicializacion...`,
+      );
 
       await database.initialize();
       await runMigrations();
 
       setIsReady(true);
-      console.log("DatabaseProvider: Base de datos lista");
+      console.log(`${DATABASE_PROVIDER_LOG_PREFIX} Base de datos lista`);
     } catch (err) {
       const initError =
         err instanceof Error
           ? err
           : new Error("Error desconocido al inicializar la base de datos");
 
-      console.error("DatabaseProvider: Error de inicialización:", initError);
+      console.error(
+        `${DATABASE_PROVIDER_LOG_PREFIX} Error de inicializacion:`,
+        initError,
+      );
       setError(initError);
     }
   }, [database]);
@@ -122,7 +131,9 @@ export const DatabaseProvider: React.FC<DatabaseProviderProps> = ({
   }, [initializeDatabase]);
 
   const retry = useCallback(() => {
-    console.log("DatabaseProvider: Reintentando inicialización...");
+    console.log(
+      `${DATABASE_PROVIDER_LOG_PREFIX} Reintentando inicializacion...`,
+    );
     void initializeDatabase();
   }, [initializeDatabase]);
 

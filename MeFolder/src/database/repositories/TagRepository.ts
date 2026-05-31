@@ -12,6 +12,14 @@ import { ColorInfo } from "../../types/common/colors";
 import { TagRepository, TagTreeNode } from "../../types/repositories/tag";
 import { ViewSettings } from "../../types/entities/folder";
 
+const ACTIVE_USAGE_COUNT_SQL = `(
+  SELECT COUNT(*)
+  FROM file_tags ft
+  INNER JOIN files f ON f.id = ft.file_id
+  WHERE ft.tag_id = tags.id
+    AND f.status != 'deleted'
+)`;
+
 /**
  * Implementación del repositorio de etiquetas.
  * Maneja operaciones CRUD y gestión jerárquica de etiquetas
@@ -29,7 +37,9 @@ export class TagRepositoryImplementation implements TagRepository {
   async findById(id: UUID): Promise<Tag | null> {
     try {
       const [row] = await this.db.query<any>(
-        "SELECT * FROM tags WHERE id = ? AND is_active = ?",
+        `SELECT tags.*, ${ACTIVE_USAGE_COUNT_SQL} as usage_count
+         FROM tags
+         WHERE id = ? AND is_active = ?`,
         [id, true],
       );
 
@@ -46,7 +56,9 @@ export class TagRepositoryImplementation implements TagRepository {
   async findByName(name: string): Promise<Tag | null> {
     try {
       const [row] = await this.db.query<any>(
-        "SELECT * FROM tags WHERE name = ? AND is_active = ?",
+        `SELECT tags.*, ${ACTIVE_USAGE_COUNT_SQL} as usage_count
+         FROM tags
+         WHERE name = ? AND is_active = ?`,
         [name, true],
       );
 
@@ -62,7 +74,7 @@ export class TagRepositoryImplementation implements TagRepository {
    */
   async findAll(filters?: any): Promise<Tag[]> {
     try {
-      let sql = "SELECT * FROM tags WHERE is_active = ?";
+      let sql = `SELECT tags.*, ${ACTIVE_USAGE_COUNT_SQL} as usage_count FROM tags WHERE is_active = ?`;
       const params: any[] = [true];
 
       if (filters) {
@@ -83,7 +95,7 @@ export class TagRepositoryImplementation implements TagRepository {
           params.push(filters.parentId);
         }
         if (filters.minUsage !== undefined) {
-          sql += " AND usage_count >= ?";
+          sql += ` AND ${ACTIVE_USAGE_COUNT_SQL} >= ?`;
           params.push(filters.minUsage);
         }
       }
@@ -312,7 +324,7 @@ export class TagRepositoryImplementation implements TagRepository {
   async search(query: string, filters?: any): Promise<Tag[]> {
     try {
       let sql = `
-        SELECT * FROM tags 
+        SELECT tags.*, ${ACTIVE_USAGE_COUNT_SQL} as usage_count FROM tags 
         WHERE is_active = ? 
         AND (name LIKE ? OR description LIKE ?)
       `;

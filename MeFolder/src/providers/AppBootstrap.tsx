@@ -45,6 +45,7 @@ interface AppBootstrapProps {
 }
 
 const AppBootstrapContext = createContext<AppBootstrapContextType | null>(null);
+const APP_BOOT_LOG_PREFIX = "[AppBootstrap]";
 
 /**
  * Hook para acceder a los servicios de la aplicación.
@@ -69,7 +70,7 @@ export const useServices = (): AppBootstrapContextType => {
  * Los servicios se crean una sola vez y se reutilizan durante toda la vida de la app.
  */
 const createServices = (): Services => {
-  console.log("AppBootstrap: Creando servicios...");
+  console.log(`${APP_BOOT_LOG_PREFIX} Creando servicios...`);
 
   const fileService = new FileService();
   const folderService = new FolderService();
@@ -83,7 +84,7 @@ const createServices = (): Services => {
   );
   const mediaImportService = new MediaImportService(fileService, tagService);
 
-  console.log("AppBootstrap: Servicios creados");
+  console.log(`${APP_BOOT_LOG_PREFIX} Servicios creados`);
 
   return {
     albumArchiveService,
@@ -106,7 +107,7 @@ const ensureRootDirectory = (): void => {
   const result = fs.ensureDirectory(rootUri);
 
   if (result.success) {
-    console.log("AppBootstrap: Directorio root asegurado →", rootUri);
+    console.log(`${APP_BOOT_LOG_PREFIX} Directorio root asegurado ->`, rootUri);
   } else {
     throw new Error(`No se pudo crear el directorio root: ${result.error}`);
   }
@@ -161,7 +162,7 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
     try {
       setError(null);
       console.log(
-        "AppBootstrap: Base de datos lista, inicializando servicios...",
+        `${APP_BOOT_LOG_PREFIX} Base de datos lista, inicializando servicios...`,
       );
 
       ensureRootDirectory();
@@ -169,7 +170,7 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
       const appServices = createServices();
       setServices(appServices);
 
-      console.log("AppBootstrap: Aplicación lista");
+      console.log(`${APP_BOOT_LOG_PREFIX} Aplicacion lista`);
     } catch (err) {
       const serviceError =
         err instanceof Error
@@ -177,7 +178,7 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
           : new Error("Error desconocido al inicializar servicios");
 
       console.error(
-        "AppBootstrap: Error al inicializar servicios:",
+        `${APP_BOOT_LOG_PREFIX} Error al inicializar servicios:`,
         serviceError,
       );
       setServices(null);
@@ -190,7 +191,7 @@ export const AppBootstrap: React.FC<AppBootstrapProps> = ({
       return <>{errorFallback(error, retryDb)}</>;
     }
 
-    console.error("AppBootstrap: Error fatal sin fallback UI:", error);
+    console.error(`${APP_BOOT_LOG_PREFIX} Error fatal sin fallback UI:`, error);
     return null;
   }
 

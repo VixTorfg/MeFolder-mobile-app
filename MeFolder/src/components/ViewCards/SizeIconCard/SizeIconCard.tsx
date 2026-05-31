@@ -8,6 +8,7 @@ import { getIconByCategory, isIoniconsIcon } from "@/utils/ui/icons";
 import { useRef, useState } from "react";
 import { removeExtension } from "@/utils/format/name";
 import { Image } from "expo-image";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
 
 interface SizeIconCardProps extends CommunCardProps {
   size: number;
@@ -141,6 +142,7 @@ export const SizeIconCard = ({
             numberOfLines={1}
             scrollEnabled
             textAlignVertical="center"
+            maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
             onSubmitEditing={() => {
               if (renameValue.trim() && renameValue !== data.name) {
                 onRename && onRename(renameValue.trim());

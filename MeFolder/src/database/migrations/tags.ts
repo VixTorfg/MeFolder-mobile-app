@@ -2,6 +2,7 @@ import { Database } from "../sqlite/Database";
 
 const SQLITE_NOW_MS =
   "CAST((julianday('now') - 2440587.5) * 86400000 AS INTEGER)";
+const TAGS_MIGRATION_LOG_PREFIX = "[Database]";
 
 /**
  * Crea las tablas tags y file_tags para el sistema de etiquetado con soporte para jerarquías, colores y contadores de uso
@@ -76,23 +77,28 @@ export const createTagsTable = async (): Promise<void> => {
   ];
 
   try {
-    console.log("Creando tablas de tags...");
+    console.log(`${TAGS_MIGRATION_LOG_PREFIX} Creando tablas de tags...`);
 
     await db.execute(createTagsTableSQL);
-    console.log("Tabla tags creada");
+    console.log(`${TAGS_MIGRATION_LOG_PREFIX} Tabla tags creada`);
 
     await db.execute(createFileTagsTableSQL);
-    console.log("Tabla file_tags creada");
+    console.log(`${TAGS_MIGRATION_LOG_PREFIX} Tabla file_tags creada`);
 
     // Crear índices
     for (const indexSQL of createIndexesSQL) {
       await db.execute(indexSQL);
     }
-    console.log("Índices creados");
+    console.log(`${TAGS_MIGRATION_LOG_PREFIX} Indices creados`);
 
-    console.log("Sistema de tags creado exitosamente");
+    console.log(
+      `${TAGS_MIGRATION_LOG_PREFIX} Sistema de tags creado exitosamente`,
+    );
   } catch (error) {
-    console.error("Error al crear sistema de tags:", error);
+    console.error(
+      `${TAGS_MIGRATION_LOG_PREFIX} Error al crear sistema de tags:`,
+      error,
+    );
     throw error;
   }
 };
@@ -127,15 +133,20 @@ export const createTagTriggers = async (): Promise<void> => {
   ];
 
   try {
-    console.log("Creando triggers para tags...");
+    console.log(`${TAGS_MIGRATION_LOG_PREFIX} Creando triggers para tags...`);
 
     for (const trigger of triggers) {
       await db.execute(trigger);
     }
 
-    console.log("Triggers de tags creados exitosamente");
+    console.log(
+      `${TAGS_MIGRATION_LOG_PREFIX} Triggers de tags creados exitosamente`,
+    );
   } catch (error) {
-    console.error("Error al crear triggers de tags:", error);
+    console.error(
+      `${TAGS_MIGRATION_LOG_PREFIX} Error al crear triggers de tags:`,
+      error,
+    );
     throw error;
   }
 };
@@ -147,7 +158,7 @@ export const dropTagsSystem = async (): Promise<void> => {
   const db = Database.getInstance();
 
   try {
-    console.log("Eliminando sistema de tags...");
+    console.log(`${TAGS_MIGRATION_LOG_PREFIX} Eliminando sistema de tags...`);
 
     const dropTriggers = [
       "DROP TRIGGER IF EXISTS trg_file_tag_insert;",
@@ -158,16 +169,22 @@ export const dropTagsSystem = async (): Promise<void> => {
       try {
         await db.execute(dropTrigger);
       } catch (e) {
-        console.warn(`No se pudo eliminar trigger: ${dropTrigger}`, e);
+        console.warn(
+          `${TAGS_MIGRATION_LOG_PREFIX} No se pudo eliminar trigger: ${dropTrigger}`,
+          e,
+        );
       }
     }
 
     await db.execute("DROP TABLE IF EXISTS file_tags;");
     await db.execute("DROP TABLE IF EXISTS tags;");
 
-    console.log("Sistema de tags eliminado");
+    console.log(`${TAGS_MIGRATION_LOG_PREFIX} Sistema de tags eliminado`);
   } catch (error) {
-    console.error("Error al eliminar sistema de tags:", error);
+    console.error(
+      `${TAGS_MIGRATION_LOG_PREFIX} Error al eliminar sistema de tags:`,
+      error,
+    );
     throw error;
   }
 };

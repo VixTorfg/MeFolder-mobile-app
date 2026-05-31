@@ -21,9 +21,9 @@ import { View, Text, ActivityIndicator } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useTrashContent } from "@/hooks/trash/useTrashContent";
 import { router } from "expo-router";
-import EmptyFolder from "@/components/svgIcons/emptyFolder";
 import { FlashList } from "@shopify/flash-list";
 import { useTrashStyles } from "@/screenStyles/trashStyle";
+import EmptyTrash from "@/components/svgIcons/emptyTrash";
 
 export default function TrashScreen() {
   const [showMenu, setShowMenu] = useState(false);
@@ -153,7 +153,12 @@ export default function TrashScreen() {
 
   const renderTrashItem = useCallback(
     ({ item }: { item: FileModel | FolderModel }) => (
-      <View style={styles.cardWrapper}>
+      <View
+        style={[
+          styles.cardWrapper,
+          selectedView === "grid" && styles.gridCardWrapper,
+        ]}
+      >
         <ViewCards
           data={item}
           viewConfig={selectedView}
@@ -438,11 +443,11 @@ export default function TrashScreen() {
       ) : sortedItems.length === 0 ? (
         <View style={styles.footerEmptyContainer}>
           <View style={styles.emptyFolderIconContainer}>
-            <EmptyFolder
-              strokeWidth={0.35}
-              width={120}
-              height={120}
-              folderColor={styles.iconColor.color}
+            <EmptyTrash
+              strokeWidth={7}
+              width={135}
+              height={135}
+              trashColor={styles.iconColor.color}
               crossColor={styles.iconColor.primaryColor}
             />
             <Text style={styles.emptyFolderText}>La papelera está vacía</Text>

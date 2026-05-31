@@ -39,6 +39,9 @@ export const useLibraryStyles = () => {
       alignItems: "center",
       paddingBottom: theme.spacing.sm,
     },
+    gridCardWrapper: {
+      paddingHorizontal: 5,
+    },
     sectionTitle: {
       fontSize: 18,
       fontWeight: "600",

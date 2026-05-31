@@ -40,7 +40,9 @@ export const TagCard = ({
       </View>
 
       <View style={styles.tagCardContent}>
-        <Text style={styles.tagCardName}>{tag.name}</Text>
+        <Text style={styles.tagCardName} numberOfLines={1} ellipsizeMode="tail">
+          {tag.name}
+        </Text>
         <View style={styles.tagCardMeta}>
           {tag.usageCount > 0 ? (
             <Text style={styles.tagCardCount}>{tag.usageCount} archivos</Text>

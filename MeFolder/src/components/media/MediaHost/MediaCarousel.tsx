@@ -6,7 +6,11 @@ import Animated, {
   type SharedValue,
 } from "react-native-reanimated";
 import type { MediaHostItem } from "@/types/media/viewers";
-import { MediaViewer, type MediaViewerSharedProps } from "./MediaViewer";
+import {
+  MediaPreview,
+  MediaViewer,
+  type MediaViewerSharedProps,
+} from "./MediaViewer";
 import { useTheme } from "@/providers/ThemeProvider";
 
 interface MediaCarouselSlides {
@@ -140,12 +144,7 @@ export default function MediaCarousel({
               transitionViewerStyle,
             ]}
           >
-            <MediaViewer
-              item={transitionItem}
-              isActive
-              autoPlay={false}
-              {...sharedViewerProps}
-            />
+            <MediaPreview item={transitionItem} showVideoOverlay={false} />
           </Animated.View>
         ) : null}
       </View>

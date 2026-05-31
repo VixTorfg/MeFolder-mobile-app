@@ -113,7 +113,7 @@ export default function ItemCreator({
       <ScrollView
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
-        contentInset={{ bottom: bottomInset }}
+        contentContainerStyle={{ paddingBottom: bottomInset }}
       >
         {selectedType === "file" ? (
           <FileCreator

@@ -1,9 +1,11 @@
-import * as SQLite from 'expo-sqlite';
+import * as SQLite from "expo-sqlite";
+
+const DATABASE_BOOT_LOG_PREFIX = "[Database]";
 
 export class Database {
   private static instance: Database;
   private db: SQLite.SQLiteDatabase | null = null;
-  private readonly dbName = 'mefolder.db';
+  private readonly dbName = "mefolder.db";
 
   private constructor() {}
 
@@ -27,19 +29,24 @@ export class Database {
    */
   async initialize(): Promise<void> {
     if (this.db) {
-      console.log('Base de datos ya inicializada');
+      console.log(`${DATABASE_BOOT_LOG_PREFIX} Base de datos ya inicializada`);
       return;
     }
 
     try {
-      console.log('Inicializando base de datos...');
+      console.log(`${DATABASE_BOOT_LOG_PREFIX} Inicializando base de datos...`);
       this.db = await SQLite.openDatabaseAsync(this.dbName);
-      
+
       await this.setupDatabase();
-      
-      console.log('Base de datos inicializada correctamente');
+
+      console.log(
+        `${DATABASE_BOOT_LOG_PREFIX} Base de datos inicializada correctamente`,
+      );
     } catch (error) {
-      console.error('Error al inicializar la base de datos:', error);
+      console.error(
+        `${DATABASE_BOOT_LOG_PREFIX} Error al inicializar la base de datos:`,
+        error,
+      );
       throw error;
     }
   }
@@ -52,7 +59,9 @@ export class Database {
    */
   getConnection(): SQLite.SQLiteDatabase {
     if (!this.db) {
-      throw new Error('Base de datos no inicializada. Llama a initialize() primero.');
+      throw new Error(
+        "Base de datos no inicializada. Llama a initialize() primero.",
+      );
     }
     return this.db;
   }
@@ -64,16 +73,16 @@ export class Database {
   private async setupDatabase(): Promise<void> {
     if (!this.db) return;
     // Habilitar claves foráneas
-    await this.db.execAsync('PRAGMA foreign_keys = ON;');
-    
+    await this.db.execAsync("PRAGMA foreign_keys = ON;");
+
     // Configurar modo WAL para mejor concurrencia
-    await this.db.execAsync('PRAGMA journal_mode = WAL;');
-    
+    await this.db.execAsync("PRAGMA journal_mode = WAL;");
+
     // Configurar sincronización completa para integridad
-    await this.db.execAsync('PRAGMA synchronous = FULL;');
+    await this.db.execAsync("PRAGMA synchronous = FULL;");
   }
 
- /**
+  /**
    * Ejecuta una consulta SELECT y retorna los resultados.
    * Maneja automáticamente los parámetros para evitar inyección SQL.
    * @param sql - Consulta SQL a ejecutar
@@ -87,11 +96,10 @@ export class Database {
       const result = await db.getAllAsync(sql, params);
       return result as T[];
     } catch (error) {
-      console.error('Error en query:', { sql, params, error });
+      console.error("Error en query:", { sql, params, error });
       throw error;
     }
   }
-
 
   /**
    * Ejecuta comandos SQL de modificación (INSERT, UPDATE, DELETE).
@@ -101,17 +109,19 @@ export class Database {
    * @returns Resultado con información de la ejecución
    * @throws Error si falla el comando
    */
-  async execute(sql: string, params: any[] = []): Promise<SQLite.SQLiteRunResult> {
+  async execute(
+    sql: string,
+    params: any[] = [],
+  ): Promise<SQLite.SQLiteRunResult> {
     const db = this.getConnection();
     try {
       const result = await db.runAsync(sql, params);
       return result;
     } catch (error) {
-      console.error('Error en execute:', { sql, params, error });
+      console.error("Error en execute:", { sql, params, error });
       throw error;
     }
   }
-
 
   /**
    * Ejecuta múltiples consultas dentro de una transacción atómica.
@@ -119,9 +129,11 @@ export class Database {
    * @param queries - Array de objetos con sql y parámetros
    * @throws Error si falla alguna consulta de la transacción
    */
-  async transaction(queries: Array<{ sql: string; params?: any[] }>): Promise<void> {
+  async transaction(
+    queries: Array<{ sql: string; params?: any[] }>,
+  ): Promise<void> {
     const db = this.getConnection();
-    
+
     await db.withTransactionAsync(async () => {
       for (const query of queries) {
         await db.runAsync(query.sql, query.params || []);
@@ -137,7 +149,9 @@ export class Database {
     if (this.db) {
       await this.db.closeAsync();
       this.db = null;
-      console.log('Conexión de base de datos cerrada');
+      console.log(
+        `${DATABASE_BOOT_LOG_PREFIX} Conexion de base de datos cerrada`,
+      );
     }
   }
 

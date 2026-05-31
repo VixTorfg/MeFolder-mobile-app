@@ -15,6 +15,11 @@ import { ColorInfo } from "@/types/common/colors";
 import { PRIORITY_CONFIG } from "@/types";
 import { ColorList } from "../ColorPicker";
 import { router } from "expo-router";
+import {
+  MAX_ITEM_DESCRIPTION_LENGTH,
+  MAX_WINDOWS_ITEM_NAME_LENGTH,
+} from "@/constants/validation";
+import { stripInvalidNameCharacters } from "@/utils/format/name";
 
 const TYPE_LABELS: Record<string, string> = {
   system: "Sistema",
@@ -161,10 +166,10 @@ export const TagPropertyMenu = ({
     try {
       const description = tagDescription.trim();
 
-      if (description.length > 200) {
+      if (description.length > MAX_ITEM_DESCRIPTION_LENGTH) {
         showAlert({
           title: "Error",
-          message: "La descripción no puede exceder los 200 caracteres",
+          message: `No se puede crear o modificar la descripción si supera los ${MAX_ITEM_DESCRIPTION_LENGTH} caracteres.`,
         });
         return;
       }
@@ -282,7 +287,14 @@ export const TagPropertyMenu = ({
             value={tagName}
             onBlur={() => setFocused(false)}
             onFocus={() => setFocused(true)}
-            onChangeText={setTagName}
+            onChangeText={(text) =>
+              setTagName(
+                stripInvalidNameCharacters(text).slice(
+                  0,
+                  MAX_WINDOWS_ITEM_NAME_LENGTH,
+                ),
+              )
+            }
             placeholder="Nombre de la etiqueta"
             placeholderTextColor={theme.colors.textMuted}
             selectTextOnFocus
@@ -290,6 +302,7 @@ export const TagPropertyMenu = ({
             scrollEnabled
             textAlignVertical="center"
             editable={!isSystemTag}
+            maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
           />
         </View>
 
@@ -340,7 +353,7 @@ export const TagPropertyMenu = ({
           placeholder="Sin descripción"
           placeholderTextColor={theme.colors.textMuted}
           multiline
-          maxLength={200}
+          maxLength={MAX_ITEM_DESCRIPTION_LENGTH}
           numberOfLines={3}
           textAlignVertical="top"
         />

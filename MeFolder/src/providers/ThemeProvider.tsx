@@ -14,6 +14,7 @@ import { useColorScheme } from "react-native";
 export type ThemePreference = "light" | "dark" | "system";
 
 const THEME_PREFERENCE_STORAGE_KEY = "mefolder:theme-preference";
+const THEME_BOOT_LOG_PREFIX = "[Theme]";
 
 type ThemeContextType = {
   theme: Theme;
@@ -59,7 +60,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
           setThemePreference(storedPreference);
         }
       } catch (error) {
-        console.warn("No se pudo cargar la preferencia de tema", error);
+        console.warn(
+          `${THEME_BOOT_LOG_PREFIX} No se pudo cargar la preferencia de tema`,
+          error,
+        );
       } finally {
         setIsThemeHydrated(true);
       }
@@ -74,7 +78,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     try {
       await AsyncStorage.setItem(THEME_PREFERENCE_STORAGE_KEY, themeName);
     } catch (error) {
-      console.warn("No se pudo guardar la preferencia de tema", error);
+      console.warn(
+        `${THEME_BOOT_LOG_PREFIX} No se pudo guardar la preferencia de tema`,
+        error,
+      );
     }
   };
 

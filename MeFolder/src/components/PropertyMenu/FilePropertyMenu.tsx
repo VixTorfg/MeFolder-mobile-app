@@ -13,6 +13,7 @@ import { router, useFocusEffect } from "expo-router";
 import { TagCreator } from "../TagCreator";
 import { useTagsActions } from "@/hooks/tags/useTagsActions";
 import { TagModel } from "@/models";
+import { MAX_WINDOWS_ITEM_NAME_LENGTH } from "@/constants/validation";
 
 const FILE_ICONS: Record<string, keyof typeof Ionicons.glyphMap> = {
   image: "image-outline",
@@ -259,6 +260,7 @@ export const FilePropertyMenu = ({
             numberOfLines={1}
             scrollEnabled
             textAlignVertical="center"
+            maxLength={MAX_WINDOWS_ITEM_NAME_LENGTH}
           />
           <Text style={styles.extensionBadge}>.{file.extension}</Text>
         </View>

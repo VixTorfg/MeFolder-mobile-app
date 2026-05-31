@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   id="svg77"
+   width="236.004"
+   height="193.789"
+   viewBox="0 0 236.004 193.789"
+   version="1.1"
+   sodipodi:docname="splash-icon.svg"
+   inkscape:export-filename="splash-icon.svg"
+   inkscape:export-xdpi="96"
+   inkscape:export-ydpi="96"
+   inkscape:version="1.4.4 (dcaf3e7, 2026-05-05)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:xlink="http://www.w3.org/1999/xlink"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:zoom="0.54892176"
+     inkscape:cx="55.563474"
+     inkscape:cy="-33.702435"
+     inkscape:window-width="1920"
+     inkscape:window-height="1111"
+     inkscape:window-x="-9"
+     inkscape:window-y="-9"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="svg77" />
+  <defs
+     id="defs10">
+    <linearGradient
+       id="linearGradient12">
+      <stop
+         id="stop12"
+         offset="0"
+         style="stop-color:#f2c94c;stop-opacity:1" />
+      <stop
+         id="stop14"
+         offset=".483"
+         style="stop-color:#e2e3da;stop-opacity:1" />
+      <stop
+         id="stop20"
+         offset=".608"
+         style="stop-color:#6fcf97;stop-opacity:1" />
+      <stop
+         id="stop21"
+         offset=".769"
+         style="stop-color:#fff4cc;stop-opacity:1" />
+      <stop
+         id="stop13"
+         offset=".974"
+         style="stop-color:#6b6b63;stop-opacity:1" />
+    </linearGradient>
+    <linearGradient
+       xlink:href="#linearGradient12"
+       id="linearGradient13"
+       x1="287.975"
+       x2="452.372"
+       y1="370.32"
+       y2="533.408"
+       gradientTransform="matrix(4.3419334,0,0,4.3419334,-1434.0625,-1817.2246)"
+       gradientUnits="userSpaceOnUse" />
+  </defs>
+  <path
+     id="Capa 1"
+     d="m -318.18562,-174.10677 v -88.7057 c 0,-28.78702 23.31618,-52.10321 52.1032,-52.10321 H -1.2244828 c 28.7870188,0 52.1032008,23.31619 52.1032008,52.10321 v 17.36773 H 502.43979 c 28.78702,0 52.10321,23.31618 52.10321,52.1032 v 19.23477 h -894.48171 c -28.65676,0 -48.80333,27.1805 -45.06927,60.22261 l 65.2636,578.0416 c 2.77884,24.7056 24.74468,44.54824 49.05951,44.54824 h 778.03539 c 24.35825,0 46.28501,-19.84264 49.06385,-44.54824 l 64.60797,-578.0416 c 3.69064,-33.04211 -16.45593,-60.22261 -45.11269,-60.22261 h -21.36231"
+     style="fill:none;stroke:url(#linearGradient13);stroke-width:17.8019;stroke-miterlimit:100;stroke-dasharray:none"
+     inkscape:export-filename="splash-icon.png"
+     inkscape:export-xdpi="96"
+     inkscape:export-ydpi="96" />
+</svg>

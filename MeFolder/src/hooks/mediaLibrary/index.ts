@@ -3,4 +3,5 @@ export {
   useMediaLibraryAssets,
 } from "./useMediaLibraryAssets";
 export { useMediaLibraryImport } from "./useMediaLibraryImport";
+export { useSaveToMediaLibrary } from "./useSaveToMediaLibrary";
 export { useMediaLibraryVideoThumbnail } from "./useMediaLibraryVideoThumbnail";

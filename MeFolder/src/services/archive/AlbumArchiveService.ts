@@ -29,6 +29,7 @@ import {
 } from "../media/MediaImportService";
 import { TagService } from "../TagService";
 import { ArchiveService } from "./ArchiveService";
+import { sanitizeFileName } from "@/utils/format/name";
 import {
   buildArchiveEntries,
   getParentArchivePath,
@@ -271,8 +272,9 @@ export class AlbumArchiveService {
           );
         }
 
+        const safeFileName = sanitizeFileName(fileEntry.name);
         const targetUri = this.fs.resolveUri(
-          joinArchivePath(parentFolderPath, fileEntry.name),
+          joinArchivePath(parentFolderPath, safeFileName),
         );
         const base64Content = await zipEntry.async("base64");
         const writeResult = this.fs.writeFile({
@@ -289,10 +291,10 @@ export class AlbumArchiveService {
 
         extractedFiles.push({
           id: fileEntry.path,
-          name: fileEntry.name,
+          name: safeFileName,
           originalName: fileEntry.name,
           uri: targetUri,
-          type: this.resolveFileCategory(fileEntry.name),
+          type: this.resolveFileCategory(safeFileName),
           folderId: parentFolderId,
           visibility: params.visibility ?? "public",
           tagIds: [album.id],

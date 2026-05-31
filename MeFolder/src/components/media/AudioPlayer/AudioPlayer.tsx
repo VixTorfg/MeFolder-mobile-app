@@ -3,9 +3,20 @@ import { View, Text, ActivityIndicator } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { scheduleOnRN } from "react-native-worklets";
 import type { AudioPlayerProps } from "@/types/media/viewers";
 import { useAudioPlayerStyles } from "./styles";
 import { formatAudioDuration } from "@/utils/format/date";
+
+type SeekPreviewState = {
+  positionSec: number;
+  isPlaying: boolean;
+};
+
+const clamp = (value: number, min: number, max: number) => {
+  return Math.min(Math.max(value, min), max);
+};
 
 export default function AudioPlayer({
   source,
@@ -15,7 +26,11 @@ export default function AudioPlayer({
   const styles = useAudioPlayerStyles();
   const [isScrubbing, setIsScrubbing] = useState(false);
   const [scrubRatio, setScrubRatio] = useState(0);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [seekPreview, setSeekPreview] = useState<SeekPreviewState | null>(null);
   const trackWidthRef = useRef(1);
+  const lastScrubRatioRef = useRef(0);
+  const hasPendingScrubRef = useRef(false);
 
   const player = useAudioPlayer({ uri: source.uri });
   const status = useAudioPlayerStatus(player);
@@ -24,14 +39,159 @@ export default function AudioPlayer({
   const isPlaying = status.playing ?? false;
   const positionSec = status.currentTime ?? 0;
   const durationSec = status.duration ?? 0;
-  const playbackRatio = durationSec > 0 ? positionSec / durationSec : 0;
+  const displayedIsPlaying = seekPreview?.isPlaying ?? isPlaying;
+  const resolvedPositionSec = seekPreview?.positionSec ?? positionSec;
+  const playbackRatio = durationSec > 0 ? resolvedPositionSec / durationSec : 0;
+  const showArtwork = hasLoadedOnce || isLoaded;
 
   const displayedRatio = isScrubbing ? scrubRatio : playbackRatio;
   const displayedPosition = displayedRatio * durationSec;
+  const progressPercentage = `${clamp(displayedRatio * 100, 0, 100)}%` as any;
 
   const getRatioFromX = useCallback((locationX: number) => {
-    return Math.min(Math.max(locationX / trackWidthRef.current, 0), 1);
+    return clamp(locationX / trackWidthRef.current, 0, 1);
   }, []);
+
+  const handleTrackLayout = useCallback((width: number) => {
+    trackWidthRef.current = width;
+  }, []);
+
+  const updateScrubRatio = useCallback((ratio: number) => {
+    const nextRatio = clamp(ratio, 0, 1);
+    lastScrubRatioRef.current = nextRatio;
+    setScrubRatio(nextRatio);
+  }, []);
+
+  const setScrubFromLocation = useCallback(
+    (locationX: number) => {
+      updateScrubRatio(getRatioFromX(locationX));
+    },
+    [getRatioFromX, updateScrubRatio],
+  );
+
+  const resetInteractionState = useCallback((resetLoadedState = false) => {
+    setIsScrubbing(false);
+    setScrubRatio(0);
+    setSeekPreview(null);
+    lastScrubRatioRef.current = 0;
+    hasPendingScrubRef.current = false;
+
+    if (resetLoadedState) {
+      setHasLoadedOnce(false);
+    }
+  }, []);
+
+  const seekToPosition = useCallback(
+    (targetPositionSec: number) => {
+      if (durationSec <= 0) {
+        return;
+      }
+
+      const clampedPositionSec = clamp(targetPositionSec, 0, durationSec);
+
+      setSeekPreview({
+        positionSec: clampedPositionSec,
+        isPlaying: displayedIsPlaying,
+      });
+
+      try {
+        player.seekTo(clampedPositionSec);
+      } catch {
+        setSeekPreview(null);
+      }
+    },
+    [displayedIsPlaying, durationSec, player],
+  );
+
+  const beginScrub = useCallback(
+    (locationX: number) => {
+      if (!isLoaded) return;
+
+      hasPendingScrubRef.current = true;
+      setIsScrubbing(true);
+      setSeekPreview(null);
+      setScrubFromLocation(locationX);
+    },
+    [isLoaded, setScrubFromLocation],
+  );
+
+  const moveScrub = useCallback(
+    (locationX: number) => {
+      if (!isLoaded) return;
+
+      setScrubFromLocation(locationX);
+    },
+    [isLoaded, setScrubFromLocation],
+  );
+
+  const commitScrub = useCallback(
+    (ratio: number) => {
+      if (!hasPendingScrubRef.current) {
+        return;
+      }
+
+      hasPendingScrubRef.current = false;
+
+      if (durationSec <= 0) {
+        setIsScrubbing(false);
+        return;
+      }
+
+      const nextRatio = clamp(ratio, 0, 1);
+      const targetPositionSec = nextRatio * durationSec;
+
+      updateScrubRatio(nextRatio);
+      setIsScrubbing(false);
+
+      seekToPosition(targetPositionSec);
+    },
+    [durationSec, seekToPosition, updateScrubRatio],
+  );
+
+  const commitScrubFromLocation = useCallback(
+    (locationX: number) => {
+      commitScrub(getRatioFromX(locationX));
+    },
+    [commitScrub, getRatioFromX],
+  );
+
+  const cancelScrub = useCallback(() => {
+    commitScrub(lastScrubRatioRef.current);
+  }, [commitScrub]);
+
+  const progressGesture = Gesture.Pan()
+    .enabled(isLoaded)
+    .shouldCancelWhenOutside(false)
+    .onBegin((event) => {
+      scheduleOnRN(beginScrub, event.x);
+    })
+    .onUpdate((event) => {
+      scheduleOnRN(moveScrub, event.x);
+    })
+    .onEnd((event) => {
+      scheduleOnRN(commitScrubFromLocation, event.x);
+    })
+    .onFinalize(() => {
+      scheduleOnRN(cancelScrub);
+    });
+
+  useEffect(() => {
+    resetInteractionState(true);
+  }, [resetInteractionState, source.uri]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      setHasLoadedOnce(true);
+    }
+  }, [isLoaded]);
+
+  useEffect(() => {
+    if (seekPreview === null) return;
+
+    if (Math.abs(positionSec - seekPreview.positionSec) <= 0.35) {
+      setSeekPreview(null);
+    }
+  }, [positionSec, seekPreview]);
 
   useEffect(() => {
     if (!isLoaded || !autoPlay) return;
@@ -45,7 +205,9 @@ export default function AudioPlayer({
 
   const handlePlayPause = useCallback(() => {
     try {
-      if (isPlaying) {
+      setSeekPreview(null);
+
+      if (displayedIsPlaying) {
         player.pause();
       } else {
         player.play();
@@ -53,23 +215,15 @@ export default function AudioPlayer({
     } catch {
       // Ignora acciones lanzadas después de que el player nativo se haya liberado.
     }
-  }, [isPlaying, player]);
+  }, [displayedIsPlaying, player]);
 
   const handleSkipBack = useCallback(() => {
-    try {
-      player.seekTo(Math.max(0, positionSec - 10));
-    } catch {
-      // Ignora seeks sobre players ya liberados.
-    }
-  }, [positionSec, player]);
+    seekToPosition(resolvedPositionSec - 10);
+  }, [resolvedPositionSec, seekToPosition]);
 
   const handleSkipForward = useCallback(() => {
-    try {
-      player.seekTo(Math.min(durationSec, positionSec + 10));
-    } catch {
-      // Ignora seeks sobre players ya liberados.
-    }
-  }, [positionSec, durationSec, player]);
+    seekToPosition(resolvedPositionSec + 10);
+  }, [resolvedPositionSec, seekToPosition]);
 
   const handleClose = useCallback(() => {
     try {
@@ -78,9 +232,9 @@ export default function AudioPlayer({
     } catch {
       // Ignora players ya liberados por el desmontaje nativo.
     }
-    setIsScrubbing(false);
+    resetInteractionState();
     onClose();
-  }, [player, onClose]);
+  }, [onClose, player, resetInteractionState]);
 
   return (
     <View style={styles.overlay}>
@@ -103,7 +257,7 @@ export default function AudioPlayer({
 
       {/* Icono central */}
       <View style={styles.artworkContainer}>
-        {!isLoaded ? (
+        {!showArtwork ? (
           <ActivityIndicator size="large" color="#FFFFFF" />
         ) : (
           <View style={styles.iconCircle}>
@@ -115,47 +269,27 @@ export default function AudioPlayer({
       {/* Controles */}
       <View style={styles.controlsContainer}>
         {/* Barra de progreso con scrubbing */}
-        <View
-          style={styles.progressTouchArea}
-          onLayout={(e) => {
-            trackWidthRef.current = e.nativeEvent.layout.width;
-          }}
-          onStartShouldSetResponder={() => isLoaded}
-          onResponderGrant={(e) => {
-            const ratio = getRatioFromX(e.nativeEvent.locationX);
-            setIsScrubbing(true);
-            setScrubRatio(ratio);
-          }}
-          onResponderMove={(e) => {
-            setScrubRatio(getRatioFromX(e.nativeEvent.locationX));
-          }}
-          onResponderRelease={(e) => {
-            const ratio = getRatioFromX(e.nativeEvent.locationX);
-            try {
-              player.seekTo(ratio * durationSec);
-            } catch {
-              return;
-            }
-            setIsScrubbing(false);
-          }}
-          onResponderTerminate={() => setIsScrubbing(false)}
-        >
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${Math.min(displayedRatio * 100, 100)}%` as any },
-              ]}
-            />
-            <View
-              style={[
-                styles.progressThumb,
-                isScrubbing && styles.progressThumbDragging,
-                { left: `${Math.min(displayedRatio * 100, 100)}%` as any },
-              ]}
-            />
+        <GestureDetector gesture={progressGesture}>
+          <View
+            style={styles.progressTouchArea}
+            onLayout={(e) => {
+              handleTrackLayout(e.nativeEvent.layout.width);
+            }}
+          >
+            <View style={styles.progressTrack}>
+              <View
+                style={[styles.progressFill, { width: progressPercentage }]}
+              />
+              <View
+                style={[
+                  styles.progressThumb,
+                  isScrubbing && styles.progressThumbDragging,
+                  { left: progressPercentage },
+                ]}
+              />
+            </View>
           </View>
-        </View>
+        </GestureDetector>
 
         {/* Tiempos */}
         <View style={styles.timeRow}>
@@ -188,7 +322,7 @@ export default function AudioPlayer({
             disabled={!isLoaded}
           >
             <Ionicons
-              name={isPlaying ? "pause" : "play"}
+              name={displayedIsPlaying ? "pause" : "play"}
               size={38}
               color="#121212"
             />

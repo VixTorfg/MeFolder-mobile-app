@@ -1,6 +1,8 @@
 import { Database } from "../sqlite/Database";
 import { SYSTEM_COLORS } from "@/constants/themes/colors";
 
+const SYSTEM_TAGS_SEED_LOG_PREFIX = "[Database]";
+
 /**
  * Etiquetas del sistema predeterminadas.
  */
@@ -141,11 +143,16 @@ export const seedSystemTags = async (): Promise<void> => {
   }));
 
   try {
-    console.log("Insertando etiquetas del sistema...");
+    console.log(
+      `${SYSTEM_TAGS_SEED_LOG_PREFIX} Insertando etiquetas del sistema...`,
+    );
     await db.transaction(tagsQueries);
-    console.log("Etiquetas del sistema listas");
+    console.log(`${SYSTEM_TAGS_SEED_LOG_PREFIX} Etiquetas del sistema listas`);
   } catch (error) {
-    console.error("Error al insertar etiquetas del sistema:", error);
+    console.error(
+      `${SYSTEM_TAGS_SEED_LOG_PREFIX} Error al insertar etiquetas del sistema:`,
+      error,
+    );
     throw error;
   }
 };

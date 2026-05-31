@@ -14,6 +14,14 @@ import {
   ROOT_FOLDER_PATH,
 } from "../database/seeds/systemFolders";
 import { SYSTEM_COLORS } from "@/constants/themes/colors";
+import {
+  MAX_ITEM_DESCRIPTION_LENGTH,
+  MAX_WINDOWS_ITEM_NAME_LENGTH,
+} from "@/constants/validation";
+import {
+  hasInvalidNameCharacters,
+  sanitizeFolderName,
+} from "@/utils/format/name";
 
 export class FolderModel extends BaseModel<Folder> {
   constructor(data: Folder) {
@@ -84,7 +92,7 @@ export class FolderModel extends BaseModel<Folder> {
     const cleanName = name.trim();
     if (!cleanName) throw new Error("El nombre no puede estar vacío");
 
-    this.data.name = cleanName;
+    this.data.name = sanitizeFolderName(cleanName);
     this.data.updatedAt = new Date();
   }
 
@@ -208,7 +216,7 @@ export class FolderModel extends BaseModel<Folder> {
 
     const nameMaxLengthError = ValidationUtils.maxLength(
       this.data.name,
-      100,
+      MAX_WINDOWS_ITEM_NAME_LENGTH,
       "name",
     );
     if (nameMaxLengthError) errors.push(nameMaxLengthError);
@@ -216,14 +224,13 @@ export class FolderModel extends BaseModel<Folder> {
     if (this.data.description) {
       const descMaxLengthError = ValidationUtils.maxLength(
         this.data.description,
-        500,
+        MAX_ITEM_DESCRIPTION_LENGTH,
         "description",
       );
       if (descMaxLengthError) errors.push(descMaxLengthError);
     }
 
-    const invalidChars = /[<>:"/\\|?*]/;
-    if (this.data.name && invalidChars.test(this.data.name)) {
+    if (this.data.name && hasInvalidNameCharacters(this.data.name)) {
       errors.push({
         field: "name",
         message: "El nombre contiene caracteres no válidos",
@@ -294,10 +301,11 @@ export class FolderFactory {
   ): FolderModel {
     const now = new Date();
     const id = this.generateId();
+    const safeFolderName = sanitizeFolderName(input.name);
 
     const folder: Folder = {
       id,
-      name: input.name.trim(),
+      name: safeFolderName,
       path: parentInfo ? `${parentInfo.path}/${id}` : id,
       level: parentInfo ? parentInfo.level + 1 : 0,
       status: "active",

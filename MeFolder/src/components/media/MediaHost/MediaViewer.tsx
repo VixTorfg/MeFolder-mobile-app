@@ -18,7 +18,10 @@ interface MediaPreviewProps {
  * Placeholder ligero para slides inactivos y para el overlay inicial del slide activo.
  * Evita montar instancias nativas adicionales mientras el viewer real termina de asentarse.
  */
-function MediaPreview({ item, showVideoOverlay = true }: MediaPreviewProps) {
+export function MediaPreview({
+  item,
+  showVideoOverlay = true,
+}: MediaPreviewProps) {
   const { theme } = useTheme();
 
   if (item.category === "image") {

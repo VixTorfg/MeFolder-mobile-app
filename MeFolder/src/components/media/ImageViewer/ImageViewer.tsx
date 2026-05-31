@@ -10,6 +10,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import type { ImageViewerProps } from "@/types/media/viewers";
+import { useSaveToMediaLibrary } from "@/hooks/mediaLibrary";
 import { useImageViewerStyles } from "./styles";
 import { scheduleOnRN } from "react-native-worklets";
 
@@ -27,6 +28,8 @@ export default function ImageViewer({
   viewportHeight,
 }: ImageViewerProps) {
   const styles = useImageViewerStyles();
+  const { isSavingToMediaLibrary, saveToMediaLibrary } =
+    useSaveToMediaLibrary();
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   // Controla si el pan interno está activo: solo cuando hay zoom
@@ -187,6 +190,14 @@ export default function ImageViewer({
     onClose();
   }, [onClose, resetTransform]);
 
+  const handleSaveToGallery = useCallback(() => {
+    void saveToMediaLibrary({
+      uri: source.uri,
+      kind: "image",
+      displayName: source.displayName,
+    });
+  }, [saveToMediaLibrary, source.displayName, source.uri]);
+
   useEffect(() => {
     notifySwipeAvailability(true);
     return () => notifySwipeAvailability(true);
@@ -208,7 +219,18 @@ export default function ImageViewer({
             {source.displayName ?? "Imagen"}
           </Text>
 
-          <View style={styles.headerButton} />
+          <TouchableOpacity
+            style={[
+              styles.headerButton,
+              (isLoading || hasError || isSavingToMediaLibrary) &&
+                styles.headerButtonDisabled,
+            ]}
+            onPress={handleSaveToGallery}
+            activeOpacity={0.7}
+            disabled={isLoading || hasError || isSavingToMediaLibrary}
+          >
+            <Ionicons name="download-outline" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
       </Animated.View>
 

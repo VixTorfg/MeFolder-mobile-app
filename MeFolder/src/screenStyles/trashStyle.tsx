@@ -27,6 +27,9 @@ export const useTrashStyles = () => {
       alignItems: "center",
       paddingBottom: theme.spacing.sm,
     },
+    gridCardWrapper: {
+      paddingHorizontal: 5,
+    },
     buttonsGroup: {
       flexDirection: "row",
       justifyContent: "space-between",

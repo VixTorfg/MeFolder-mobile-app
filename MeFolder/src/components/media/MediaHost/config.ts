@@ -2,10 +2,11 @@ import type { MediaHostItem } from "@/types/media/viewers";
 
 export const CAROUSEL_CONFIG = {
   swipeThreshold: 140,
-  verticalTolerance: 80,
-  resetDuration: 180,
-  changeDuration: 220,
-  velocityThreshold: 500,
+  verticalTolerance: 64,
+  resetDuration: 150,
+  changeDuration: 180,
+  velocityThreshold: 420,
+  activeOffsetX: 10,
   slideGap: 12,
   thresholdRatio: 0.5,
   minSwipeThreshold: 72,

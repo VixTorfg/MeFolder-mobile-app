@@ -1,11 +1,28 @@
 import { Database } from "../sqlite/Database";
 import { SYSTEM_COLORS } from "@/constants/themes/colors";
+import { Paths } from "expo-file-system";
+
+const SYSTEM_FOLDERS_SEED_LOG_PREFIX = "[Database]";
 
 /** ID fijo de la carpeta raíz del sistema */
-export const ROOT_FOLDER_PATH =
-  "file:///data/user/0/host.exp.exponent/files/sys_root" as const;
 export const ROOT_FOLDER_ID = "sys_root" as const;
 export const SYSTEM_GALLERY_FOLDER_ID = "sys_gallery" as const;
+
+const joinUri = (...segments: string[]): string =>
+  segments
+    .map((segment, index) => {
+      let normalized = segment;
+      if (index < segments.length - 1) {
+        normalized = normalized.replace(/\/+$/, "");
+      }
+      if (index > 0) {
+        normalized = normalized.replace(/^\/+/, "");
+      }
+      return normalized;
+    })
+    .join("/");
+
+export const ROOT_FOLDER_PATH = joinUri(Paths.document.uri, ROOT_FOLDER_ID);
 
 /**
  * Carpetas del sistema predeterminadas (hijas de root).
@@ -103,11 +120,18 @@ export const seedSystemFolders = async (): Promise<void> => {
   }));
 
   try {
-    console.log("Insertando carpetas del sistema...");
+    console.log(
+      `${SYSTEM_FOLDERS_SEED_LOG_PREFIX} Insertando carpetas del sistema...`,
+    );
     await db.transaction([rootQuery, ...childQueries]);
-    console.log("Carpetas del sistema listas");
+    console.log(
+      `${SYSTEM_FOLDERS_SEED_LOG_PREFIX} Carpetas del sistema listas`,
+    );
   } catch (error) {
-    console.error("Error al insertar carpetas del sistema:", error);
+    console.error(
+      `${SYSTEM_FOLDERS_SEED_LOG_PREFIX} Error al insertar carpetas del sistema:`,
+      error,
+    );
     throw error;
   }
 };

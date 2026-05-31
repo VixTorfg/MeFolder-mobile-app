@@ -1,6 +1,9 @@
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useStyles } from "@/hooks/useStyles";
 
 export const useImageViewerStyles = () => {
+  const insets = useSafeAreaInsets();
+
   return useStyles((theme) => ({
     overlay: {
       flex: 1,
@@ -13,7 +16,7 @@ export const useImageViewerStyles = () => {
       right: 0,
       zIndex: 10,
 
-      paddingTop: 50,
+      paddingTop: Math.max(insets.top + theme.spacing.sm, 50),
       paddingBottom: theme.spacing.sm,
     },
     headerRow: {
@@ -29,6 +32,9 @@ export const useImageViewerStyles = () => {
       height: 44,
       alignItems: "center" as const,
       justifyContent: "center" as const,
+    },
+    headerButtonDisabled: {
+      opacity: 0.45,
     },
     headerTitle: {
       flex: 1,
