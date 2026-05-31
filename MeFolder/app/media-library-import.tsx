@@ -41,7 +41,9 @@ export default function MediaLibraryImportScreen() {
     isLoadingAssets,
     isLoadingAlbums,
     isRefreshing,
+    isLimitedAccess,
     requestPermission,
+    openPermissionsPicker,
     refresh,
     handleModeChange,
     toggleAssetSelection,
@@ -61,12 +63,10 @@ export default function MediaLibraryImportScreen() {
   });
 
   useEffect(() => {
-    if (permission?.granted) {
-      refresh();
-    } else {
+    if (permission && !permission.granted && permission.canAskAgain) {
       void requestPermission();
     }
-  }, [permission, refresh]);
+  }, [permission, requestPermission]);
 
   const closeWithSummary = useCallback(
     (title: string, failed: { name: string; error: string }[]) => {
@@ -301,6 +301,30 @@ export default function MediaLibraryImportScreen() {
             </TouchableOpacity>
           </View>
 
+          {isLimitedAccess && (
+            <View style={styles.limitedAccessBanner}>
+              <View style={styles.limitedAccessCopy}>
+                <Text style={styles.limitedAccessTitle}>
+                  Acceso parcial a la galería
+                </Text>
+                <Text style={styles.limitedAccessText}>
+                  Android solo ha compartido una parte de tus fotos y videos.
+                  Por eso aquí ves menos archivos de los que tienes en la
+                  galería.
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={styles.limitedAccessButton}
+                onPress={() => void openPermissionsPicker()}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.limitedAccessButtonText}>
+                  Ampliar acceso
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           <View style={styles.contentContainer}>
             {mode === "assets" ? renderAssetsContent() : renderAlbumsContent()}
           </View>
@@ -394,6 +418,45 @@ const useMediaLibraryImportScreenStyles = () => {
       borderRadius: theme.effects.radius.lg,
       padding: 4,
       gap: 4,
+    },
+    limitedAccessBanner: {
+      marginHorizontal: theme.spacing.md,
+      marginTop: theme.spacing.md,
+      padding: theme.spacing.md,
+      borderRadius: theme.effects.radius.md,
+      backgroundColor: theme.colors.primarySoft,
+      borderWidth: theme.effects.borderWidth.xs,
+      borderColor: theme.colors.primary,
+      gap: theme.spacing.md,
+    },
+    limitedAccessCopy: {
+      gap: theme.spacing.xs,
+    },
+    limitedAccessTitle: {
+      fontSize: theme.typography.fontSize.md,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textPrimary,
+    },
+    limitedAccessText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.regular,
+      color: theme.colors.textSecondary,
+      lineHeight:
+        theme.typography.fontSize.sm * theme.typography.lineHeight.normal,
+    },
+    limitedAccessButton: {
+      alignSelf: "flex-start",
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: theme.spacing.md,
+      paddingVertical: theme.spacing.sm,
+      borderRadius: theme.effects.radius.md,
+      backgroundColor: theme.colors.primary,
+    },
+    limitedAccessButtonText: {
+      fontSize: theme.typography.fontSize.sm,
+      fontFamily: theme.typography.fontFamily.primary.semiBold,
+      color: theme.colors.textOnColor,
     },
     modeButton: {
       flex: 1,

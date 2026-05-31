@@ -7,7 +7,7 @@ import {
 } from "@/providers";
 import { useFonts } from "expo-font";
 import { fontAssets } from "@/constants/fonts";
-import { typography } from "@/constants/themes";
+import { darkTheme, lightTheme, typography } from "@/constants/themes";
 import {
   ActivityIndicator,
   View,
@@ -28,11 +28,14 @@ const SPLASH_BACKGROUND_DARK = "#000000";
 function LoadingScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === "dark";
+  const spinnerColor = isDark
+    ? darkTheme.colors.primary
+    : lightTheme.colors.primary;
 
   return (
     <View style={[styles.center, isDark && styles.centerDark]}>
       <Image source={SPLASH_LOGO} style={styles.logo} resizeMode="contain" />
-      <ActivityIndicator size="large" />
+      <ActivityIndicator size="large" color={spinnerColor} />
       <Text style={[styles.loadingText, isDark && styles.loadingTextDark]}>
         Cargando informacion&hellip;
       </Text>
