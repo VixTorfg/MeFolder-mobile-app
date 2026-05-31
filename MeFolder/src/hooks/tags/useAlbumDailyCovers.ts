@@ -107,8 +107,29 @@ export const useAlbumDailyCovers = (albums: TagModel[]) => {
             ? persistedValue.covers
             : {};
 
+        const baseCovers = Object.fromEntries(
+          albums.flatMap((album) => {
+            if (album.usageCount === 0) {
+              return [
+                [
+                  album.id,
+                  {
+                    albumId: album.id,
+                    coverUri: null,
+                    fileId: null,
+                    dateKey: todayKey,
+                  } satisfies AlbumDailyCover,
+                ],
+              ];
+            }
+
+            const persistedCover = persistedCovers[album.id];
+            return persistedCover ? [[album.id, persistedCover] as const] : [];
+          }),
+        ) as Record<string, AlbumDailyCover>;
+
         const missingAlbums = albums.filter(
-          (album) => !(album.id in persistedCovers),
+          (album) => album.usageCount > 0 && !(album.id in baseCovers),
         );
 
         const generatedEntries = await Promise.all(
@@ -130,7 +151,7 @@ export const useAlbumDailyCovers = (albums: TagModel[]) => {
         );
 
         const nextCovers = {
-          ...persistedCovers,
+          ...baseCovers,
           ...Object.fromEntries(generatedEntries),
         };
 
