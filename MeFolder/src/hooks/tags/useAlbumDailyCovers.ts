@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { AlbumDailyCover, useTagsStore } from "@/stores/useTagsStore";
 
 const ALBUM_DAILY_COVERS_STORAGE_KEY = "mefolder:album-daily-covers";
-const ALBUM_DAILY_COVERS_STORAGE_VERSION = 3;
+const ALBUM_DAILY_COVERS_STORAGE_VERSION = 2;
 
 type PersistedAlbumDailyCovers = {
   version: number;

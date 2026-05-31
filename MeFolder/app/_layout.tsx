@@ -13,14 +13,13 @@ import {
   View,
   Text,
   StyleSheet,
-  Image,
   useColorScheme,
 } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
+import SplashLogo from "@/components/svgIcons/splashLogo";
 
-const SPLASH_LOGO = require("@/assets/images/splash-icon.png");
 const SPLASH_BACKGROUND = "#f1f2eb";
 const SPLASH_BACKGROUND_DARK = "#000000";
 
@@ -34,7 +33,7 @@ function LoadingScreen() {
 
   return (
     <View style={[styles.center, isDark && styles.centerDark]}>
-      <Image source={SPLASH_LOGO} style={styles.logo} resizeMode="contain" />
+      <SplashLogo width={200} height={164} style={styles.logo} />
       <ActivityIndicator size="large" color={spinnerColor} />
       <Text style={[styles.loadingText, isDark && styles.loadingTextDark]}>
         Cargando informacion&hellip;
