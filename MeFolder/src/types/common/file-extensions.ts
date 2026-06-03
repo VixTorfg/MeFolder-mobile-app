@@ -25,6 +25,8 @@ export type FileExtension =
   | "bmp"
   | "svg"
   | "webp"
+  | "heic"
+  | "heif"
   // Videos
   | FileVideoExtension
   // Audio
@@ -91,6 +93,8 @@ export const FILE_CATEGORY_MAP: Record<FileExtension, FileCategory> = {
   bmp: "image",
   svg: "image",
   webp: "image",
+  heic: "image",
+  heif: "image",
 
   mp4: "video",
   avi: "video",
@@ -159,6 +163,8 @@ export const EXTENSION_MIME_MAP: Record<FileExtension, string> = {
   bmp: "image/bmp",
   svg: "image/svg+xml",
   webp: "image/webp",
+  heic: "image/heic",
+  heif: "image/heif",
 
   // Videos
   mp4: "video/mp4",
@@ -241,6 +247,8 @@ export const EXTENSION_LABELS: Record<FileExtensionWithoutVideo, string> = {
   bmp: "Imagen BMP",
   svg: "Imagen SVG",
   webp: "Imagen WebP",
+  heic: "Imagen HEIC",
+  heif: "Imagen HEIF",
 
   // Audio
   mp3: "Audio MP3",

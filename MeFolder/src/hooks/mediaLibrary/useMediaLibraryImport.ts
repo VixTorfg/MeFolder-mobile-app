@@ -1,9 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
+import { Platform } from "react-native";
 import * as MediaLibrary from "expo-media-library";
 import { useServices } from "@/providers";
 import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useTagsStore } from "@/stores/useTagsStore";
-import type { MediaImportFile, MediaImportProgress } from "@/types/media";
+import type {
+  MediaImportFailure,
+  MediaImportFile,
+  MediaImportProgress,
+} from "@/types/media";
 import type {
   ImportMediaAlbumResult,
   ImportMediaFilesResult,
@@ -52,14 +57,24 @@ export function useMediaLibraryImport({
       setProgressTitle("Importando archivos");
 
       try {
+        const settled = await mapWithConcurrencySettled(
+          assets,
+          mapAssetToImportFile,
+          IMPORT_CONCURRENCY,
+        );
+        const { files, preFailures } = partitionSettled(assets, settled);
+
         const result = await services.mediaImportService.importFiles({
-          files: await Promise.all(assets.map(mapAssetToImportFile)),
+          files,
           ...(folderId ? { folderId } : {}),
           ...(albumId ? { tagIds: [albumId] } : {}),
           onProgress: setProgress,
         });
 
-        return persistImportedFiles(result);
+        return persistImportedFiles({
+          ...result,
+          failed: [...preFailures, ...result.failed],
+        });
       } finally {
         resetProgress();
       }
@@ -79,28 +94,31 @@ export function useMediaLibraryImport({
       setProgressTitle(`Preparando álbum: ${album.title}`);
 
       try {
-        const files = await loadAlbumFiles(album, setProgress);
+        const { files, preFailures: albumPreFailures } = await loadAlbumFiles(
+          album,
+          setProgress,
+        );
 
         setProgressTitle(`Importando álbum: ${album.title}`);
 
-        const result: ImportMediaAlbumResult = albumId
-          ? {
-              album: null,
-              ...(await services.mediaImportService.importFiles({
-                files,
-                ...(folderId ? { folderId } : {}),
-                tagIds: [albumId],
-                onProgress: setProgress,
-              })),
-            }
-          : {
-              album: null,
-              ...(await services.mediaImportService.importFiles({
-                files,
-                ...(folderId ? { folderId } : {}),
-                onProgress: setProgress,
-              })),
-            };
+        const importResult = albumId
+          ? await services.mediaImportService.importFiles({
+              files,
+              ...(folderId ? { folderId } : {}),
+              tagIds: [albumId],
+              onProgress: setProgress,
+            })
+          : await services.mediaImportService.importFiles({
+              files,
+              ...(folderId ? { folderId } : {}),
+              onProgress: setProgress,
+            });
+
+        const result: ImportMediaAlbumResult = {
+          album: null,
+          ...importResult,
+          failed: [...albumPreFailures, ...importResult.failed],
+        };
 
         persistImportedFiles(result);
         if (result.album) {
@@ -137,8 +155,9 @@ export function useMediaLibraryImport({
 async function loadAlbumFiles(
   album: MediaLibrary.Album,
   onProgress: (progress: MediaImportProgress) => void,
-): Promise<MediaImportFile[]> {
+): Promise<{ files: MediaImportFile[]; preFailures: MediaImportFailure[] }> {
   const files: MediaImportFile[] = [];
+  const albumPreFailures: MediaImportFailure[] = [];
   let after: string | undefined;
   let total = album.assetCount ?? 0;
   let hasMore = true;
@@ -156,7 +175,17 @@ async function loadAlbumFiles(
       total = result.totalCount;
     }
 
-    files.push(...(await Promise.all(result.assets.map(mapAssetToImportFile))));
+    const settled = await mapWithConcurrencySettled(
+      result.assets,
+      mapAssetToImportFile,
+      IMPORT_CONCURRENCY,
+    );
+    const { files: pageFiles, preFailures: pageFailures } = partitionSettled(
+      result.assets,
+      settled,
+    );
+    files.push(...pageFiles);
+    albumPreFailures.push(...pageFailures);
     onProgress({
       completed: files.length,
       total,
@@ -167,8 +196,11 @@ async function loadAlbumFiles(
     after = result.endCursor;
   }
 
-  return files;
+  return { files, preFailures: albumPreFailures };
 }
+
+/** Máximo de conversiones/resoluciones simultáneas. En Android limitamos para no saturar. */
+const IMPORT_CONCURRENCY = Platform.OS === "android" ? 3 : 8;
 
 async function mapAssetToImportFile(
   asset: MediaLibrary.Asset,
@@ -190,11 +222,20 @@ async function mapAssetToImportFile(
   const isVideo = asset.mediaType === MediaLibrary.MediaType.video;
   let name = asset.filename;
 
-  // iOS: las fotos de la cámara son HEIC/HEIF. Convertir a JPEG al importar.
-  if (!isVideo && isHeic(name, uri)) {
-    const converted = await convertHeicToJpeg(uri);
-    uri = converted.uri;
-    name = swapExtToJpg(name);
+  // Android: HEIC/HEIF no está soportado nativamente. Convertir a JPEG.
+  // iOS: expo-image renderiza HEIC nativo; se mantiene sin conversión.
+  if (Platform.OS === "android" && !isVideo && isHeic(name, uri)) {
+    try {
+      const converted = await convertHeicToJpeg(uri);
+      uri = converted.uri;
+      name = swapExtToJpg(name);
+    } catch (err) {
+      throw new Error(
+        `No se pudo convertir "${name}" a JPEG: ${
+          err instanceof Error ? err.message : String(err)
+        }`,
+      );
+    }
   }
 
   return {
@@ -203,6 +244,9 @@ async function mapAssetToImportFile(
     originalName: asset.filename,
     uri,
     type: isVideo ? "video" : "image",
+    ...(asset.width > 0 ? { width: asset.width } : {}),
+    ...(asset.height > 0 ? { height: asset.height } : {}),
+    ...(asset.duration > 0 ? { duration: asset.duration } : {}),
   };
 }
 
@@ -219,7 +263,67 @@ async function convertHeicToJpeg(sourceUri: string): Promise<{ uri: string }> {
   const rendered = await context.renderAsync();
   const saved = await rendered.saveAsync({
     format: SaveFormat.JPEG,
-    compress: 0.9, // 0.9 conserva buena calidad; baja si quieres archivos más ligeros
+    compress: 0.9,
   });
   return { uri: saved.uri };
+}
+
+/**
+ * Ejecuta `fn` sobre cada elemento con un máximo de `concurrency` ejecuciones
+ * simultáneas. Devuelve un PromiseSettledResult[] para que los fallos
+ * individuales no anulen el lote completo.
+ */
+async function mapWithConcurrencySettled<T, R>(
+  items: T[],
+  fn: (item: T) => Promise<R>,
+  concurrency: number,
+): Promise<PromiseSettledResult<R>[]> {
+  if (items.length === 0) return [];
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let index = 0;
+
+  async function runNext(): Promise<void> {
+    if (index >= items.length) return;
+    const current = index++;
+    try {
+      results[current] = {
+        status: "fulfilled",
+        value: await fn(items[current]!),
+      };
+    } catch (e) {
+      results[current] = { status: "rejected", reason: e };
+    }
+    await runNext();
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(concurrency, items.length) }, runNext),
+  );
+  return results;
+}
+
+/** Separa los resultados settled en archivos OK y fallos previos al importService. */
+function partitionSettled(
+  assets: MediaLibrary.Asset[],
+  settled: PromiseSettledResult<MediaImportFile>[],
+): { files: MediaImportFile[]; preFailures: MediaImportFailure[] } {
+  const files: MediaImportFile[] = [];
+  const preFailures: MediaImportFailure[] = [];
+
+  settled.forEach((result, i) => {
+    if (result.status === "fulfilled") {
+      files.push(result.value);
+    } else {
+      preFailures.push({
+        id: assets[i]!.id,
+        name: assets[i]!.filename,
+        error:
+          result.reason instanceof Error
+            ? result.reason.message
+            : String(result.reason),
+      });
+    }
+  });
+
+  return { files, preFailures };
 }

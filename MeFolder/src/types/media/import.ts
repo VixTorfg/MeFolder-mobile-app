@@ -10,6 +10,12 @@ export interface MediaImportFile {
   size?: number;
   mimeType?: string;
   type: MediaImportFileType;
+  /** Ancho intrínseco en píxeles (precalculado desde MediaLibrary.Asset) */
+  width?: number;
+  /** Alto intrínseco en píxeles (precalculado desde MediaLibrary.Asset) */
+  height?: number;
+  /** Duración en segundos (precalculada desde MediaLibrary.Asset, solo video/audio) */
+  duration?: number;
 }
 
 export interface MediaImportProgress {
