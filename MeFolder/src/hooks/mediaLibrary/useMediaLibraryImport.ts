@@ -8,6 +8,7 @@ import type {
   ImportMediaAlbumResult,
   ImportMediaFilesResult,
 } from "@/services/media/MediaImportService";
+import { ImageManipulator, SaveFormat } from "expo-image-manipulator";
 
 interface UseMediaLibraryImportParams {
   folderId?: string;
@@ -52,7 +53,7 @@ export function useMediaLibraryImport({
 
       try {
         const result = await services.mediaImportService.importFiles({
-          files: assets.map(mapAssetToImportFile),
+          files: await Promise.all(assets.map(mapAssetToImportFile)),
           ...(folderId ? { folderId } : {}),
           ...(albumId ? { tagIds: [albumId] } : {}),
           onProgress: setProgress,
@@ -65,6 +66,7 @@ export function useMediaLibraryImport({
     },
     [
       folderId,
+      albumId,
       persistImportedFiles,
       resetProgress,
       services.mediaImportService,
@@ -154,7 +156,7 @@ async function loadAlbumFiles(
       total = result.totalCount;
     }
 
-    files.push(...result.assets.map(mapAssetToImportFile));
+    files.push(...(await Promise.all(result.assets.map(mapAssetToImportFile))));
     onProgress({
       completed: files.length,
       total,
@@ -168,12 +170,56 @@ async function loadAlbumFiles(
   return files;
 }
 
-function mapAssetToImportFile(asset: MediaLibrary.Asset): MediaImportFile {
+async function mapAssetToImportFile(
+  asset: MediaLibrary.Asset,
+): Promise<MediaImportFile> {
+  let uri = asset.uri;
+
+  if (uri.startsWith("ph://") || uri.startsWith("assets-library://")) {
+    const info = await MediaLibrary.getAssetInfoAsync(asset, {
+      shouldDownloadFromNetwork: true,
+    });
+    if (!info.localUri) {
+      throw new Error(
+        `No se pudo resolver el archivo local de "${asset.filename}"`,
+      );
+    }
+    uri = info.localUri;
+  }
+
+  const isVideo = asset.mediaType === MediaLibrary.MediaType.video;
+  let name = asset.filename;
+
+  // iOS: las fotos de la cámara son HEIC/HEIF. Convertir a JPEG al importar.
+  if (!isVideo && isHeic(name, uri)) {
+    const converted = await convertHeicToJpeg(uri);
+    uri = converted.uri;
+    name = swapExtToJpg(name);
+  }
+
   return {
     id: asset.id,
-    name: asset.filename,
+    name,
     originalName: asset.filename,
-    uri: asset.uri,
-    type: asset.mediaType === MediaLibrary.MediaType.video ? "video" : "image",
+    uri,
+    type: isVideo ? "video" : "image",
   };
+}
+
+function isHeic(filename: string, uri: string): boolean {
+  return /\.(heic|heif)$/i.test(filename) || /\.(heic|heif)$/i.test(uri);
+}
+
+function swapExtToJpg(filename: string): string {
+  return filename.replace(/\.(heic|heif)$/i, ".jpg");
+}
+
+async function convertHeicToJpeg(sourceUri: string): Promise<{ uri: string }> {
+  const context = ImageManipulator.manipulate(sourceUri);
+  const rendered = await context.renderAsync();
+  const saved = await rendered.saveAsync({
+    format: SaveFormat.JPEG,
+    compress: 0.9, // 0.9 conserva buena calidad; baja si quieres archivos más ligeros
+  });
+  return { uri: saved.uri };
 }

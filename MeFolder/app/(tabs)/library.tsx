@@ -37,6 +37,7 @@ import { useFileSystem, useSearch, useSelection } from "@/hooks";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import { ArchiveFormat, OptionsIds, type OptionsType } from "@/types";
+import { openExternal } from "@/utils/other/sharing";
 
 export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
@@ -181,6 +182,7 @@ export default function LibraryScreen() {
         item.category !== "video" &&
         item.category !== "audio"
       ) {
+        void openExternal(uri, item.metadata.mimeType);
         return;
       }
 

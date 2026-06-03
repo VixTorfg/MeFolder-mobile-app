@@ -1,13 +1,11 @@
 import React from "react";
-import {
-  View,
-  Text,
-  Modal,
-  KeyboardAvoidingView,
-  Platform,
-} from "react-native";
+import { View, Text, Modal } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
-import Animated from "react-native-reanimated";
+import Animated, { useAnimatedStyle } from "react-native-reanimated";
+import {
+  KeyboardProvider,
+  useReanimatedKeyboardAnimation,
+} from "react-native-keyboard-controller";
 import {
   GestureDetector,
   GestureHandlerRootView,
@@ -25,13 +23,12 @@ interface BottomSheetProps {
   children: React.ReactNode;
 }
 
-export default function BottomSheet({
-  visible,
+function BottomSheetContent({
   onClose,
   onBeforeClose,
   title,
   children,
-}: BottomSheetProps) {
+}: Omit<BottomSheetProps, "visible">) {
   const { theme } = useTheme();
   const styles = useBottomSheetStyles();
   const { onModalShow, handleClose, panGesture, overlayStyle, containerStyle } =
@@ -40,64 +37,89 @@ export default function BottomSheet({
       ...(onBeforeClose !== undefined && { onBeforeClose }),
     });
 
+  const { height } = useReanimatedKeyboardAnimation();
+  const keyboardStyle = useAnimatedStyle(() => ({
+    bottom: Math.abs(height.value),
+  }));
+
+  React.useEffect(() => {
+    onModalShow?.();
+  }, []);
+
+  return (
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <Animated.View style={[styles.overlay, overlayStyle]}>
+        <TouchableOpacity
+          style={{ flex: 1 }}
+          activeOpacity={1}
+          onPress={handleClose}
+        />
+      </Animated.View>
+
+      <Animated.View
+        style={[styles.containerWrapper, containerStyle, keyboardStyle]}
+      >
+        <View style={styles.container}>
+          <GestureDetector gesture={panGesture}>
+            <Animated.View style={styles.handleZone}>
+              <View style={styles.handle} />
+            </Animated.View>
+          </GestureDetector>
+
+          {title && (
+            <View style={styles.header}>
+              <Text
+                style={styles.headerTitle}
+                numberOfLines={1}
+                ellipsizeMode="tail"
+              >
+                {title}
+              </Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={handleClose}
+                activeOpacity={0.7}
+              >
+                <Ionicons
+                  name="close"
+                  size={20}
+                  color={theme.colors.textSecondary}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {children}
+        </View>
+      </Animated.View>
+    </GestureHandlerRootView>
+  );
+}
+
+export default function BottomSheet({
+  visible,
+  onClose,
+  onBeforeClose,
+  title,
+  children,
+}: BottomSheetProps) {
   return (
     <Modal
       visible={visible}
       animationType="none"
       transparent
       statusBarTranslucent
-      onShow={onModalShow}
-      onRequestClose={handleClose}
+      onRequestClose={onClose}
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <Animated.View style={[styles.overlay, overlayStyle]}>
-          <TouchableOpacity
-            style={{ flex: 1 }}
-            activeOpacity={1}
-            onPress={handleClose}
-          />
-        </Animated.View>
-
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === "ios" ? "padding" : "height"}
+      <KeyboardProvider statusBarTranslucent>
+        <BottomSheetContent
+          onClose={onClose}
+          {...(onBeforeClose !== undefined && { onBeforeClose })}
+          {...(title !== undefined && { title })}
         >
-          <Animated.View style={[styles.containerWrapper, containerStyle]}>
-            <View style={styles.container}>
-              <GestureDetector gesture={panGesture}>
-                <Animated.View style={styles.handleZone}>
-                  <View style={styles.handle} />
-                </Animated.View>
-              </GestureDetector>
-
-              {title && (
-                <View style={styles.header}>
-                  <Text
-                    style={styles.headerTitle}
-                    numberOfLines={1}
-                    ellipsizeMode="tail"
-                  >
-                    {title}
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.closeButton}
-                    onPress={handleClose}
-                    activeOpacity={0.7}
-                  >
-                    <Ionicons
-                      name="close"
-                      size={20}
-                      color={theme.colors.textSecondary}
-                    />
-                  </TouchableOpacity>
-                </View>
-              )}
-
-              {children}
-            </View>
-          </Animated.View>
-        </KeyboardAvoidingView>
-      </GestureHandlerRootView>
+          {children}
+        </BottomSheetContent>
+      </KeyboardProvider>
     </Modal>
   );
 }

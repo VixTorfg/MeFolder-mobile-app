@@ -104,11 +104,13 @@ export const useHomeStyles = () => {
       gap: theme.spacing.sm,
     },
     quickStatTitle: {
+      flexShrink: 1,
       fontSize: theme.typography.fontSize.sm,
       fontFamily: theme.typography.fontFamily.primary.medium,
       color: theme.colors.textPrimary,
     },
     quickStatValue: {
+      flexShrink: 1,
       fontSize: theme.typography.fontSize.lg,
       fontFamily: theme.typography.fontFamily.title.semiBold,
       color: theme.colors.textPrimary,

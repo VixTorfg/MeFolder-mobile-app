@@ -24,6 +24,7 @@ import { router } from "expo-router";
 import { FlashList } from "@shopify/flash-list";
 import { useTrashStyles } from "@/screenStyles/trashStyle";
 import EmptyTrash from "@/components/svgIcons/emptyTrash";
+import { openExternal } from "@/utils/other/sharing";
 
 export default function TrashScreen() {
   const [showMenu, setShowMenu] = useState(false);
@@ -123,6 +124,7 @@ export default function TrashScreen() {
         item.category !== "video" &&
         item.category !== "audio"
       ) {
+        void openExternal(uri, item.metadata.mimeType);
         return;
       }
 

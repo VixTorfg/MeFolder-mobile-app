@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { View, Text, ScrollView } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useCustomAlertStyles } from "./styles";
 import { CustomAlertButton } from "@/types/ui/components";
@@ -44,7 +44,14 @@ export const CustomAlert = ({
 
   return (
     <CustomPopup title={title} isVisible={isVisible} onDismiss={onDismiss}>
-      {message ? <Text style={styles.message}>{message}</Text> : null}
+      {message ? (
+        <ScrollView
+          style={styles.messageScroll}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.message}>{message}</Text>
+        </ScrollView>
+      ) : null}
       <View style={styles.footer}>
         <View style={styles.buttonContainer}>
           {buttons.map((btn) => (

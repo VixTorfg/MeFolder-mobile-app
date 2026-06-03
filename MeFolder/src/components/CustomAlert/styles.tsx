@@ -30,6 +30,9 @@ export const useCustomAlertStyles = () => {
       fontSize: 14,
       color: theme.colors.textSecondary,
     },
+    messageScroll: {
+      maxHeight: 200,
+    },
     footer: {
       marginTop: theme.spacing.md,
     },

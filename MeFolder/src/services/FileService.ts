@@ -160,11 +160,20 @@ export class FileService extends BaseService {
 
       await this.validateUniqueFileName(file.name, targetFolderId, fileId);
 
-      const sourceUri = file.storageUrl ?? file.path;
-      const expectedTargetPath = `${targetFolder.path}/${file.name}`;
+      const sourceUri = file.storageUrl ?? this.fs.resolveUri(file.path);
+      const expectedTargetPath = `${targetFolder.path}/${file.name}`; // ruta lógica (se guarda en BD)
+      const targetUri = this.fs.resolveUri(expectedTargetPath); // URI absoluta (para el sistema de archivos)
+
+      const ensured = this.fs.ensureDirectory(this.fs.getParentUri(targetUri));
+      if (!ensured.success) {
+        throw new Error(
+          ensured.error ?? "No se pudo preparar la carpeta destino",
+        );
+      }
+
       const moveResult = this.fs.moveFile({
         from: sourceUri,
-        to: expectedTargetPath,
+        to: targetUri,
       });
 
       if (!moveResult.success || !moveResult.toUri) {
@@ -244,7 +253,7 @@ export class FileService extends BaseService {
 
       await this.fileRepo.permanentDelete(fileId);
 
-      const fileUri = file.storageUrl ?? file.path;
+      const fileUri = file.storageUrl ?? this.fs.resolveUri(file.path);
       const fsResult = this.fs.deleteFile(fileUri);
       if (!fsResult.success) {
         console.warn(
@@ -399,8 +408,19 @@ export class FileService extends BaseService {
         file.name,
         targetFolderId,
       );
-      const sourceUri = file.storageUrl ?? file.path;
-      const destinationUri = `${targetFolder.path}/${copyName}`;
+      const sourceUri = file.storageUrl ?? this.fs.resolveUri(file.path);
+      const destinationPath = `${targetFolder.path}/${copyName}`; // ruta lógica
+      const destinationUri = this.fs.resolveUri(destinationPath); // URI absoluta (para el sistema de archivos)
+
+      const ensured = this.fs.ensureDirectory(
+        this.fs.getParentUri(destinationUri),
+      );
+      if (!ensured.success) {
+        throw new Error(
+          ensured.error ?? "No se pudo preparar la carpeta destino",
+        );
+      }
+
       const copyResult = this.fs.copyFile({
         from: sourceUri,
         to: destinationUri,

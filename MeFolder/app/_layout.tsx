@@ -19,6 +19,7 @@ import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { MaterialCommunityIcons, Ionicons } from "@expo/vector-icons";
 import SplashLogo from "@/components/svgIcons/splashLogo";
+import { KeyboardProvider } from "react-native-keyboard-controller";
 
 const SPLASH_BACKGROUND = "#f1f2eb";
 const SPLASH_BACKGROUND_DARK = "#000000";
@@ -82,13 +83,15 @@ export default function RootLayout() {
               <ErrorScreen error={error} onRetry={retry} />
             )}
           >
-            <AlertProvider>
-              <Stack
-                screenOptions={{
-                  headerShown: false,
-                }}
-              />
-            </AlertProvider>
+            <KeyboardProvider>
+              <AlertProvider>
+                <Stack
+                  screenOptions={{
+                    headerShown: false,
+                  }}
+                />
+              </AlertProvider>
+            </KeyboardProvider>
           </AppBootstrap>
         </DatabaseProvider>
       </ThemeProvider>
