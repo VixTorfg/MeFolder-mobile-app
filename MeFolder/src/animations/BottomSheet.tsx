@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Modal } from "react-native";
+import { View, Text, Modal, Platform } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import Animated, { useAnimatedStyle } from "react-native-reanimated";
 import {
@@ -14,6 +14,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "@/providers";
 import { useBottomSheet } from "./useBottomSheet";
 import { useBottomSheetStyles } from "./styles";
+import { usePathname } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface BottomSheetProps {
   visible: boolean;
@@ -31,6 +33,7 @@ function BottomSheetContent({
 }: Omit<BottomSheetProps, "visible">) {
   const { theme } = useTheme();
   const styles = useBottomSheetStyles();
+  const insets = useSafeAreaInsets();
   const { onModalShow, handleClose, panGesture, overlayStyle, containerStyle } =
     useBottomSheet({
       onClose,
@@ -38,8 +41,9 @@ function BottomSheetContent({
     });
 
   const { height } = useReanimatedKeyboardAnimation();
+  const containerPaddingBottom = Math.max(insets.bottom, theme.spacing.md);
   const keyboardStyle = useAnimatedStyle(() => ({
-    bottom: Math.abs(height.value),
+    bottom: Math.max(Math.abs(height.value) - containerPaddingBottom, 0),
   }));
 
   React.useEffect(() => {
@@ -103,23 +107,36 @@ export default function BottomSheet({
   title,
   children,
 }: BottomSheetProps) {
+  const pathname = usePathname();
+  // iOS: el Modal de RN se presenta como UIViewController y queda encima de cualquier
+  // pantalla pusheada por expo-router. Al navegar a /camera ocultamos el Modal pero
+  // mantenemos los hijos montados (estado de FileCreator intacto) para que al volver
+  // el useEffect detecte el capture y restaure el contenido automáticamente.
+  const hiddenForCamera =
+    Platform.OS === "ios" && visible && pathname === "/camera";
+
   return (
-    <Modal
-      visible={visible}
-      animationType="none"
-      transparent
-      statusBarTranslucent
-      onRequestClose={onClose}
-    >
-      <KeyboardProvider statusBarTranslucent>
-        <BottomSheetContent
-          onClose={onClose}
-          {...(onBeforeClose !== undefined && { onBeforeClose })}
-          {...(title !== undefined && { title })}
-        >
-          {children}
-        </BottomSheetContent>
-      </KeyboardProvider>
-    </Modal>
+    <>
+      <Modal
+        visible={visible && !hiddenForCamera}
+        animationType="none"
+        transparent
+        statusBarTranslucent
+        onRequestClose={onClose}
+      >
+        <KeyboardProvider statusBarTranslucent>
+          <BottomSheetContent
+            onClose={onClose}
+            {...(onBeforeClose !== undefined && { onBeforeClose })}
+            {...(title !== undefined && { title })}
+          >
+            {children}
+          </BottomSheetContent>
+        </KeyboardProvider>
+      </Modal>
+
+      {/* Mantener el árbol de componentes vivo en iOS mientras la cámara está abierta */}
+      {hiddenForCamera && <View style={{ display: "none" }}>{children}</View>}
+    </>
   );
 }
