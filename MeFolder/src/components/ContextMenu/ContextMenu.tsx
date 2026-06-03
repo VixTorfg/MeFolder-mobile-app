@@ -3,6 +3,7 @@ import {
   Text,
   View,
   Animated,
+  Modal,
   LayoutChangeEvent,
   useWindowDimensions,
 } from "react-native";
@@ -196,28 +197,36 @@ export const ContextMenu = ({
   };
 
   return (
-    <View style={styles.overlay}>
-      <TouchableOpacity
-        style={styles.dismissPressable}
-        activeOpacity={1}
-        onPress={onDismiss}
-      />
-      <Animated.View
-        onLayout={handleMenuLayout}
-        style={[
-          {
-            position: "absolute",
-            top: resolvedTop,
-            left: resolvedLeft,
-            zIndex: 1000,
-            opacity: fadeAnim,
-            transform: [{ translateY: translateYAnim }, { scale: scaleAnim }],
-          },
-          styles.menuContainer,
-        ]}
-      >
-        {visibleOptions.map(renderRow)}
-      </Animated.View>
-    </View>
+    <Modal
+      visible={rendered}
+      transparent
+      animationType="none"
+      statusBarTranslucent
+      onRequestClose={onDismiss}
+    >
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.dismissPressable}
+          activeOpacity={1}
+          onPress={onDismiss}
+        />
+        <Animated.View
+          onLayout={handleMenuLayout}
+          style={[
+            {
+              position: "absolute",
+              top: resolvedTop,
+              left: resolvedLeft,
+              zIndex: 1000,
+              opacity: fadeAnim,
+              transform: [{ translateY: translateYAnim }, { scale: scaleAnim }],
+            },
+            styles.menuContainer,
+          ]}
+        >
+          {visibleOptions.map(renderRow)}
+        </Animated.View>
+      </View>
+    </Modal>
   );
 };
