@@ -108,35 +108,25 @@ export default function BottomSheet({
   children,
 }: BottomSheetProps) {
   const pathname = usePathname();
-  // iOS: el Modal de RN se presenta como UIViewController y queda encima de cualquier
-  // pantalla pusheada por expo-router. Al navegar a /camera ocultamos el Modal pero
-  // mantenemos los hijos montados (estado de FileCreator intacto) para que al volver
-  // el useEffect detecte el capture y restaure el contenido automáticamente.
   const hiddenForCamera =
     Platform.OS === "ios" && visible && pathname === "/camera";
 
   return (
-    <>
-      <Modal
-        visible={visible && !hiddenForCamera}
-        animationType="none"
-        transparent
-        statusBarTranslucent
-        onRequestClose={onClose}
-      >
-        <KeyboardProvider statusBarTranslucent>
-          <BottomSheetContent
-            onClose={onClose}
-            {...(onBeforeClose !== undefined && { onBeforeClose })}
-            {...(title !== undefined && { title })}
-          >
-            {children}
-          </BottomSheetContent>
-        </KeyboardProvider>
-      </Modal>
-
-      {/* Mantener el árbol de componentes vivo en iOS mientras la cámara está abierta */}
-      {hiddenForCamera && <View style={{ display: "none" }}>{children}</View>}
-    </>
+    <Modal
+      visible={visible && !hiddenForCamera}
+      animationType="none"
+      transparent
+      onRequestClose={onClose}
+    >
+      <KeyboardProvider>
+        <BottomSheetContent
+          onClose={onClose}
+          {...(onBeforeClose !== undefined && { onBeforeClose })}
+          {...(title !== undefined && { title })}
+        >
+          {children}
+        </BottomSheetContent>
+      </KeyboardProvider>
+    </Modal>
   );
 }
