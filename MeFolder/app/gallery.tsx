@@ -20,19 +20,21 @@ import type { MediaHostItem } from "@/types/media/viewers";
 import { OptionsIds, type ArchiveSourceFile, type OptionsType } from "@/types";
 import { useTagContentStore } from "@/stores/useTagContentStore";
 import { useLocalSearchParams, router } from "expo-router";
-import React, { useCallback, useMemo, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import * as Sharing from "expo-sharing";
 import {
   ActivityIndicator,
   Animated as RNAnimated,
-  FlatList,
-  type ListRenderItem,
   View,
   Text,
   Pressable,
   useWindowDimensions,
-  NativeScrollEvent,
-  NativeSyntheticEvent,
 } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Image } from "expo-image";
@@ -44,8 +46,8 @@ import {
   GestureDetector,
   GestureHandlerRootView,
 } from "react-native-gesture-handler";
-import Animated, { LinearTransition, FadeIn } from "react-native-reanimated";
 import EmptyAlbum from "@/components/svgIcons/emptyAlbum";
+import { FlashList } from "@shopify/flash-list";
 
 const SPACING_HORIZONTAL_SM = 10;
 const DELETE_DIALOG_CLOSE_DELAY_MS = 180;
@@ -97,82 +99,94 @@ interface DeleteDialogState {
   deleteFromSystem: boolean;
 }
 
-function GalleryTile({
-  item,
-  itemSize,
-  isSelected,
-  selectionMode,
-  onOpenItem,
-  onToggleSelection,
-  styles,
-}: GalleryTileProps) {
-  const { animatedStyle, handlePressIn, handlePressOut } =
-    usePressScaleAnimation();
-  const previewUri =
-    item.category === "image"
-      ? (item.storageUrl ?? item.thumbnailUrl)
-      : (item.thumbnailUrl ?? item.storageUrl);
+// Custom comparator: skip re-render when only unrelated parent state changed.
+// Useful even with React Compiler because it can't know that item.id sameness
+// implies the item's visual properties didn't change.
+const GalleryTile = React.memo(
+  function GalleryTile({
+    item,
+    itemSize,
+    isSelected,
+    selectionMode,
+    onOpenItem,
+    onToggleSelection,
+    styles,
+  }: GalleryTileProps) {
+    const { animatedStyle, handlePressIn, handlePressOut } =
+      usePressScaleAnimation();
 
-  return (
-    <Animated.View
-      style={{
-        width: itemSize,
-        height: itemSize,
-        padding: 1,
-        overflow: "hidden",
-      }}
-      layout={LinearTransition.duration(300)}
-      entering={FadeIn.duration(250)}
-    >
-      <RNAnimated.View style={[styles.thumbAnimatedWrapper, animatedStyle]}>
-        <Pressable
-          onPress={() => {
-            if (selectionMode) {
-              onToggleSelection(item);
-              return;
-            }
+    // Always prefer the thumbnail in the grid — full-res is reserved for the viewer.
+    const previewUri = item.thumbnailUrl ?? item.storageUrl;
 
-            onOpenItem(item);
-          }}
-          onLongPress={() => onToggleSelection(item)}
-          onPressIn={handlePressIn}
-          onPressOut={handlePressOut}
-          style={[
-            styles.thumbPressable,
-            isSelected && styles.thumbPressableSelected,
-          ]}
-        >
-          {previewUri && (
-            <Image
-              source={{ uri: previewUri }}
-              recyclingKey={item.id}
-              style={styles.thumb}
-              contentFit="cover"
-              transition={200}
-            />
-          )}
-          {isSelected ? (
-            <View style={styles.selectionBadge}>
-              <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
-            </View>
-          ) : null}
-          {item.category === "video" ? (
-            <View style={styles.videoInfo}>
-              <MaterialCommunityIcons
-                name="play-circle"
-                size={16}
-                color="#FFFFFF"
+    return (
+      // No Reanimated layout/entering animations inside FlashList cells:
+      // they conflict with cell recycling and cause jank on column changes.
+      // The fade-in effect is handled by expo-image's transition prop instead.
+      <View
+        style={{
+          height: itemSize,
+          padding: 1,
+          overflow: "hidden",
+        }}
+      >
+        <RNAnimated.View style={[styles.thumbAnimatedWrapper, animatedStyle]}>
+          <Pressable
+            onPress={() => {
+              if (selectionMode) {
+                onToggleSelection(item);
+                return;
+              }
+
+              onOpenItem(item);
+            }}
+            onLongPress={() => onToggleSelection(item)}
+            onPressIn={handlePressIn}
+            onPressOut={handlePressOut}
+            style={[
+              styles.thumbPressable,
+              isSelected && styles.thumbPressableSelected,
+            ]}
+          >
+            {previewUri && (
+              <Image
+                source={{ uri: previewUri }}
+                recyclingKey={item.id}
+                style={styles.thumb}
+                contentFit="cover"
+                cachePolicy="memory-disk"
               />
-              <Text style={styles.videoDurationText}>
-                {formatVideoDuration(item.metadata.videoMetadata?.duration)}
-              </Text>
-            </View>
-          ) : null}
-        </Pressable>
-      </RNAnimated.View>
-    </Animated.View>
-  );
-}
+            )}
+            {isSelected ? (
+              <View style={styles.selectionBadge}>
+                <Ionicons name="checkmark-circle" size={24} color="#FFFFFF" />
+              </View>
+            ) : null}
+            {item.category === "video" ? (
+              <View style={styles.videoInfo}>
+                <MaterialCommunityIcons
+                  name="play-circle"
+                  size={16}
+                  color="#FFFFFF"
+                />
+                <Text style={styles.videoDurationText}>
+                  {formatVideoDuration(item.metadata.videoMetadata?.duration)}
+                </Text>
+              </View>
+            ) : null}
+          </Pressable>
+        </RNAnimated.View>
+      </View>
+    );
+  },
+  (prev, next) =>
+    prev.item.id === next.item.id &&
+    prev.item.thumbnailUrl === next.item.thumbnailUrl &&
+    prev.item.storageUrl === next.item.storageUrl &&
+    prev.isSelected === next.isSelected &&
+    prev.selectionMode === next.selectionMode &&
+    prev.itemSize === next.itemSize &&
+    prev.styles === next.styles,
+);
 
 export default function GalleryScreen() {
   const { tagId, albumName } = useLocalSearchParams();
@@ -181,9 +195,16 @@ export default function GalleryScreen() {
   const { services } = useServices();
   const { showAlert } = useAlert();
 
-  const { items, loadMore, isLoading } = useGalleryContent({
+  const { columns, pinchGesture } = usePinchColumns({
+    initialColumns: 4,
+    minColumns: 2,
+    maxColumns: 6,
+  });
+
+  const { width: screenWidth } = useWindowDimensions();
+
+  const { items, loadMore, isLoading, isLoadingMore } = useGalleryContent({
     tagId: tagId as string,
-    pageSize: 100,
   });
   const {
     itemsSelected,
@@ -196,13 +217,6 @@ export default function GalleryScreen() {
     handleOnSelectOption,
   } = useSelection(items, tagId as string, "tag");
 
-  const { columns, pinchGesture } = usePinchColumns({
-    initialColumns: 4,
-    minColumns: 2,
-    maxColumns: 6,
-  });
-
-  const { width: screenWidth } = useWindowDimensions();
   const itemSize = Math.trunc(
     (screenWidth - 2 * SPACING_HORIZONTAL_SM) / columns,
   );
@@ -258,24 +272,36 @@ export default function GalleryScreen() {
     [items],
   );
 
+  const pendingThumbnailIds = useRef(new Set<string>());
+
+  useEffect(() => {
+    const needsThumbnail = items.filter(
+      (item) =>
+        !item.thumbnailUrl &&
+        item.storageUrl &&
+        (item.category === "image" || item.category === "video") &&
+        !pendingThumbnailIds.current.has(item.id),
+    );
+
+    if (needsThumbnail.length === 0) return;
+
+    for (const item of needsThumbnail) {
+      pendingThumbnailIds.current.add(item.id);
+      void services.fileService.ensureThumbnail(item).then((updated) => {
+        pendingThumbnailIds.current.delete(item.id);
+        if (updated.thumbnailUrl) {
+          useTagContentStore.getState().updateItem(updated);
+        }
+      });
+    }
+  }, [items, services.fileService]);
+
   const handleOpenItem = useCallback((file: FileModel) => {
     if (!file.storageUrl) return;
     if (file.category !== "image" && file.category !== "video") return;
 
     setSelectedMediaId(file.id);
   }, []);
-
-  const handleScroll = useCallback(
-    (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-      const { layoutMeasurement, contentOffset, contentSize } = e.nativeEvent;
-      const distanceFromEnd =
-        contentSize.height - layoutMeasurement.height - contentOffset.y;
-      if (distanceFromEnd < 200) {
-        loadMore();
-      }
-    },
-    [loadMore],
-  );
 
   const handleBackPress = useCallback(() => {
     clearSelection();
@@ -291,8 +317,8 @@ export default function GalleryScreen() {
     [itemsSelected],
   );
   const keyExtractor = useCallback((item: FileModel) => item.id, []);
-  const renderGalleryItem = useCallback<ListRenderItem<FileModel>>(
-    ({ item }) => (
+  const renderGalleryItem = useCallback(
+    ({ item }: { item: FileModel }) => (
       <GalleryTile
         item={item}
         itemSize={itemSize}
@@ -659,7 +685,7 @@ export default function GalleryScreen() {
   const selectionActionBarOffset = insets.bottom + 12;
   const scrollBottomPadding = selectionMode
     ? selectionActionBarOffset + 92
-    : 16;
+    : insets.bottom + 16;
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
@@ -730,17 +756,26 @@ export default function GalleryScreen() {
           </View>
         ) : (
           <GestureDetector gesture={pinchGesture}>
-            <FlatList
-              key={`gallery-grid-${columns}`}
+            <FlashList
               data={items}
               keyExtractor={keyExtractor}
               numColumns={columns}
               extraData={selectedItemIds}
               renderItem={renderGalleryItem}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
+              getItemType={() => "tile"}
+              onEndReached={loadMore}
+              onEndReachedThreshold={0.4}
+              ListFooterComponent={
+                isLoadingMore ? (
+                  <View style={{ padding: 16, alignItems: "center" }}>
+                    <ActivityIndicator
+                      size="small"
+                      color={styles.primaryColor.color}
+                    />
+                  </View>
+                ) : null
+              }
               contentContainerStyle={{ paddingBottom: scrollBottomPadding }}
-              scrollIndicatorInsets={{ bottom: scrollBottomPadding }}
             />
           </GestureDetector>
         )}

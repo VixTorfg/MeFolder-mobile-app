@@ -25,11 +25,16 @@ import type {
   SupportedArchiveFormat,
   UUID,
 } from "@/types";
-import { EXTENSION_MIME_MAP } from "@/types/common/file-extensions";
+import {
+  EXTENSION_MIME_MAP,
+  FILE_CATEGORY_MAP,
+  type FileExtension,
+} from "@/types/common/file-extensions";
 import { sanitizeFileName, sanitizeFolderName } from "@/utils/format/name";
 import { FileService } from "../FileService";
 import { FolderService } from "../FolderService";
 import { FileSystemService } from "../filesystem/FileSystemService";
+import { MediaImportService } from "../media/MediaImportService";
 import {
   buildArchiveEntries,
   getParentArchivePath,
@@ -90,6 +95,7 @@ export class ArchiveService {
   constructor(
     private readonly fileService: FileService = new FileService(),
     private readonly folderService: FolderService = new FolderService(),
+    private readonly mediaImportService: MediaImportService = new MediaImportService(),
   ) {}
 
   /** Crea un ZIP a partir de una carpeta completa y lo registra en la BD. */
@@ -429,17 +435,38 @@ export class ArchiveService {
           fileEntry.name,
           fileInfo.data.extension,
         );
+        const fileCategory =
+          FILE_CATEGORY_MAP[resolvedExtension as FileExtension] ?? "other";
+        const fileMimeType =
+          EXTENSION_MIME_MAP[resolvedExtension as FileExtension] ||
+          fileInfo.data.mimeType ||
+          undefined;
 
-        const extractedFile = await this.fileService.createFile({
-          name: safeFileName,
-          originalName: fileEntry.name,
-          extension: resolvedExtension as CreateFileInput["extension"],
-          folderId: fileFolderId,
-          visibility: (params.archiveFile.visibility ??
-            "private") as FileVisibility,
-          metadata: this.buildFileMetadataFromInfo(fileInfo.data),
-          storageUrl: targetUri,
-        });
+        const { importedFiles: registered, failed: registerFailed } =
+          await this.mediaImportService.registerExistingFiles({
+            files: [
+              {
+                id: `extract_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+                name: safeFileName,
+                originalName: fileEntry.name,
+                uri: targetUri,
+                type: fileCategory,
+                ...(fileMimeType ? { mimeType: fileMimeType } : {}),
+                folderId: fileFolderId,
+                visibility: (params.archiveFile.visibility ??
+                  "private") as CreateFileInput["visibility"],
+              },
+            ],
+          });
+
+        if (registerFailed.length > 0 || !registered[0]) {
+          throw new Error(
+            registerFailed[0]?.error ??
+              `No se pudo registrar el archivo ${fileEntry.name}`,
+          );
+        }
+
+        const extractedFile = registered[0];
 
         const record = this.toRecord(extractedFile);
         createdFiles.push(record);
@@ -1158,19 +1185,6 @@ export class ArchiveService {
     return {
       size,
       mimeType: EXTENSION_MIME_MAP[extension],
-    };
-  }
-
-  /** Convierte la info del filesystem en metadata persistible del archivo extraído. */
-  private buildFileMetadataFromInfo(fileInfo: {
-    size: number;
-    mimeType: string;
-    md5: string | null;
-  }): FileMetadata {
-    return {
-      size: fileInfo.size,
-      ...(fileInfo.mimeType ? { mimeType: fileInfo.mimeType } : {}),
-      ...(fileInfo.md5 ? { checksum: fileInfo.md5 } : {}),
     };
   }
 

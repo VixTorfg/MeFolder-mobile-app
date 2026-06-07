@@ -227,7 +227,7 @@ export default function TagsScreen() {
 
       <MediaImportProgressOverlay
         visible={zipImportProgress !== null}
-        title="Importando ZIP"
+        title="Importando Álbum"
         progress={
           zipImportProgress ?? {
             completed: 0,

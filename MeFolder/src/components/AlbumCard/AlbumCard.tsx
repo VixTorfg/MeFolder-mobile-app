@@ -40,6 +40,8 @@ export const AlbumCard = ({
             source={{ uri: coverUri }}
             style={styles.albumCoverImage}
             contentFit="cover"
+            cachePolicy="memory-disk"
+            recyclingKey={album.id}
             transition={150}
           />
           <View

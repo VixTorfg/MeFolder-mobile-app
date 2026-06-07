@@ -61,6 +61,14 @@ export class FileService extends BaseService {
     }
   }
 
+  /**
+   * Genera y persiste el thumbnail de un archivo si no lo tiene.
+   * Devuelve el FileModel actualizado (con thumbnailUrl) o el original si falla.
+   */
+  async ensureThumbnail(file: FileModel): Promise<FileModel> {
+    return this.attachGeneratedThumbnail(file);
+  }
+
   private async attachGeneratedThumbnail(file: FileModel): Promise<FileModel> {
     if (
       (file.category !== "image" && file.category !== "video") ||

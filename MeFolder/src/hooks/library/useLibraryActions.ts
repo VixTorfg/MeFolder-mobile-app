@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { FileModel, FolderModel } from "@/models";
 import { useLibraryStore } from "@/stores/useLibraryStore";
 import { useClipboardStore, useNavigationStore } from "@/stores";
@@ -25,6 +26,7 @@ export const useLibraryActions = ({
   clearSelection,
   setIsRenaming,
 }: UseLibraryActionsParams) => {
+  const [isPasting, setIsPasting] = useState(false);
   const items = useLibraryStore((state) => state.items);
   const { setItems, addItem, updateItem } = useLibraryStore();
   const { currentFolderId } = useNavigationStore();
@@ -172,23 +174,30 @@ export const useLibraryActions = ({
     });
   };
 
+  const [isImporting, setIsImporting] = useState(false);
+
   const handleSaveFile = async (data: NewFile): Promise<void> => {
     const { files, tags, folderId } = data;
     const resolvedFolderId = folderId ?? currentFolderId;
-    const { importedFiles, failed } =
-      await services.mediaImportService.importFiles({
-        files,
-        tagIds: tags,
-        folderId: resolvedFolderId,
-      });
+    setIsImporting(true);
+    try {
+      const { importedFiles, failed } =
+        await services.mediaImportService.importFiles({
+          files,
+          tagIds: tags,
+          folderId: resolvedFolderId,
+        });
 
-    importedFiles.forEach((fileItem) => addItem(fileItem));
+      importedFiles.forEach((fileItem) => addItem(fileItem));
 
-    if (failed.length > 0) {
-      showAlert({
-        title: "Error al guardar archivos",
-        message: `No se pudieron guardar los siguientes archivos:\n${failed.map((f) => `${f.name}: ${f.error}`).join("\n")}`,
-      });
+      if (failed.length > 0) {
+        showAlert({
+          title: "Error al guardar archivos",
+          message: `No se pudieron guardar los siguientes archivos:\n${failed.map((f) => `${f.name}: ${f.error}`).join("\n")}`,
+        });
+      }
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -295,6 +304,7 @@ export const useLibraryActions = ({
       });
       return;
     }
+    setIsPasting(true);
     try {
       const { createdFolders, createdFiles } = await paste(currentFolderId);
 
@@ -310,6 +320,8 @@ export const useLibraryActions = ({
         title: "Error",
         message: "No se pudieron pegar los elementos",
       });
+    } finally {
+      setIsPasting(false);
     }
   };
 
@@ -324,5 +336,7 @@ export const useLibraryActions = ({
     handlePaste,
     handleMakeFavorite,
     hasItems,
+    isPasting,
+    isImporting,
   };
 };
