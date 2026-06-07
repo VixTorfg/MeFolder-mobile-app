@@ -23,6 +23,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useContentTagActions } from "@/hooks/tags/useContentTagActions";
 import { useTagContentStore } from "@/stores/useTagContentStore";
 import EmptyTag from "@/components/svgIcons/emptyTag";
+import { openExternal } from "@/utils/other/sharing";
 
 export default function TagsContent() {
   const [showMenu, setShowMenu] = useState(false);
@@ -209,6 +210,7 @@ export default function TagsContent() {
       item.category !== "video" &&
       item.category !== "audio"
     ) {
+      void openExternal(uri, item.metadata.mimeType);
       return;
     }
 

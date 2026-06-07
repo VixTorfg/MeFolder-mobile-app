@@ -209,8 +209,8 @@ export class FolderService extends BaseService {
       const levelDelta = newRootLevel - folder.level;
       const subtree = await this.collectFolderMoveSubtree(folderId);
       const moveResult = this.fs.moveDirectory({
-        from: oldRootPath,
-        to: newRootPath,
+        from: this.fs.resolveUri(oldRootPath),
+        to: this.fs.resolveUri(newRootPath),
       });
 
       if (!moveResult.success) {
@@ -229,15 +229,18 @@ export class FolderService extends BaseService {
             level: subfolder.level + levelDelta,
           }),
         );
-        const fileUpdates: FileLocationUpdate[] = subtree.files.map((file) => ({
-          id: file.id,
-          path: this.replacePathPrefix(file.path, oldRootPath, newRootPath),
-          storageUrl: this.replacePathPrefix(
-            file.storageUrl ?? file.path,
+        const fileUpdates: FileLocationUpdate[] = subtree.files.map((file) => {
+          const newLogicalPath = this.replacePathPrefix(
+            file.path,
             oldRootPath,
             newRootPath,
-          ),
-        }));
+          );
+          return {
+            id: file.id,
+            path: newLogicalPath,
+            storageUrl: this.fs.resolveUri(newLogicalPath),
+          };
+        });
 
         await this.folderRepo.relocateSubtree({
           rootFolderId: folderId,
@@ -250,8 +253,8 @@ export class FolderService extends BaseService {
         return await this.getFolder(folderId);
       } catch (error) {
         const rollbackResult = this.fs.moveDirectory({
-          from: newRootPath,
-          to: oldRootPath,
+          from: this.fs.resolveUri(newRootPath),
+          to: this.fs.resolveUri(oldRootPath),
         });
 
         if (!rollbackResult.success) {
@@ -320,7 +323,7 @@ export class FolderService extends BaseService {
       await this.permanentDeleteChildrenRecursive(folderId);
       await this.folderRepo.permanentDelete(folderId);
 
-      const fsResult = this.fs.deleteDirectory(folder.path);
+      const fsResult = this.fs.deleteDirectory(this.fs.resolveUri(folder.path));
       if (!fsResult.success) {
         console.warn(
           `No se pudo eliminar carpeta del disco: ${fsResult.error}`,
@@ -490,7 +493,7 @@ export class FolderService extends BaseService {
       for (const folderId of createdFolders.reverse()) {
         const folder = await this.folderRepo.findById(folderId);
         if (folder) {
-          this.fs.deleteDirectory(folder.path);
+          this.fs.deleteDirectory(this.fs.resolveUri(folder.path));
         }
         await this.folderRepo.permanentDelete(folderId);
       }
@@ -786,8 +789,8 @@ export class FolderService extends BaseService {
     const newFolder = await this.folderRepo.create({
       name,
       parentId,
-      type: sourceFolder.type,
-      visibility: sourceFolder.visibility,
+      type: "regular",
+      visibility: "public",
       viewSettings: sourceFolder.viewSettings,
       ...(sourceFolder.icon && { icon: sourceFolder.icon }),
       ...(sourceFolder.color && { color: sourceFolder.color }),
@@ -797,7 +800,7 @@ export class FolderService extends BaseService {
     });
 
     const dirResult = this.fs.makeDirectory({
-      uri: newFolder.path,
+      uri: this.fs.resolveUri(newFolder.path),
       intermediates: true,
       idempotent: true,
     });

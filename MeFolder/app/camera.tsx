@@ -124,7 +124,11 @@ export default function CameraScreen() {
           } catch {}
         }
       } else if (video?.uri) {
-        useCaptureStore.getState().setCapture(video.uri, "video");
+        useCaptureStore.getState().setCapture({
+          uri: video.uri,
+          type: "video",
+          mimeType: "video/quicktime",
+        });
         router.back();
       }
     } catch (e) {
@@ -165,8 +169,15 @@ export default function CameraScreen() {
   const takePicture = async () => {
     if (!cameraRef.current) return;
     const photo = await cameraRef.current.takePictureAsync();
+    if (!photo?.uri) return;
 
-    useCaptureStore.getState().setCapture(photo.uri, "photo");
+    useCaptureStore.getState().setCapture({
+      uri: photo.uri,
+      type: "photo",
+      mimeType: "image/jpeg",
+      ...(photo.width ? { width: photo.width } : {}),
+      ...(photo.height ? { height: photo.height } : {}),
+    });
     router.back();
   };
 

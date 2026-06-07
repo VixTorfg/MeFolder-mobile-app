@@ -37,6 +37,7 @@ import { useFileSystem, useSearch, useSelection } from "@/hooks";
 import { FlashList } from "@shopify/flash-list";
 import { router } from "expo-router";
 import { ArchiveFormat, OptionsIds, type OptionsType } from "@/types";
+import { openExternal } from "@/utils/other/sharing";
 
 export default function LibraryScreen() {
   const [creatorVisible, setCreatorVisible] = useState(false);
@@ -96,6 +97,8 @@ export default function LibraryScreen() {
     handlePaste,
     handleMakeFavorite,
     hasItems,
+    isPasting,
+    isImporting,
   } = useLibraryActions({
     folderService,
     fileService,
@@ -181,6 +184,7 @@ export default function LibraryScreen() {
         item.category !== "video" &&
         item.category !== "audio"
       ) {
+        void openExternal(uri, item.metadata.mimeType);
         return;
       }
 
@@ -621,8 +625,8 @@ export default function LibraryScreen() {
         onClose={() => setCreatorVisible(false)}
         currentFolderId={currentFolderId}
         onSaveFile={(data) => {
-          handleSaveFile(data);
           setCreatorVisible(false);
+          void handleSaveFile(data);
         }}
         onSaveFolder={(data) => {
           handleSaveFolder(data);
@@ -768,6 +772,30 @@ export default function LibraryScreen() {
         }}
         showProgress={archiveLoading.showProgress}
       />
+
+      <CustomPopup
+        title="Pegando"
+        isVisible={isPasting}
+        onDismiss={() => undefined}
+        dismissOnBackdropPress={false}
+      >
+        <View style={{ alignItems: "center", gap: 12, paddingVertical: 8 }}>
+          <ActivityIndicator size="large" color={styles.iconColor.primaryColor} />
+          <Text style={styles.popupMessage}>Copiando el elemento…</Text>
+        </View>
+      </CustomPopup>
+
+      <CustomPopup
+        title="Importando"
+        isVisible={isImporting}
+        onDismiss={() => undefined}
+        dismissOnBackdropPress={false}
+      >
+        <View style={{ alignItems: "center", gap: 12, paddingVertical: 8 }}>
+          <ActivityIndicator size="large" color={styles.iconColor.primaryColor} />
+          <Text style={styles.popupMessage}>Guardando los archivos…</Text>
+        </View>
+      </CustomPopup>
 
       <MediaHost items={activeMedia} onClose={() => setActiveMedia(null)} />
     </View>

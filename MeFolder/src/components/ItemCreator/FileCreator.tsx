@@ -55,7 +55,7 @@ export default function FileCreator({
   const { theme } = useTheme();
   const { showAlert } = useAlert();
   const fs = useFileSystem();
-  const { uri, type, clear } = useCaptureStore();
+  const { uri, type, mimeType, clear } = useCaptureStore();
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, requestMicrophonePermission] =
     useMicrophonePermissions();
@@ -242,34 +242,43 @@ export default function FileCreator({
 
   useEffect(() => {
     const loadCameraData = async () => {
-      if (selectedSource !== "camera" || !uri || !type) return;
+      if (!uri || !type) return;
 
-      const fileInfo = fs.getFileInfo(uri);
+      const normalizedUri =
+        uri.startsWith("file://") || uri.startsWith("content://")
+          ? uri
+          : `file://${uri}`;
+
+      const fileInfo = fs.getFileInfo(normalizedUri);
+
+      const resolvedMime =
+        mimeType ?? (type === "photo" ? "image/jpeg" : "video/quicktime");
+
       const fileName = sanitizeFileName(
-        fileInfo?.name ?? uri.split("/").pop() ?? `captura_${Date.now()}`,
+        fileInfo?.name ??
+          normalizedUri.split("/").pop() ??
+          `captura_${Date.now()}`,
       );
 
+      setSelectedSource("camera");
       setSelectedFiles([
         {
           id: `camera_${Date.now()}`,
           name: fileName,
           originalName: fileName,
-          uri,
-          ...(fileInfo?.size != null && { size: fileInfo.size }),
-          ...(fileInfo?.mimeType != null && { mimeType: fileInfo.mimeType }),
-          type:
-            fileInfo?.mimeType != null
-              ? getFileCategoryFromMime(fileInfo.mimeType)
-              : type === "photo"
-                ? "image"
-                : "video",
+          uri: normalizedUri,
+          ...(fileInfo?.size != null && fileInfo.size > 0
+            ? { size: fileInfo.size }
+            : {}),
+          mimeType: resolvedMime,
+          type: getFileCategoryFromMime(resolvedMime),
         },
       ]);
 
       clear();
     };
     loadCameraData();
-  }, [selectedSource, uri, type, clear]);
+  }, [uri, type, mimeType, clear]);
 
   const handleSave = async (): Promise<void> => {
     if (!canSave) return;

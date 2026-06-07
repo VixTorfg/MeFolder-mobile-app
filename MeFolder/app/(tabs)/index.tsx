@@ -13,6 +13,7 @@ import {
   AlbumEmptyState,
   FavoriteTagChip,
   PriorityTagCard,
+  TutorialPopup,
 } from "@/components";
 import { useAlbumDailyCovers, useTagsContent } from "@/hooks/tags";
 import { useHomeStyles } from "@/screenStyles";
@@ -22,6 +23,7 @@ import {
   useDeviceOrientation,
   useSinglePress,
   useTheme,
+  useTutorial,
 } from "@/hooks";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useServices } from "@/providers";
@@ -85,6 +87,7 @@ export default function HomeScreen() {
   const { services } = useServices();
   const { items, albums, loading } = useTagsContent();
   const { albumDailyCovers } = useAlbumDailyCovers(albums);
+  const tutorial = useTutorial({ autoShowIfUnseen: true });
   const {
     config: bentoConfig,
     pattern: dailyBentoPattern,
@@ -342,6 +345,8 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <TutorialPopup visible={tutorial.visible} onClose={tutorial.close} />
     </View>
   );
 }

@@ -64,6 +64,9 @@ export interface RegisterExistingMediaFile {
   folderId?: UUID | undefined;
   tagIds?: UUID[] | undefined;
   visibility?: CreateFileInput["visibility"] | undefined;
+  mediaWidth?: number | undefined;
+  mediaHeight?: number | undefined;
+  mediaDuration?: number | undefined;
 }
 
 export interface RegisterExistingFilesParams {
@@ -177,6 +180,13 @@ export class MediaImportService {
       tagIds: args.tagIds,
       ...(args.file.mimeType ? { mimeType: args.file.mimeType } : {}),
       ...(args.folderId ? { folderId: args.folderId } : {}),
+      ...(args.file.width !== undefined ? { mediaWidth: args.file.width } : {}),
+      ...(args.file.height !== undefined
+        ? { mediaHeight: args.file.height }
+        : {}),
+      ...(args.file.duration !== undefined
+        ? { mediaDuration: args.file.duration }
+        : {}),
     };
   }
 
@@ -275,6 +285,7 @@ export class MediaImportService {
     uri: string,
     fsInfo: FSFileInfo,
     fileMimeType?: string,
+    preCalc?: { width?: number; height?: number; duration?: number },
   ): Promise<FileMetadata> {
     const mimeType = fileMimeType || fsInfo.mimeType || "";
     const base: FileMetadata = {
@@ -285,6 +296,20 @@ export class MediaImportService {
 
     switch (category) {
       case "video": {
+        if (
+          preCalc?.width !== undefined &&
+          preCalc.height !== undefined &&
+          preCalc.duration !== undefined
+        ) {
+          return {
+            ...base,
+            videoMetadata: {
+              width: preCalc.width,
+              height: preCalc.height,
+              duration: preCalc.duration,
+            },
+          };
+        }
         const videoMeta = await this.media.getVideoMetadata(uri);
         if (videoMeta.success && videoMeta.data) {
           return { ...base, videoMetadata: videoMeta.data };
@@ -292,6 +317,9 @@ export class MediaImportService {
         return base;
       }
       case "audio": {
+        if (preCalc?.duration !== undefined) {
+          return { ...base, audioMetadata: { duration: preCalc.duration } };
+        }
         const audioMeta = await this.media.getAudioMetadata(uri);
         if (audioMeta.success && audioMeta.data) {
           return { ...base, audioMetadata: audioMeta.data };
@@ -299,6 +327,12 @@ export class MediaImportService {
         return base;
       }
       case "image": {
+        if (preCalc?.width !== undefined && preCalc.height !== undefined) {
+          return {
+            ...base,
+            imageMetadata: { width: preCalc.width, height: preCalc.height },
+          };
+        }
         const imageMeta = await this.media.getImageMetadata(uri);
         if (imageMeta.success && imageMeta.data) {
           return { ...base, imageMetadata: imageMeta.data };
@@ -387,6 +421,9 @@ export class MediaImportService {
     folderId?: UUID | undefined;
     tagIds?: UUID[] | undefined;
     visibility?: CreateFileInput["visibility"] | undefined;
+    mediaWidth?: number | undefined;
+    mediaHeight?: number | undefined;
+    mediaDuration?: number | undefined;
   }): Promise<FileModel> {
     const metadata = this.fs.getFileInfo(args.uri);
 
@@ -402,6 +439,13 @@ export class MediaImportService {
       args.uri,
       metadata.data,
       args.mimeType,
+      {
+        ...(args.mediaWidth !== undefined ? { width: args.mediaWidth } : {}),
+        ...(args.mediaHeight !== undefined ? { height: args.mediaHeight } : {}),
+        ...(args.mediaDuration !== undefined
+          ? { duration: args.mediaDuration }
+          : {}),
+      },
     );
 
     return await this.fileService.createFile({
