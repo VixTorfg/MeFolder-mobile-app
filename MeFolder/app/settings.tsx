@@ -19,6 +19,8 @@ import {
 } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useTutorial } from "@/hooks/useTutorial";
+import { TutorialPopup } from "@/components";
 
 const THEME_OPTIONS = [
   {
@@ -117,6 +119,7 @@ const SettingsScreen = () => {
     () => new DatabaseDebugExportService(),
     [],
   );
+  const tutorial = useTutorial();
   const appVersion = Constants.expoConfig?.version ?? "Desconocida";
   const [storageUsage, setStorageUsage] =
     useState<StorageUsageSummary>(EMPTY_STORAGE_USAGE);
@@ -308,6 +311,42 @@ const SettingsScreen = () => {
               }}
             />
           ))}
+        </View>
+
+        <View style={styles.sectionCard}>
+          <Text style={styles.sectionTitle}>Ayuda</Text>
+
+          <TouchableOpacity
+            style={({ pressed }) => [
+              styles.optionRow,
+              pressed && styles.optionRowPressed,
+            ]}
+            onPress={tutorial.open}
+            accessibilityRole="button"
+            accessibilityLabel="Ver tutorial de la app"
+          >
+            <View style={styles.optionRowContent}>
+              <View style={styles.optionIconWrapper}>
+                <MaterialCommunityIcons
+                  name="help-circle-outline"
+                  size={20}
+                  color={styles.iconColor.primaryColor}
+                />
+              </View>
+              <View style={styles.optionTextGroup}>
+                <Text style={styles.optionTitle}>Ver tutorial</Text>
+                <Text style={styles.optionDescription}>
+                  Repasa cómo funciona la app paso a paso.
+                </Text>
+              </View>
+            </View>
+
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={20}
+              color={styles.iconColor.color}
+            />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.sectionCard}>
@@ -525,6 +564,8 @@ const SettingsScreen = () => {
           </Text>
         </View>
       </CustomPopup>
+
+      <TutorialPopup visible={tutorial.visible} onClose={tutorial.close} />
     </View>
   );
 };
@@ -534,6 +575,10 @@ const useSettingsStyles = () => {
     container: {
       flex: 1,
       backgroundColor: theme.colors.background,
+    },
+    optionRowPressed: {
+      backgroundColor: theme.colors.primarySoft,
+      borderColor: theme.colors.primary,
     },
     header: {
       flexDirection: "row",

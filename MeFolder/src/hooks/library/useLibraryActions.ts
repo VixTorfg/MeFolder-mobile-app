@@ -8,6 +8,7 @@ import * as Sharing from "expo-sharing";
 import type { NewFile } from "@/components/ItemCreator/FileCreator";
 import type { NewFolder } from "@/components/ItemCreator/FolderCreator";
 import { FileService, FolderService } from "@/services";
+import { getFriendlyErrorMessage, getFriendlyImportError } from "@/utils";
 
 interface UseLibraryActionsParams {
   folderService: FolderService;
@@ -133,10 +134,13 @@ export const useLibraryActions = ({
                     "No se pudieron eliminar todos los elementos seleccionados",
                 });
               }
-            } catch {
+            } catch (error) {
               showAlert({
-                title: "Error",
-                message: "Ocurrió un error al intentar eliminar los elementos",
+                title: "Error al eliminar",
+                message: getFriendlyErrorMessage(
+                  error,
+                  "No se pudieron eliminar los elementos seleccionados.",
+                ),
               });
             }
           },
@@ -164,8 +168,11 @@ export const useLibraryActions = ({
               });
             } catch (error) {
               showAlert({
-                title: "Error",
-                message: `No se pudo marcar "${item.name}" como favorito: ${error}`,
+                title: "Error al marcar favorito",
+                message: getFriendlyErrorMessage(
+                  error,
+                  `No se pudo marcar "${item.name}" como favorito.`,
+                ),
               });
             }
           },
@@ -192,8 +199,8 @@ export const useLibraryActions = ({
 
       if (failed.length > 0) {
         showAlert({
-          title: "Error al guardar archivos",
-          message: `No se pudieron guardar los siguientes archivos:\n${failed.map((f) => `${f.name}: ${f.error}`).join("\n")}`,
+          title: "Error al importar archivos",
+          message: `No se pudieron importar los siguientes archivos:\n\n${failed.map((f) => `• ${f.name}: ${getFriendlyImportError(f.error)}`).join("\n")}`,
         });
       }
     } finally {
@@ -276,10 +283,13 @@ export const useLibraryActions = ({
                 updateItem(result);
               }
               setIsRenaming(false);
-            } catch {
+            } catch (error) {
               showAlert({
-                title: "Error",
-                message: "No se pudo renombrar el elemento",
+                title: "Error al renombrar",
+                message: getFriendlyErrorMessage(
+                  error,
+                  "No se pudo renombrar el elemento.",
+                ),
               });
             }
           },
@@ -315,10 +325,13 @@ export const useLibraryActions = ({
         ...createdFiles,
       ];
       setItems(newItems);
-    } catch {
+    } catch (error) {
       showAlert({
-        title: "Error",
-        message: "No se pudieron pegar los elementos",
+        title: "Error al pegar",
+        message: getFriendlyErrorMessage(
+          error,
+          "No se pudieron pegar los elementos.",
+        ),
       });
     } finally {
       setIsPasting(false);

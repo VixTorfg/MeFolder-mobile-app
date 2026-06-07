@@ -789,8 +789,8 @@ export class FolderService extends BaseService {
     const newFolder = await this.folderRepo.create({
       name,
       parentId,
-      type: sourceFolder.type,
-      visibility: sourceFolder.visibility,
+      type: "regular",
+      visibility: "public",
       viewSettings: sourceFolder.viewSettings,
       ...(sourceFolder.icon && { icon: sourceFolder.icon }),
       ...(sourceFolder.color && { color: sourceFolder.color }),
