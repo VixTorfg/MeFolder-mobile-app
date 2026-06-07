@@ -372,13 +372,6 @@ export default function TrashScreen() {
     } else {
       return (
         <>
-          <MultiActionButton
-            icon={"search-outline"}
-            backgroundColor="transparent"
-            iconColor={styles.iconColor.color}
-            size={42}
-            onPress={() => {}}
-          />
           {itemsSelected.length >= 1 && (
             <>
               <MultiActionButton

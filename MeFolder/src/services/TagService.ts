@@ -74,6 +74,8 @@ export class TagService extends BaseService {
    */
   async getTagsByIds(tagIds: UUID[]): Promise<TagModel[]> {
     try {
+      if (!tagIds || tagIds.length === 0) return [];
+
       this.ensureDbInitialized();
 
       const tags = await this.tagRepo.getTagsByIds(tagIds);

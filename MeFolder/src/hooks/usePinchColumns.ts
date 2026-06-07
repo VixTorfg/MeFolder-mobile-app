@@ -30,10 +30,11 @@ export const usePinchColumns = ({
 
   const commitColumns = useCallback(
     (newCols: number) => {
-      setColumns(newCols);
-      onColumnsChange?.(newCols);
+      const safe = Math.min(maxColumns, Math.max(minColumns, newCols));
+      setColumns(safe);
+      onColumnsChange?.(safe);
     },
-    [onColumnsChange],
+    [onColumnsChange, minColumns, maxColumns],
   );
 
   const pinchGesture = Gesture.Pinch()

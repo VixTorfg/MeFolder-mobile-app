@@ -76,13 +76,13 @@ const createServices = (): Services => {
   const folderService = new FolderService();
   const tagService = new TagService();
   const userColorService = new UserColorService();
-  const archiveService = new ArchiveService(fileService, folderService);
+  const mediaImportService = new MediaImportService(fileService, tagService);
+  const archiveService = new ArchiveService(fileService, folderService, mediaImportService);
   const albumArchiveService = new AlbumArchiveService(
     archiveService,
     tagService,
     fileService,
   );
-  const mediaImportService = new MediaImportService(fileService, tagService);
 
   console.log(`${APP_BOOT_LOG_PREFIX} Servicios creados`);
 

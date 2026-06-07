@@ -19,3 +19,4 @@ export * from "./gallery";
 export * from "./tags";
 export * from "./library";
 export * from "./trash";
+export * from "./useTutorial";

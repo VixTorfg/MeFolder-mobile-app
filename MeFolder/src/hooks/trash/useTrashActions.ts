@@ -3,6 +3,7 @@ import { useAlert, useServices } from "@/providers";
 import { useClipboardStore } from "@/stores";
 import { useTrashStore } from "@/stores/useTrashStore";
 import * as Sharing from "expo-sharing";
+import { getFriendlyErrorMessage } from "@/utils";
 
 export const useTrashActions = (
   itemsSelected: (FileModel | FolderModel)[],
@@ -35,18 +36,28 @@ export const useTrashActions = (
           onPress: async () => {
             const deletedIds = targetItems.map((item) => item.id);
 
-            for (const item of targetItems) {
-              if (item instanceof FolderModel) {
-                await folderService.permanentDeleteFolder(item.id);
-              } else {
-                await fileService.permanentDeleteFile(item.id);
+            try {
+              for (const item of targetItems) {
+                if (item instanceof FolderModel) {
+                  await folderService.permanentDeleteFolder(item.id);
+                } else {
+                  await fileService.permanentDeleteFile(item.id);
+                }
               }
-            }
 
-            clearIfContainsIds(deletedIds);
-            const newItems = items.filter((i) => !targetItems.includes(i));
-            setItems(newItems);
-            clearSelection();
+              clearIfContainsIds(deletedIds);
+              const newItems = items.filter((i) => !targetItems.includes(i));
+              setItems(newItems);
+              clearSelection();
+            } catch (error) {
+              showAlert({
+                title: "Error al eliminar",
+                message: getFriendlyErrorMessage(
+                  error,
+                  "No se pudieron eliminar los elementos seleccionados.",
+                ),
+              });
+            }
           },
         },
       ],
@@ -68,16 +79,26 @@ export const useTrashActions = (
             const foldersOnly = items.filter((i) => i instanceof FolderModel);
             const deletedIds = items.map((item) => item.id);
 
-            for (const file of filesOnly) {
-              await fileService.permanentDeleteFile(file.id);
-            }
-            for (const folder of foldersOnly) {
-              await folderService.permanentDeleteFolder(folder.id);
-            }
+            try {
+              for (const file of filesOnly) {
+                await fileService.permanentDeleteFile(file.id);
+              }
+              for (const folder of foldersOnly) {
+                await folderService.permanentDeleteFolder(folder.id);
+              }
 
-            clearIfContainsIds(deletedIds);
-            setItems([]);
-            clearSelection();
+              clearIfContainsIds(deletedIds);
+              setItems([]);
+              clearSelection();
+            } catch (error) {
+              showAlert({
+                title: "Error al vaciar papelera",
+                message: getFriendlyErrorMessage(
+                  error,
+                  "No se pudo vaciar la papelera.",
+                ),
+              });
+            }
           },
         },
       ],
@@ -98,19 +119,29 @@ export const useTrashActions = (
           onPress: async () => {
             const allRestoredIds = new Set<string>();
 
-            for (const item of targetItems) {
-              if (item instanceof FolderModel) {
-                const restoredIds = await folderService.restoreFolder(item.id);
-                restoredIds.forEach((id: string) => allRestoredIds.add(id));
-              } else {
-                const restoredIds = await fileService.restoreFile(item.id);
-                restoredIds.forEach((id: string) => allRestoredIds.add(id));
+            try {
+              for (const item of targetItems) {
+                if (item instanceof FolderModel) {
+                  const restoredIds = await folderService.restoreFolder(item.id);
+                  restoredIds.forEach((id: string) => allRestoredIds.add(id));
+                } else {
+                  const restoredIds = await fileService.restoreFile(item.id);
+                  restoredIds.forEach((id: string) => allRestoredIds.add(id));
+                }
               }
-            }
 
-            const newItems = items.filter((i) => !allRestoredIds.has(i.id));
-            setItems(newItems);
-            clearSelection();
+              const newItems = items.filter((i) => !allRestoredIds.has(i.id));
+              setItems(newItems);
+              clearSelection();
+            } catch (error) {
+              showAlert({
+                title: "Error al restaurar",
+                message: getFriendlyErrorMessage(
+                  error,
+                  "No se pudieron restaurar los elementos seleccionados.",
+                ),
+              });
+            }
           },
         },
       ],
@@ -205,8 +236,11 @@ export const useTrashActions = (
               });
             } catch (error) {
               showAlert({
-                title: "Error",
-                message: `No se pudo marcar "${item.name}" como favorito: ${error}`,
+                title: "Error al marcar favorito",
+                message: getFriendlyErrorMessage(
+                  error,
+                  `No se pudo marcar "${item.name}" como favorito.`,
+                ),
               });
             }
           },
@@ -259,10 +293,13 @@ export const useTrashActions = (
                 updateItem(result);
               }
               setIsRenaming(false);
-            } catch {
+            } catch (error) {
               showAlert({
-                title: "Error",
-                message: "No se pudo renombrar el elemento",
+                title: "Error al renombrar",
+                message: getFriendlyErrorMessage(
+                  error,
+                  "No se pudo renombrar el elemento.",
+                ),
               });
             }
           },

@@ -39,8 +39,9 @@ export const useTagContentStore = create<TagContentStore>((set) => ({
   },
 
   removeItems: (itemIds) => {
+    const idSet = new Set(itemIds);
     set((state) => ({
-      items: state.items.filter((item) => !itemIds.includes(item.id)),
+      items: state.items.filter((item) => !idSet.has(item.id)),
     }));
   },
 
