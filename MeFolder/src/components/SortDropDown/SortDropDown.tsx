@@ -1,7 +1,6 @@
-import { View, Text, Modal, Animated, useWindowDimensions } from "react-native";
+import { View, Text, Modal, Animated } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
-import { getResponsiveSize } from "@/utils/ui/responsive";
 import { MultiActionButton } from "../MultiActionButton";
 import { useRef, useState } from "react";
 import { useSortDropDownStyles } from "./styles";
@@ -24,8 +23,6 @@ export default function SortDropDown({
   defaultSortValue = "asc",
   defaultOrderByValue = "name",
 }: SortDropDownProps) {
-  const { width: screenWidth } = useWindowDimensions();
-  const responsive = getResponsiveSize(screenWidth);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const selectedSortValue = defaultSortValue;
@@ -51,7 +48,7 @@ export default function SortDropDown({
     { id: "desc", name: "Descendente", icon: "arrow-down-outline" },
   ];
 
-  const styles = useSortDropDownStyles(responsive);
+  const styles = useSortDropDownStyles();
 
   /**
    * Maneja el evento de presión del botón
@@ -147,7 +144,7 @@ export default function SortDropDown({
                   >
                     <Ionicons
                       name={option.icon}
-                      size={responsive.iconSize * 0.5}
+                      size={12}
                       style={[
                         styles.IconColor,
                         selectedOrderOption === option.id &&
@@ -169,7 +166,7 @@ export default function SortDropDown({
                   {selectedOrderOption === option.id && (
                     <Ionicons
                       name={"checkmark-circle"}
-                      size={responsive.iconSize * 0.42}
+                      size={10}
                       style={styles.checkmark}
                     />
                   )}
@@ -195,7 +192,7 @@ export default function SortDropDown({
                   >
                     <Ionicons
                       name={option.icon}
-                      size={responsive.iconSize * 0.5}
+                      size={12}
                       style={[
                         styles.IconColor,
                         selectedSortValue === option.id &&
@@ -217,7 +214,7 @@ export default function SortDropDown({
                   {selectedSortValue === option.id && (
                     <Ionicons
                       name={"checkmark-circle"}
-                      size={responsive.iconSize * 0.42}
+                      size={10}
                       style={styles.checkmark}
                     />
                   )}

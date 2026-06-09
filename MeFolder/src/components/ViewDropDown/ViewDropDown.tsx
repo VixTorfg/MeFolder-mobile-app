@@ -1,14 +1,6 @@
-import {
-  View,
-  Text,
-  Modal,
-  Animated,
-  Switch,
-  useWindowDimensions,
-} from "react-native";
+import { View, Text, Modal, Animated, Switch } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
-import { getResponsiveSize } from "@/utils/ui/responsive";
 import { useTheme } from "@/providers";
 import { MultiActionButton } from "../MultiActionButton";
 import { useRef, useState } from "react";
@@ -36,8 +28,6 @@ export default function ViewDropDown({
   viewOptions = { showExtension: true, showHiddenFiles: false },
   onViewOptionsChange,
 }: ViewDropDownProps = {}) {
-  const { width: screenWidth } = useWindowDimensions();
-  const responsive = getResponsiveSize(screenWidth);
   const { theme } = useTheme();
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const [showOptionsPanel, setShowOptionsPanel] = useState(false);
@@ -57,7 +47,7 @@ export default function ViewDropDown({
     { id: "grid", name: "Mosaico", icon: "grid-outline" },
   ];
 
-  const styles = useViewDropDownStyles(responsive);
+  const styles = useViewDropDownStyles();
 
   /**
    * Maneja el evento de presión del botón
@@ -138,7 +128,7 @@ export default function ViewDropDown({
                     >
                       <Ionicons
                         name="chevron-back-outline"
-                        size={responsive.iconSize * 0.45}
+                        size={11}
                         style={styles.IconColor}
                       />
                       <View style={styles.headerTextGroup}>
@@ -150,7 +140,7 @@ export default function ViewDropDown({
                     <View style={styles.itemIconWrapper}>
                       <Ionicons
                         name="text-outline"
-                        size={responsive.iconSize * 0.5}
+                        size={12}
                         style={styles.IconColor}
                       />
                     </View>
@@ -177,7 +167,7 @@ export default function ViewDropDown({
                     <View style={styles.itemIconWrapper}>
                       <Ionicons
                         name="eye-off-outline"
-                        size={responsive.iconSize * 0.5}
+                        size={12}
                         style={styles.IconColor}
                       />
                     </View>
@@ -226,7 +216,7 @@ export default function ViewDropDown({
                       >
                         <Ionicons
                           name={mode.icon}
-                          size={responsive.iconSize * 0.5}
+                          size={12}
                           style={[
                             styles.IconColor,
                             selectedViewMode === mode.id &&
@@ -248,7 +238,7 @@ export default function ViewDropDown({
                       {selectedViewMode === mode.id && (
                         <Ionicons
                           name={"checkmark-circle"}
-                          size={responsive.iconSize * 0.42}
+                          size={10}
                           style={styles.checkmark}
                         />
                       )}
@@ -261,7 +251,7 @@ export default function ViewDropDown({
                     <View style={styles.itemIconWrapper}>
                       <Ionicons
                         name="options-outline"
-                        size={responsive.iconSize * 0.5}
+                        size={12}
                         style={styles.IconColor}
                       />
                     </View>
@@ -270,7 +260,7 @@ export default function ViewDropDown({
                     </View>
                     <Ionicons
                       name="chevron-forward-outline"
-                      size={responsive.iconSize * 0.45}
+                      size={11}
                       style={styles.trailingIcon}
                     />
                   </TouchableOpacity>

@@ -1,11 +1,7 @@
 import { useStyles } from "@/hooks";
 import { cardShadow } from "@/constants/styles/shadows";
 
-export const useOptionDropDownStyles = (responsive: {
-  iconSize: number;
-  padding: number;
-  tabPadding: number;
-}) => {
+export const useOptionDropDownStyles = () => {
   return useStyles((theme) => ({
     modalOverlay: {
       flex: 1,
@@ -39,7 +35,7 @@ export const useOptionDropDownStyles = (responsive: {
     headerTextGroup: {},
     dropdownTitle: {
       fontFamily: theme.typography.fontFamily.title.semiBold,
-      fontSize: responsive.iconSize * 0.56,
+      fontSize: 14,
       color: theme.colors.textPrimary,
     },
     dropdownItem: {
@@ -83,7 +79,7 @@ export const useOptionDropDownStyles = (responsive: {
       flex: 1,
     },
     itemText: {
-      fontSize: responsive.iconSize / 2,
+      fontSize: 13,
       color: theme.colors.textPrimary,
       fontFamily: theme.typography.fontFamily.primary.medium,
     },

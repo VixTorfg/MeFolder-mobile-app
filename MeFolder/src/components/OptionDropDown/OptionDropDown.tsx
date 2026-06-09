@@ -1,7 +1,6 @@
-import { View, Text, Modal, Animated, useWindowDimensions } from "react-native";
+import { View, Text, Modal, Animated } from "react-native";
 import { TouchableOpacity } from "@/components/TouchableOpacity";
 import { Ionicons } from "@expo/vector-icons";
-import { getResponsiveSize } from "@/utils/ui/responsive";
 import { MultiActionButton } from "../MultiActionButton";
 import { useRef, useState } from "react";
 import { useOptionDropDownStyles } from "./styles";
@@ -23,8 +22,6 @@ export default function OptionDropDown({
   options: customOptions,
   onSelect,
 }: OptionDropDownProps = {}) {
-  const { width: screenWidth } = useWindowDimensions();
-  const responsive = getResponsiveSize(screenWidth);
   const [isDropdownVisible, setIsDropdownVisible] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
@@ -68,7 +65,7 @@ export default function OptionDropDown({
     OptionsIds.INVERT_SELECT,
   ]);
 
-  const styles = useOptionDropDownStyles(responsive);
+  const styles = useOptionDropDownStyles();
 
   /**
    * Maneja el evento de presión del botón
@@ -163,7 +160,7 @@ export default function OptionDropDown({
                   <View style={styles.itemIconWrapper}>
                     <Ionicons
                       name={option.icon}
-                      size={responsive.iconSize * 0.5}
+                      size={12}
                       style={styles.IconColor}
                     />
                   </View>
